@@ -1,5 +1,6 @@
 # Every push and pull request: type-check, lint and build.
-# Every push to main: also build the Docker image and publish it to GitHub Container Registry.
+# Every push to main: also build the Docker image and publish it to GitHub Container Registry,
+# then (once DEPLOY_URL and SITE_URL are set) tell the server to install it and wait until it's live.
 name: CI
 
 on:
@@ -62,5 +63,30 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: GIT_SHA=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Repository variables DEPLOY_URL (the deployer's address) and SITE_URL (the app's), and the secret DEPLOY_TOKEN.
+  # Without them this job is skipped, so forks and the open-source repo build fine.
+  deploy:
+    needs: image
+    if: vars.DEPLOY_URL != '' && vars.SITE_URL != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the server to install the new image
+        env:
+          DEPLOY_URL: ${{ vars.DEPLOY_URL }}
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          curl -fsS -X POST -H "Authorization: Bearer $DEPLOY_TOKEN" "$DEPLOY_URL/v1/update?image=ghcr.io/${{ github.repository }}&async=true"
+      - name: Wait until the site runs this commit
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          for i in $(seq 1 60); do
+            running=$(curl -fsS "$SITE_URL/api/version" | jq -r .commit) || running=unreachable
+            if [ "$running" = "$GITHUB_SHA" ]; then echo "Live: $GITHUB_SHA"; exit 0; fi
+            sleep 5
+          done
+          echo "After 5 minutes the site still runs: $running"; exit 1

@@ -30,6 +30,25 @@ The repo’s CI publishes a Docker image to `ghcr.io/roncanfil/chusay` (amd64 an
 
 The data lives in `/DATA/AppData/chusay/data`, with a copy of the database every night in `/DATA/AppData/chusay/backups` (kept 30 days).
 
+### Deploy on every push
+
+The compose file also runs a small deployer ([Watchtower](https://github.com/nicholas-fedor/watchtower) in HTTP API mode, pinned to a release). It never checks for updates on its own: it installs the newest Ch’usay image only when called with its token, and only touches the Ch’usay container. After publishing an image, CI calls it and waits until the site’s `/api/version` reports the new commit.
+
+1. Make a long random token (`openssl rand -hex 32`) and put it in the compose file as `WATCHTOWER_HTTP_API_TOKEN`.
+2. Give the deployer a hostname, e.g. a Cloudflare Tunnel route from `deploy.example.com` to host port `3211`.
+3. In the GitHub repo, set the variables and the secret:
+   ```bash
+   gh variable set SITE_URL --body https://trips.example.com
+   gh variable set DEPLOY_URL --body https://deploy.example.com
+   gh secret set DEPLOY_TOKEN   # paste the token
+   ```
+
+Without them CI still publishes the image and skips deploying.
+
+## Changing it with Claude
+
+The repo is set up for [Claude Code on the web](https://claude.ai/code) and the Code tab of the Claude mobile app: `CLAUDE.md` tells Claude how to check a change, push it to `main` and wait with `scripts/wait-for-deploy.sh` until it’s live, and `.claude/settings.json` installs dependencies when a web session starts. Each person connects their own GitHub account in Claude and needs write access to the repo.
+
 The app serves plain HTTP on port 3000 inside the container. For access from outside your network, put HTTPS in front (for example a Cloudflare Tunnel to the host port) and keep `APP_PASSWORD` set. Restrict the Google browser key to that address.
 
 ### Any Docker host

@@ -6,7 +6,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 // The browser asks once and remembers. Use HTTPS when it's reachable from outside your home network.
 export function proxy(req: NextRequest) {
   const password = process.env.APP_PASSWORD;
-  if (!password) return NextResponse.next();
+  if (!password || req.nextUrl.pathname === '/api/version') return NextResponse.next();
   const [scheme, encoded] = (req.headers.get('authorization') || '').split(' ');
   if (scheme === 'Basic' && encoded) {
     const [user, ...rest] = Buffer.from(encoded, 'base64').toString('utf8').split(':');

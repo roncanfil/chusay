@@ -1,5 +1,6 @@
 # Ch'usay for CasaOS: App Store → Custom Install → Import, then paste this file.
-# Before installing, set APP_PASSWORD (the shared login for the two of you); add Google keys if you have them.
+# Before installing, set APP_PASSWORD (the shared login for the two of you) and DEPLOY_TOKEN; add Google keys if you have them.
+# The deployer installs a new version when GitHub CI asks for it (see README: "Deploy on every push").
 name: chusay
 services:
   app:
@@ -26,6 +27,28 @@ services:
       - type: bind
         source: /DATA/AppData/chusay/backups
         target: /backups
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  # Updates only the app above, and only when called with the token: CI calls POST /v1/update after publishing.
+  # Point a Cloudflare Tunnel hostname (e.g. deploy.example.com) at host port 3211.
+  deployer:
+    image: nickfedor/watchtower:1.23.1
+    container_name: chusay-deployer
+    restart: unless-stopped
+    ports:
+      - target: 8080
+        published: "3211"
+        protocol: tcp
+    environment:
+      WATCHTOWER_HTTP_API_ENDPOINTS: update
+      WATCHTOWER_HTTP_API_TOKEN: change-me-to-a-long-random-token
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_CLEANUP: "true"
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
 
 x-casaos:
   architectures:
