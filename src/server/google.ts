@@ -1,0 +1,104 @@
+import 'server-only';
+import countries from 'i18n-iso-countries';
+import { categorize } from '@/lib/place-types';
+import type { DestinationResult, PlaceResult } from '@/lib/types';
+
+// Google finds places and draws maps. It never fills in the household's notes, ratings, prices or hours,
+// so every call asks only for the fields shown (cost also scales with the fields requested).
+const BASE = 'https://places.googleapis.com/v1';
+export const placesKey = () => process.env.GOOGLE_PLACES_SERVER_KEY || '';
+
+export class GoogleError extends Error {
+  constructor(public status: number, message: string) { super(message); }
+}
+
+interface AddressComponent { longText: string; shortText: string; types: string[] }
+export interface GPlace {
+  id: string;
+  displayName?: { text: string };
+  location?: { latitude: number; longitude: number };
+  primaryType?: string;
+  types?: string[];
+  addressComponents?: AddressComponent[];
+  formattedAddress?: string;
+  photos?: { name: string; authorAttributions?: { displayName: string; uri: string }[] }[];
+}
+
+async function google<T>(path: string, mask: string, body?: unknown): Promise<T> {
+  const key = placesKey();
+  if (!key) throw new GoogleError(501, 'GOOGLE_PLACES_SERVER_KEY is not set');
+  const res = await fetch(`${BASE}/${path}`, {
+    method: body ? 'POST' : 'GET',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': mask },
+    body: body ? JSON.stringify(body) : undefined,
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new GoogleError(502, `Google Places ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  return res.json() as Promise<T>;
+}
+
+const part = (p: GPlace, ...types: string[]) => {
+  for (const t of types) { const c = p.addressComponents?.find(a => a.types.includes(t)); if (c) return c; }
+};
+
+// a place search inside a destination, biased to the trip's center
+export function toPlaceResult(p: GPlace): PlaceResult {
+  const { cat, kind } = categorize(p.primaryType, p.types);
+  return {
+    placeId: p.id, name: p.displayName?.text || 'Unnamed place', cat, kind,
+    hood: part(p, 'neighborhood', 'sublocality_level_1', 'sublocality', 'locality')?.longText || '',
+    lat: p.location?.latitude ?? null, lng: p.location?.longitude ?? null,
+  };
+}
+export async function searchPlaces(q: string, near: { lat: number; lng: number } | null): Promise<PlaceResult[]> {
+  const out = await google<{ places?: GPlace[] }>('places:searchText', 'places.id,places.displayName,places.location,places.primaryType,places.types,places.addressComponents', {
+    textQuery: q, pageSize: 8, languageCode: 'en',
+    ...(near ? { locationBias: { circle: { center: { latitude: near.lat, longitude: near.lng }, radius: 20000 } } } : {}),
+  });
+  return (out.places || []).map(toPlaceResult);
+}
+
+// any city, region or country for + New
+export function toDestination(p: GPlace): DestinationResult | null {
+  const country = part(p, 'country');
+  if (!p.location || !country) return null;
+  return {
+    placeId: p.id, name: p.displayName?.text || country.longText, address: p.formattedAddress || '',
+    country: country.longText, cid: countries.alpha2ToNumeric(country.shortText) || '',
+    lat: p.location.latitude, lng: p.location.longitude,
+  };
+}
+export async function findDestinations(q: string): Promise<DestinationResult[]> {
+  const out = await google<{ places?: GPlace[] }>('places:searchText', 'places.id,places.displayName,places.location,places.addressComponents,places.formattedAddress', { textQuery: q, pageSize: 5, languageCode: 'en' });
+  return (out.places || []).map(toDestination).filter(d => !!d);
+}
+
+// A photo for a row, loaded by place id when the row is shown. Photo names can't be stored,
+// so they're only kept in memory for a few minutes to avoid asking twice for the same screen.
+export interface Photo { uri: string; author: string; authorUri: string }
+const photoCache = new Map<string, { at: number; photo: Photo | null }>();
+const PHOTO_TTL = 10 * 60 * 1000;
+export async function photoFor(placeId: string, maxWidthPx = 240): Promise<Photo | null> {
+  const hit = photoCache.get(placeId);
+  if (hit && Date.now() - hit.at < PHOTO_TTL) return hit.photo;
+  const place = await google<GPlace>(`places/${encodeURIComponent(placeId)}`, 'photos');
+  const first = place.photos?.[0];
+  let photo: Photo | null = null;
+  if (first) {
+    const res = await fetch(`${BASE}/${first.name}/media?maxWidthPx=${maxWidthPx}&skipHttpRedirect=true&key=${placesKey()}`, { cache: 'no-store' });
+    if (!res.ok) throw new GoogleError(502, `Google photo ${res.status}`);
+    const { photoUri } = await res.json() as { photoUri: string };
+    const by = first.authorAttributions?.[0];
+    photo = { uri: photoUri, author: by?.displayName || '', authorUri: by?.uri || '' };
+  }
+  photoCache.set(placeId, { at: Date.now(), photo });
+  return photo;
+}
+
+// JSON for a route handler; Google failures become a status the browser can fall back on
+export async function respond(fn: () => Promise<unknown>, headers?: HeadersInit) {
+  try { return Response.json(await fn(), { headers }); } catch (e) {
+    if (!(e instanceof GoogleError && e.status === 501)) console.error(e);
+    return Response.json({ error: e instanceof Error ? e.message : 'Google request failed' }, { status: e instanceof GoogleError ? e.status : 500 });
+  }
+}

@@ -1,0 +1,68 @@
+# Every push and pull request: type-check, lint and build.
+# Every push to main: also build the Docker image and publish it to GitHub Container Registry.
+# The server picks the new image up by itself within 5 minutes (deploy/update.sh), so GitHub
+# never needs credentials for the server.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx next typegen
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npm run build
+
+  image:
+    needs: check
+    # only for this repo's main branch, never for pull requests or forks
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'roncanfil/chusay'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+            type=sha
+      # the app compiles once on the runner; only the small runtime layer is per platform (see Dockerfile)
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

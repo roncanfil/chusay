@@ -1,0 +1,16 @@
+# Try the image locally: builds from source and serves on http://localhost:3000 (no HTTPS or password).
+# For a real server use deploy/ (see README).
+services:
+  chusay:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      DATABASE_PATH: /data/chusay.db
+    volumes:
+      - chusay-data:/data
+
+volumes:
+  chusay-data:
