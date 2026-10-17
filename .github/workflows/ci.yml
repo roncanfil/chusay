@@ -1,7 +1,5 @@
 # Every push and pull request: type-check, lint and build.
 # Every push to main: also build the Docker image and publish it to GitHub Container Registry.
-# The server picks the new image up by itself within 5 minutes (deploy/update.sh), so GitHub
-# never needs credentials for the server.
 name: CI
 
 on:

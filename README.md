@@ -20,7 +20,7 @@ The SQLite file is created at `./data/chusay.db` on first start (override with `
 
 ## Deploy on your own server
 
-The repo’s CI publishes a Docker image to `ghcr.io/roncanfil/chusay` (amd64 and arm64) on every push to `main`. Two ways to run it:
+The repo’s CI publishes a Docker image to `ghcr.io/roncanfil/chusay` (amd64 and arm64) on every push to `main`.
 
 ### CasaOS
 
@@ -28,45 +28,21 @@ The repo’s CI publishes a Docker image to `ghcr.io/roncanfil/chusay` (amd64 an
 2. Change `APP_PASSWORD` (the shared login; the username is `APP_USER`, `us` by default) and add Google keys if you have them. Pick another host port than `3210` if it’s taken.
 3. Install, then open the app from the CasaOS dashboard.
 
-What it sets up:
+The data lives in `/DATA/AppData/chusay/data`, with a copy of the database every night in `/DATA/AppData/chusay/backups` (kept 30 days).
 
-- the app, with its data in `/DATA/AppData/chusay/data` and a database copy every night in `/DATA/AppData/chusay/backups` (kept 30 days);
-- a small updater ([Watchtower](https://github.com/nicholas-fedor/watchtower), pinned to a release) that checks for a new image every 5 minutes and replaces only the Ch’usay container. It needs the Docker socket, like any container updater.
+The app serves plain HTTP on port 3000 inside the container. For access from outside your network, put HTTPS in front (for example a Cloudflare Tunnel to the host port) and keep `APP_PASSWORD` set. Restrict the Google browser key to that address.
 
-The app is served over plain HTTP on your network. To reach it from outside, put HTTPS in front (a reverse proxy such as Nginx Proxy Manager, a Cloudflare Tunnel, or Tailscale) and keep `APP_PASSWORD` set. Restrict the Google browser key to the address you use.
-
-### Ubuntu with Docker
-
-On an Ubuntu server, get the `deploy/` folder (no git needed):
+### Any Docker host
 
 ```bash
-curl -fsSL https://github.com/roncanfil/chusay/archive/refs/heads/main.tar.gz | tar xz --strip-components=1 chusay-main/deploy
+docker run -d --name chusay -p 3210:3000 -v chusay-data:/data -e APP_PASSWORD=change-me ghcr.io/roncanfil/chusay:latest
 ```
-
-and run:
-
-```bash
-sudo ./deploy/install.sh
-```
-
-It installs Docker if needed, asks for your domain, a shared username and password, and optional Google keys, then starts:
-
-- the app, with its database on a Docker volume;
-- [Caddy](https://caddyserver.com) in front, with automatic HTTPS and the shared password (the app itself has no accounts);
-- a timer that checks for a new image every 5 minutes and restarts the app only when there is one (`journalctl -u chusay-update`);
-- a nightly copy of the database in `/opt/chusay/backups`, kept for 30 days (made by the app). Copy those off the server now and then.
-
-Before running it: point a DNS A record for your domain at the server, and make sure ports 80 and 443 reach it (forward them on your router if the server is at home). Settings live in `/opt/chusay/.env`; after editing, run `cd /opt/chusay && docker compose up -d`.
-
-Running your own fork: CI publishes to `ghcr.io/<you>/<repo>` once you change the `github.repository` check in `.github/workflows/ci.yml`, and `CHUSAY_IMAGE` in `/opt/chusay/.env` tells the server which image to follow. A private repo’s image is private too: the installer asks for a GitHub token with `read:packages` to pull it.
-
-To try the image without Caddy: `docker compose up -d --build` with the root `docker-compose.yml` serves it on port 3000.
 
 ### Settings
 
 | Variable | What it does |
 | --- | --- |
-| `APP_PASSWORD`, `APP_USER` | Shared login for the whole site, built into the app (off when empty). The Ubuntu setup uses Caddy’s login instead. |
+| `APP_PASSWORD`, `APP_USER` | Shared login for the whole site, built into the app (off when empty). |
 | `BACKUP_DIR`, `BACKUP_KEEP_DAYS` | Copy the database into this folder every day and keep this many days. |
 | `DEMO_MODE` | `true` starts a new database with sample trips and shows **Reset sample data**. |
 | `DATABASE_PATH` | Where the SQLite file lives (`/data/chusay.db` in the image). |
@@ -74,7 +50,7 @@ To try the image without Caddy: `docker compose up -d --build` with the root `do
 
 ## CI
 
-`.github/workflows/ci.yml` type-checks, lints and builds every push and pull request. Pushes to `main` also build the image for `linux/amd64` and `linux/arm64` and publish it, tagged `latest` and with the commit. The server pulls it by itself, so GitHub never holds credentials for the server.
+`.github/workflows/ci.yml` type-checks, lints and builds every push and pull request. Pushes to `main` also build the image for `linux/amd64` and `linux/arm64` and publish it, tagged `latest` and with the commit.
 
 ## Stack
 

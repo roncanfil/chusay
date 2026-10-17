@@ -1,6 +1,5 @@
 # Ch'usay for CasaOS: App Store → Custom Install → Import, then paste this file.
 # Before installing, set APP_PASSWORD (the shared login for the two of you); add Google keys if you have them.
-# The updater installs each new version within 5 minutes of a push to main; it only touches Ch'usay.
 name: chusay
 services:
   app:
@@ -27,21 +26,6 @@ services:
       - type: bind
         source: /DATA/AppData/chusay/backups
         target: /backups
-    labels:
-      com.centurylinklabs.watchtower.enable: "true"
-
-  updater:
-    image: nickfedor/watchtower:1.23.1
-    container_name: chusay-updater
-    restart: unless-stopped
-    environment:
-      WATCHTOWER_LABEL_ENABLE: "true"
-      WATCHTOWER_POLL_INTERVAL: "300"
-      WATCHTOWER_CLEANUP: "true"
-    volumes:
-      - type: bind
-        source: /var/run/docker.sock
-        target: /var/run/docker.sock
 
 x-casaos:
   architectures:

@@ -1,5 +1,5 @@
 # Try the image locally: builds from source and serves on http://localhost:3000 (no HTTPS or password).
-# For a real server use deploy/ (see README).
+# For CasaOS use casaos/docker-compose.yml (see README).
 services:
   chusay:
     build: .
