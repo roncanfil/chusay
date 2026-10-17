@@ -1,8 +1,0 @@
-[Unit]
-Description=Back up the Ch'usay database
-After=docker.service
-
-[Service]
-Type=oneshot
-WorkingDirectory=/opt/chusay
-ExecStart=/opt/chusay/backup.sh

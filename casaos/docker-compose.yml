@@ -1,0 +1,66 @@
+# Ch'usay for CasaOS: App Store → Custom Install → Import, then paste this file.
+# Before installing, set APP_PASSWORD (the shared login for the two of you); add Google keys if you have them.
+# The updater installs each new version within 5 minutes of a push to main; it only touches Ch'usay.
+name: chusay
+services:
+  app:
+    image: ghcr.io/roncanfil/chusay:latest
+    container_name: chusay
+    restart: unless-stopped
+    ports:
+      - target: 3000
+        published: "3210"
+        protocol: tcp
+    environment:
+      APP_USER: us
+      APP_PASSWORD: change-me
+      DEMO_MODE: "false"
+      BACKUP_DIR: /backups
+      BACKUP_KEEP_DAYS: "30"
+      GOOGLE_MAPS_BROWSER_KEY: ""
+      GOOGLE_MAPS_MAP_ID: ""
+      GOOGLE_PLACES_SERVER_KEY: ""
+    volumes:
+      - type: bind
+        source: /DATA/AppData/chusay/data
+        target: /data
+      - type: bind
+        source: /DATA/AppData/chusay/backups
+        target: /backups
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  updater:
+    image: nickfedor/watchtower:1.23.1
+    container_name: chusay-updater
+    restart: unless-stopped
+    environment:
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_POLL_INTERVAL: "300"
+      WATCHTOWER_CLEANUP: "true"
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: app
+  author: roncanfil
+  developer: roncanfil
+  category: Utilities
+  icon: https://raw.githubusercontent.com/roncanfil/chusay/main/casaos/icon.png
+  index: /
+  port_map: "3210"
+  scheme: http
+  title:
+    en_us: Ch'usay
+  tagline:
+    en_us: Trip planner for your household
+  description:
+    en_us: Plan the next trip, collect ideas for places you have no dates for yet, and keep every past trip. Shared by everyone in the household, with one login.
+  tips:
+    before_install:
+      en_us: Change APP_PASSWORD before installing; it's the login for everyone in the household. Your trips are stored in /DATA/AppData/chusay/data and backed up nightly to /DATA/AppData/chusay/backups.

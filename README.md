@@ -20,7 +20,30 @@ The SQLite file is created at `./data/chusay.db` on first start (override with `
 
 ## Deploy on your own server
 
-The repo’s CI publishes a Docker image to `ghcr.io/roncanfil/chusay` on every push to `main`. On an Ubuntu server, copy the `deploy/` folder over (or clone the repo) and run:
+The repo’s CI publishes a Docker image to `ghcr.io/roncanfil/chusay` (amd64 and arm64) on every push to `main`. Two ways to run it:
+
+### CasaOS
+
+1. In CasaOS: **App Store → Custom Install → Import**, and paste [`casaos/docker-compose.yml`](casaos/docker-compose.yml).
+2. Change `APP_PASSWORD` (the shared login; the username is `APP_USER`, `us` by default) and add Google keys if you have them. Pick another host port than `3210` if it’s taken.
+3. Install, then open the app from the CasaOS dashboard.
+
+What it sets up:
+
+- the app, with its data in `/DATA/AppData/chusay/data` and a database copy every night in `/DATA/AppData/chusay/backups` (kept 30 days);
+- a small updater ([Watchtower](https://github.com/nicholas-fedor/watchtower), pinned to a release) that checks for a new image every 5 minutes and replaces only the Ch’usay container. It needs the Docker socket, like any container updater.
+
+The app is served over plain HTTP on your network. To reach it from outside, put HTTPS in front (a reverse proxy such as Nginx Proxy Manager, a Cloudflare Tunnel, or Tailscale) and keep `APP_PASSWORD` set. Restrict the Google browser key to the address you use.
+
+### Ubuntu with Docker
+
+On an Ubuntu server, get the `deploy/` folder (no git needed):
+
+```bash
+curl -fsSL https://github.com/roncanfil/chusay/archive/refs/heads/main.tar.gz | tar xz --strip-components=1 chusay-main/deploy
+```
+
+and run:
 
 ```bash
 sudo ./deploy/install.sh
@@ -31,13 +54,23 @@ It installs Docker if needed, asks for your domain, a shared username and passwo
 - the app, with its database on a Docker volume;
 - [Caddy](https://caddyserver.com) in front, with automatic HTTPS and the shared password (the app itself has no accounts);
 - a timer that checks for a new image every 5 minutes and restarts the app only when there is one (`journalctl -u chusay-update`);
-- a nightly backup of the database into `/opt/chusay/backups`, kept for 30 days. Copy those off the server now and then.
+- a nightly copy of the database in `/opt/chusay/backups`, kept for 30 days (made by the app). Copy those off the server now and then.
 
 Before running it: point a DNS A record for your domain at the server, and make sure ports 80 and 443 reach it (forward them on your router if the server is at home). Settings live in `/opt/chusay/.env`; after editing, run `cd /opt/chusay && docker compose up -d`.
 
 Running your own fork: CI publishes to `ghcr.io/<you>/<repo>` once you change the `github.repository` check in `.github/workflows/ci.yml`, and `CHUSAY_IMAGE` in `/opt/chusay/.env` tells the server which image to follow. A private repo’s image is private too: the installer asks for a GitHub token with `read:packages` to pull it.
 
 To try the image without Caddy: `docker compose up -d --build` with the root `docker-compose.yml` serves it on port 3000.
+
+### Settings
+
+| Variable | What it does |
+| --- | --- |
+| `APP_PASSWORD`, `APP_USER` | Shared login for the whole site, built into the app (off when empty). The Ubuntu setup uses Caddy’s login instead. |
+| `BACKUP_DIR`, `BACKUP_KEEP_DAYS` | Copy the database into this folder every day and keep this many days. |
+| `DEMO_MODE` | `true` starts a new database with sample trips and shows **Reset sample data**. |
+| `DATABASE_PATH` | Where the SQLite file lives (`/data/chusay.db` in the image). |
+| `GOOGLE_MAPS_BROWSER_KEY`, `GOOGLE_MAPS_MAP_ID`, `GOOGLE_PLACES_SERVER_KEY` | Turn on Google Maps, search and photos. |
 
 ## CI
 

@@ -18,7 +18,7 @@ RUN npm run build
 FROM node:22-bookworm-slim AS run
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 DATABASE_PATH=/data/chusay.db
-RUN mkdir -p /data /backups && chown node:node /data /backups
+RUN mkdir -p /data && chown node:node /data
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
@@ -26,8 +26,11 @@ COPY --from=build --chown=node:node /app/public ./public
 COPY --from=build --chown=node:node /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
 # next/image isn't used, and sharp's binaries are for the build platform only
 RUN rm -rf node_modules/sharp node_modules/@img
-USER node
+COPY docker-entrypoint.sh /usr/local/bin/chusay-entrypoint
+# starts as root only to fix ownership of mounted folders, then runs the app as the node user
+ENTRYPOINT ["chusay-entrypoint"]
 VOLUME /data
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD ["node", "-e", "fetch('http://127.0.0.1:3000/api/config').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+# logs in with APP_USER/APP_PASSWORD when the built-in password is on
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD ["node", "-e", "const p = process.env.APP_PASSWORD, h = p ? { authorization: 'Basic ' + btoa((process.env.APP_USER || 'us') + ':' + p) } : {}; fetch('http://127.0.0.1:3000/api/config', { headers: h }).then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
 CMD ["node", "server.js"]

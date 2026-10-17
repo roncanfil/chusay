@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sets up Ch'usay on an Ubuntu server: Docker, the app behind HTTPS with one shared password,
-# updates every 5 minutes from the image GitHub builds, and nightly database backups.
+# updates every 5 minutes from the image GitHub builds, and nightly database backups (done by the app).
 # Run from a copy of this deploy folder:  sudo ./install.sh   (safe to run again)
 set -euo pipefail
 
@@ -22,9 +22,8 @@ docker compose version > /dev/null || { echo "Docker Compose v2 is missing; inst
 
 say "2/6 Files in $DIR"
 mkdir -p "$DIR/backups"
-chown 1000:1000 "$DIR/backups" # the app runs as the image's node user (uid 1000)
 install -m 644 "$HERE/docker-compose.yml" "$HERE/Caddyfile" "$DIR/"
-install -m 755 "$HERE/update.sh" "$HERE/backup.sh" "$DIR/"
+install -m 755 "$HERE/update.sh" "$DIR/"
 
 say "3/6 Settings"
 if [ -f "$DIR/.env" ]; then
@@ -76,10 +75,10 @@ else
   echo "ufw isn't active; make sure ports 80 and 443 reach this server (and forward them on your router if it's at home)."
 fi
 
-say "6/6 Start, automatic updates and backups"
-install -m 644 "$HERE"/systemd/chusay-*.service "$HERE"/systemd/chusay-*.timer /etc/systemd/system/
+say "6/6 Start and automatic updates"
+install -m 644 "$HERE"/systemd/chusay-update.service "$HERE"/systemd/chusay-update.timer /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now chusay-update.timer chusay-backup.timer
+systemctl enable --now chusay-update.timer
 (cd "$DIR" && docker compose up -d)
 
 DOMAIN=$(grep -E '^DOMAIN=' "$DIR/.env" | cut -d= -f2-)
