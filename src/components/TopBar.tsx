@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { clearViews } from '@/lib/map/panzoom';
 import { resetData, toast, useConfig, useToast } from '@/lib/store';
 
@@ -67,5 +67,22 @@ export function PocNote() {
 
 export function Toaster() {
   const t = useToast();
-  return t && <div key={t.n} className="toast" role="status">{t.msg}</div>;
+  return t && <div key={t.n} className="toast" role="status" data-out={t.out || undefined}>{t.msg}</div>;
+}
+
+// when the system flips light/dark, switch colors at once instead of fading every element together
+export function InstantThemeSwitch() {
+  useEffect(() => {
+    const mql = matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => {
+      const style = document.createElement('style');
+      style.textContent = '*,*::before,*::after{transition:none !important}';
+      document.head.append(style);
+      void document.body.offsetHeight; // commit the new colors while transitions are off
+      requestAnimationFrame(() => requestAnimationFrame(() => style.remove()));
+    };
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+  return null;
 }

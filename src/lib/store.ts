@@ -148,10 +148,14 @@ export function openDisc(key: string) {
 export const toggleMapHidden = () => session.set({ ...session.get(), mapHidden: !session.get().mapHidden });
 
 /* ---------- toast ---------- */
-const toastStore = createStore<{ msg: string; n: number } | null>(() => null, null);
+const toastStore = createStore<{ msg: string; n: number; out?: boolean } | null>(() => null, null);
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 export const useToast = toastStore.use;
 export function toast(msg: string) {
   toastStore.set({ msg, n: (toastStore.get()?.n ?? 0) + 1 });
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => toastStore.set(null), 2600);
+  // fade out briefly before it goes, so it doesn't just vanish
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => {
+    toastStore.set({ ...toastStore.get()!, out: true });
+    toastTimer = setTimeout(() => toastStore.set(null), 150);
+  }, 2600);
 }

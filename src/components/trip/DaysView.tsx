@@ -30,7 +30,7 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
   useEffect(() => {
     const root = daysRef.current; if (!root) return;
     const made: Sortable[] = [];
-    const common = { animation: 150, delay: 150, delayOnTouchOnly: true, preventOnFilter: false };
+    const common = { animation: 150, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', delay: 150, delayOnTouchOnly: true, preventOnFilter: false };
     root.querySelectorAll<HTMLElement>('.subway').forEach(ol => made.push(Sortable.create(ol, {
       ...common, group: { name: 'day', put: true, pull: true }, draggable: '.stn', filter: 'button,input,textarea,a,[data-nodrag]',
       onAdd(evt) {
