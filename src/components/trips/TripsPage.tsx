@@ -108,7 +108,7 @@ export function TripsPage() {
   return (
     <div className="wrap">
       <div className="page-head">
-        <div><h1>Our trips</h1><p className="muted">Plan the next one, collect ideas for someday, and keep every trip before.</p></div>
+        <div><h1>Our Trips TEST TEXT</h1><p className="muted">Plan the next one, collect ideas for someday, and keep every trip before.</p></div>
         <button type="button" className="btn primary" onClick={() => setNewOpen(o => !o)}>{newOpen ? 'Cancel' : '+ New'}</button>
       </div>
       {newOpen && <NewTripForm onDone={() => setNewOpen(false)} />}
