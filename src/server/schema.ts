@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS ideas (
   tags            TEXT NOT NULL DEFAULT '[]', -- JSON
   note            TEXT NOT NULL DEFAULT '',   -- the household's own text, never from Google
   source          TEXT NOT NULL DEFAULT '',   -- a URL, or who recommended it
+  price           TEXT NOT NULL DEFAULT '',   -- stays: the price as typed or shown by the booking link
+  image           TEXT NOT NULL DEFAULT '',   -- stays: the listing's preview picture URL
   position        INTEGER NOT NULL DEFAULT 0, -- keeps the list in the order ideas were saved
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );

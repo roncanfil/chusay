@@ -24,6 +24,9 @@ const MIGRATIONS: string[] = [
   INSERT INTO country_status_new (country_code, status) SELECT country_code, status FROM country_status;
   DROP TABLE country_status;
   ALTER TABLE country_status_new RENAME TO country_status;`,
+  // 2: stays saved from a booking-site link keep its price and preview picture
+  `ALTER TABLE ideas ADD COLUMN price TEXT NOT NULL DEFAULT '';
+  ALTER TABLE ideas ADD COLUMN image TEXT NOT NULL DEFAULT '';`,
 ];
 
 function migrate(d: Database.Database) {

@@ -1,7 +1,7 @@
 import { kindOf } from './kinds';
 import { searchCatalog } from './picks';
 import { tripCenter } from './trips';
-import type { CatalogPlace, DestinationHit, DestinationResult, PlaceResult, Trip } from './types';
+import type { CatalogPlace, DestinationHit, DestinationResult, PlaceResult, StayPreview, Trip } from './types';
 
 // keep only what identifies a sample place, like a Google result
 export const fromCatalog = (p: CatalogPlace): PlaceResult => ({ name: p.name, cat: p.cat, kind: kindOf(p), hood: p.hood, lat: p.lat ?? null, lng: p.lng ?? null });
@@ -24,3 +24,6 @@ export async function findPlaces(t: Trip, q: string, google: boolean): Promise<P
 // a trip's destination: list matches while typing, then look up the picked one's center and country
 export const findDestinations = (q: string, session: string) => getJSON<DestinationHit[]>(`/api/places/destinations?${new URLSearchParams({ q, session })}`);
 export const destinationOf = (id: string, session: string) => getJSON<DestinationResult | null>(`/api/places/destinations?${new URLSearchParams({ id, session })}`);
+
+// what a booking-site link shares about a stay (picture, name, price, location); often only part of it
+export const previewStay = (url: string) => getJSON<StayPreview>(`/api/stays/preview?${new URLSearchParams({ url })}`);

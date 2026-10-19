@@ -187,7 +187,7 @@ function StopItem({ t, k, s, ui, set }: { t: Trip; k: number; s: Stop; ui: TripU
   return (
     <li className={`stn ${sel ? 'sel' : ''}`} data-day={k} data-stop={s.id} data-idea={i!.id} style={vars({ '--cc': CATS[i!.cat].color })} onClick={pick}>
       <span className="rail"><span className="station" /></span>
-      <span className="nm"><Pic p={i!} /><span className="tx"><b>{i!.name}</b><small><KindIcon p={i!} />{kindLabel(i!)}{i!.hood ? ' · ' + i!.hood : ''}</small>{i!.note && <span className="note">{i!.note}</span>}<SrcChip v={i!.source} /></span></span>
+      <span className="nm"><Pic p={i!} /><span className="tx"><b>{i!.name}</b><small><KindIcon p={i!} />{kindLabel(i!)}{i!.price ? ' · ' + i!.price : ''}{i!.hood ? ' · ' + i!.hood : ''}</small>{i!.note && <span className="note">{i!.note}</span>}<SrcChip v={i!.source} /></span></span>
       <span className="time num">{s.time || null}</span>
       {sel && <div className="stn-more" data-nodrag>
         <IdeaNote t={t} i={i!} />

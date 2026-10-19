@@ -36,6 +36,17 @@ export interface Idea extends PlaceLike {
   note: string;
   tags: string[];
   source?: string;
+  price?: string; // stays: what the listing asked, as the household typed or the link showed it
+  image?: string; // stays: the listing's own preview picture, by URL (never stored as a file)
+}
+
+// What a booking-site link could tell about a stay; anything missing is filled in by hand.
+export interface StayPreview {
+  name: string;
+  image: string;
+  price: string;
+  lat: number | null;
+  lng: number | null;
 }
 
 // A search result to save as an idea: only what identifies the place, nothing else from Google.

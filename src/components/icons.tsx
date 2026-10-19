@@ -20,13 +20,15 @@ export function KindIcon({ p, cls = 'ic-sm' }: { p: PlaceLike; cls?: string }) {
   return <span className={cls} style={vars({ '--cc': CATS[p.cat].color })} aria-hidden="true"><svg viewBox="0 0 24 24" {...stroke} strokeWidth="2"><path d={kindPath(p)} /></svg></span>;
 }
 
-type Photographed = PlaceLike & { placeId?: string };
+type Photographed = PlaceLike & { placeId?: string; image?: string };
 
-// list thumbnail: the Google place photo (a drawing for sample places), or the category icon if photos are off
+// list thumbnail: a stay's listing picture, the Google place photo (a drawing for sample places), or the category icon if photos are off
 export function Pic({ p }: { p: Photographed }) {
   const S = useAppState(), cfg = useConfig();
-  const on = S?.prefs.photos !== false, photo = usePhoto(p.placeId, on && !!cfg?.places);
+  const on = S?.prefs.photos !== false, photo = usePhoto(p.placeId, on && !!cfg?.places && !p.image);
   if (!on) return <CatIcon cat={p.cat} />;
+  // eslint-disable-next-line @next/next/no-img-element
+  if (p.image) return <span className="ph"><img src={p.image} alt={`Picture of ${p.name}`} loading="lazy" referrerPolicy="no-referrer" /></span>;
   if (photo) {
     // a remote Google photo of unknown size; next/image would add nothing here
     // eslint-disable-next-line @next/next/no-img-element

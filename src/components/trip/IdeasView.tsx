@@ -9,9 +9,10 @@ import { searchCatalog, suggestions } from '@/lib/picks';
 import { uid } from '@/lib/seed';
 import { fromCatalog, findPlaces } from '@/lib/search';
 import { editTrip, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
-import { isSomeday, scheduledDay } from '@/lib/trips';
+import { isSomeday, isUrl, scheduledDay } from '@/lib/trips';
 import type { Cat, Idea, Pace, PlaceResult, Prefs, Trip } from '@/lib/types';
 import { IdeaCat, IdeaNote, IdeaSource, MapsLink } from './fields';
+import { StayFields, StayForm } from './stays';
 import { pan, type SetUI, type TabProps, type TripUI } from './ui';
 
 const TRY = ['pastries', 'fado', 'museum', 'viewpoint', 'hotel', 'market', 'tacos', 'temple', 'riad', 'garden'];
@@ -23,6 +24,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
   const S = useAppState()!, view = useView(), google = !!useConfig()?.places;
   const [query, setQuery] = useState('');
   const [manual, setManual] = useState<string | null>(null); // the name typed so far, when adding by hand
+  const [stayUrl, setStayUrl] = useState<string | null>(null); // a pasted booking-site link being saved as a stay
   const searchSeq = useRef(0);
 
   const counts: Record<string, number> = { all: t.ideas.length };
@@ -42,8 +44,13 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
       if (n === searchSeq.current) set({ search: { q, loading: false, results: [], error: 'Search isn’t working right now.' } });
     }
   }
-  function openAdd() { setQuery(''); setManual(null); searchSeq.current++; set({ adding: true, search: null }); }
-  function closeAdd() { setManual(null); searchSeq.current++; set({ adding: false, search: null }); }
+  function openAdd() { setQuery(''); setManual(null); setStayUrl(null); searchSeq.current++; set({ adding: true, search: null }); }
+  function closeAdd() { setManual(null); setStayUrl(null); searchSeq.current++; set({ adding: false, search: null }); }
+  // a link is a stay from a booking site; anything else is a place search
+  function submit(q: string) {
+    if (isUrl(q)) { searchSeq.current++; setManual(null); set({ search: null }); setStayUrl(q.trim()); setQuery(''); }
+    else { setStayUrl(null); runSearch(q); }
+  }
   // keep only what identifies the place; notes are yours to write
   function addPlace(p: PlaceResult, tags: string[] = []) {
     editTrip(t.id, tt => { tt.ideas.push({ id: uid(), ...(p.placeId ? { placeId: p.placeId } : {}), name: p.name, cat: p.cat, kind: p.kind, hood: p.hood, lat: p.lat, lng: p.lng, tags: [...tags], note: '' }); });
@@ -62,12 +69,13 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
 
   const searchBox = ui.adding && (
     <div className="group searchbox">
-      <form className="search row" role="search" onSubmit={e => { e.preventDefault(); runSearch(query); }}>
-        <input className="input" value={query} onChange={e => setQuery(e.target.value)} autoFocus placeholder={`Search places in ${t.dest.name}`} autoComplete="off" />
+      <form className="search row" role="search" onSubmit={e => { e.preventDefault(); submit(query); }}>
+        <input className="input" value={query} onChange={e => setQuery(e.target.value)} autoFocus placeholder={`Search places in ${t.dest.name}, or paste a booking link`} autoComplete="off" />
         <button className="btn" type="submit">Search</button>
         <button className="icon-btn" type="button" onClick={closeAdd} aria-label="Close search">×</button>
       </form>
-      {manual !== null ? (
+      {stayUrl ? <StayForm key={stayUrl} t={t} url={stayUrl} onDone={() => setStayUrl(null)} />
+      : manual !== null ? (
         <form className="manual" onSubmit={addManual}>
           <div className="form-row">
             <label className="field">Name<input name="name" defaultValue={manual} autoFocus required placeholder="e.g. Aunt Rosa’s favorite café" /></label>
@@ -78,7 +86,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
         </form>
       ) : !s ? (() => {
         const words = google ? TRY_GOOGLE : TRY.filter(w => searchCatalog(t, w).length).slice(0, 4);
-        return <div className="more" style={{ paddingLeft: 18 }}><span className="faint small">Try {words.length ? words.map((w, n) => <span key={w}>{n ? ', ' : ''}<button type="button" className="linkish" onClick={() => { setQuery(w); runSearch(w); }}>{w}</button></span>) : 'a type of place, like “market” or “hotel”'}, or {byHand()}.</span></div>;
+        return <div className="more" style={{ paddingLeft: 18 }}><span className="faint small">Try {words.length ? words.map((w, n) => <span key={w}>{n ? ', ' : ''}<button type="button" className="linkish" onClick={() => { setQuery(w); runSearch(w); }}>{w}</button></span>) : 'a type of place, like “market” or “hotel”'}, or {byHand()}. For a stay, paste its Airbnb or Booking.com link.</span></div>;
       })()
         : s.loading ? <><div className="shimmer" /><div className="shimmer" /></>
         : s.results.length ? <>
@@ -164,7 +172,7 @@ function IdeaRow({ t, i, ui, set }: { t: Trip; i: Idea; ui: TripUI; set: SetUI }
   return <>
     <div className={`row link ${open ? 'sel' : ''}`} data-row={i.id} style={vars({ '--cc': CATS[i.cat].color })} aria-expanded={open} tabIndex={0} onClick={click} onKeyDown={key}>
       <Pic p={i} />
-      <div className="main"><span className="title">{i.name}</span><span className="meta"><KindIcon p={i} />{[kindLabel(i), i.hood, i.note].filter(Boolean).join(' · ')}</span><SrcChip v={i.source} /></div>
+      <div className="main"><span className="title">{i.name}</span><span className="meta"><KindIcon p={i} />{[kindLabel(i), i.price, i.hood, i.note].filter(Boolean).join(' · ')}</span><SrcChip v={i.source} /></div>
       {d >= 0 && <span className="tag-day" style={vars({ '--dc': dayColor(d) })}>Day {d + 1}</span>}
       <span className="caret" aria-hidden="true">›</span>
     </div>
@@ -172,6 +180,7 @@ function IdeaRow({ t, i, ui, set }: { t: Trip; i: Idea; ui: TripUI; set: SetUI }
       <div className="more">
         <IdeaNote t={t} i={i} />
         <IdeaSource t={t} i={i} />
+        <StayFields t={t} i={i} />
         <IdeaCat t={t} i={i} />
         <MapsLink t={t} i={i} />
         <PhotoCredit p={i} />
