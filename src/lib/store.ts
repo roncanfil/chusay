@@ -107,8 +107,8 @@ export const editTrip = (id: string, fn: (t: Trip, s: AppState) => void) => upda
 export const editIdea = (tripId: string, ideaId: string, fn: (i: Idea) => void) => editTrip(tripId, t => fn(t.ideas.find(i => i.id === ideaId)!));
 
 /* ---------- which Google services are switched on: read from the server's environment at runtime ---------- */
-export interface Config { mapsKey: string | null; mapId: string; places: boolean; demo: boolean }
-const NO_GOOGLE: Config = { mapsKey: null, mapId: '', places: false, demo: false };
+export interface Config { mapsKey: string | null; mapId: string; places: boolean; culture: boolean; demo: boolean }
+const NO_GOOGLE: Config = { mapsKey: null, mapId: '', places: false, culture: false, demo: false };
 const config = createStore<Config | null>(() => null, null);
 let configLoading = false;
 // null until loaded; without keys the app keeps the preview's sketch maps and sample search

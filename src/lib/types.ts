@@ -161,3 +161,8 @@ export interface Culture {
   dos: string[];
   donts: string[];
 }
+// Culture built from Wikivoyage by Claude and saved per country
+export interface CultureEntry extends Culture {
+  source: string; // the Wikivoyage page, credited under CC BY-SA
+  fetchedAt: string;
+}

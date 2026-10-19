@@ -9,6 +9,7 @@ export async function GET() {
     mapsKey: process.env.GOOGLE_MAPS_BROWSER_KEY || null,
     mapId: process.env.GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID',
     places: !!process.env.GOOGLE_PLACES_SERVER_KEY,
+    culture: !!process.env.ANTHROPIC_API_KEY,
     demo: demoMode(),
   });
 }

@@ -20,6 +20,7 @@ services:
       GOOGLE_MAPS_BROWSER_KEY: ""
       GOOGLE_MAPS_MAP_ID: ""
       GOOGLE_PLACES_SERVER_KEY: ""
+      ANTHROPIC_API_KEY: ""
     volumes:
       - type: bind
         source: /DATA/AppData/chusay/data

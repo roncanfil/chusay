@@ -66,6 +66,7 @@ docker run -d --name chusay -p 3210:3000 -v chusay-data:/data -e APP_PASSWORD=ch
 | `DEMO_MODE` | `true` starts a new database with sample trips and shows **Reset sample data**. |
 | `DATABASE_PATH` | Where the SQLite file lives (`/data/chusay.db` in the image). |
 | `GOOGLE_MAPS_BROWSER_KEY`, `GOOGLE_MAPS_MAP_ID`, `GOOGLE_PLACES_SERVER_KEY` | Turn on Google Maps, search and photos. |
+| `ANTHROPIC_API_KEY` | Culture tab: each country's phrases and customs, summarized by Claude from Wikivoyage and saved per country. |
 
 ## CI
 
@@ -107,7 +108,7 @@ Google’s terms limit what can be stored and require photo attributions; check 
 ## Still sample data
 
 - **Picks for you and Suggest a plan**: built from the sample catalog (`src/lib/data/catalog.ts`); next, Places Text Search queries built from the household’s preferences.
-- **Culture**: sample phrases and customs (`src/lib/data/culture.ts`); next, Wikivoyage text summarized by Claude, cached in the `culture` table.
+- **Culture** without `ANTHROPIC_API_KEY`: sample phrases and customs (`src/lib/data/culture.ts`). With the key, each country's Wikivoyage page summarized by Claude, cached in the `culture` table.
 
 ## License
 
