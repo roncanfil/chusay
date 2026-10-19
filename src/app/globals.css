@@ -553,7 +553,7 @@ body.resizing { cursor: col-resize; user-select: none; }
 .tabs button[aria-selected="true"] .tab-dot { opacity: 1; }
 .viewbar-l { display: flex; gap: 8px; flex-wrap: wrap; }
 .day-pill { display: inline-block; background: var(--dc, var(--accent)); color: #fff; padding: 2px 10px; border-radius: 999px; font-size: 14px !important; font-weight: 700; line-height: 1.5; }
-.disc.day, .dayblock { border-left: 4px solid var(--dc); border-radius: 0 12px 12px 0; padding-left: 10px; margin-bottom: 8px; border-bottom: 0; }
+.disc.day, .dayblock { border-radius: 12px; padding-left: 10px; margin-bottom: 8px; border-bottom: 0; }
 .disc.day:has(> .disc-head[aria-expanded="true"]), .dayblock { background: color-mix(in srgb, var(--dc) 6%, var(--bg)); }
 .disc.day > .disc-head { padding-block: 12px; }
 .disc.day > .disc-head:hover { background: color-mix(in srgb, var(--dc) 9%, transparent); }
@@ -568,9 +568,8 @@ body.resizing { cursor: col-resize; user-select: none; }
 .dchip[aria-pressed="true"] { background: var(--dc); border-color: var(--dc); color: #fff; }
 .sec-dot { width: 10px; height: 10px; border-radius: 3px; background: var(--sc); flex: none; }
 .disc.tint > .disc-head b { color: color-mix(in srgb, var(--sc) 72%, var(--ink)); }
-.disc.tint > .disc-body > .group, .disc.tint > .disc-body > .stack, .disc.tint > .disc-body > .field { border-color: color-mix(in srgb, var(--sc) 30%, var(--line)); box-shadow: inset 4px 0 0 var(--sc); }
-.disc.tint > .disc-body > .stack, .disc.tint > .disc-body > .field { padding: 12px 14px 14px 18px; border: 1px solid color-mix(in srgb, var(--sc) 30%, var(--line)); border-radius: 14px; }
-.disc.tint > .disc-body > .group .row { padding-left: 20px; }
+.disc.tint > .disc-body > .group, .disc.tint > .disc-body > .stack, .disc.tint > .disc-body > .field { border-color: color-mix(in srgb, var(--sc) 30%, var(--line)); }
+.disc.tint > .disc-body > .stack, .disc.tint > .disc-body > .field { padding: 12px 14px 14px; border: 1px solid color-mix(in srgb, var(--sc) 30%, var(--line)); border-radius: 14px; }
 .seg button[data-act="vote"][aria-pressed="true"][data-k="love"] { background: #2E9E5B; color: #fff; }
 .seg button[data-act="vote"][aria-pressed="true"][data-k="ok"] { background: #E3A23C; color: #fff; }
 .seg button[data-act="vote"][aria-pressed="true"][data-k="skip"] { background: #8A9592; color: #fff; }
