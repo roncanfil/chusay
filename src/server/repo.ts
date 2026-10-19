@@ -40,7 +40,7 @@ export function loadState(db: Database): AppState {
         },
       };
     }),
-    world: Object.fromEntries(all('SELECT * FROM country_status').map(r => [String(r.country_code), r.status as Status])),
+    world: all('SELECT * FROM country_status ORDER BY rowid').reduce<Record<string, Status[]>>((w, r) => { (w[String(r.country_code)] ??= []).push(r.status as Status); return w; }, {}),
     visits: all('SELECT * FROM visits ORDER BY month DESC').map(r => ({ id: String(r.id), cid: String(r.country_code), places: String(r.places), from: String(r.month), to: String(r.month) })),
     prefs: prefs
       ? { interests: json(prefs.interests, []), pace: prefs.pace as Pace, budget: Number(prefs.budget), diet: json(prefs.diets, []), photos: !!prefs.show_photos }
@@ -83,9 +83,13 @@ export function saveTrip(db: Database, t: Trip) {
   })();
 }
 
-export function setCountryStatus(db: Database, cid: string, status: Status | null) {
-  if (status) db.prepare('INSERT INTO country_status (country_code, status) VALUES (?, ?) ON CONFLICT(country_code) DO UPDATE SET status = excluded.status').run(cid, status);
-  else db.prepare('DELETE FROM country_status WHERE country_code = ?').run(cid);
+// replaces the country's whole set; an empty one goes back to the status derived from trips
+export function setCountryStatus(db: Database, cid: string, statuses: Status[]) {
+  db.transaction(() => {
+    db.prepare('DELETE FROM country_status WHERE country_code = ?').run(cid);
+    const add = db.prepare('INSERT OR IGNORE INTO country_status (country_code, status) VALUES (?, ?)');
+    statuses.forEach(s => add.run(cid, s));
+  })();
 }
 
 export function addVisit(db: Database, v: Visit) {

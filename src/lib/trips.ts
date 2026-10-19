@@ -1,5 +1,5 @@
 import { CITY_GEO } from './data/city-geo';
-import type { AppState, Idea, Trip } from './types';
+import type { AppState, Idea, Status, Trip } from './types';
 
 // "today" at noon, so day maths never trips over time zones; only called in the browser
 export function today() { const d = new Date(); d.setHours(12, 0, 0, 0); return d; }
@@ -50,14 +50,14 @@ export const isMaps = (v?: string) => isUrl(v) && /(^|\.)google\.[a-z.]+\/maps|m
 export const gmaps = (t: Trip, i: Idea) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.name + ', ' + t.dest.name)}${i.placeId ? '&query_place_id=' + encodeURIComponent(i.placeId) : ''}`;
 
 /* ---------- world map ---------- */
-// status comes from trips automatically and can be overridden by hand
-export function statusOf(S: AppState, cid: string) {
-  if (S.world[cid]) return { s: S.world[cid], auto: false };
+// statuses come from trips automatically and can be overridden by hand; a country can hold several
+export function statusOf(S: AppState, cid: string): { s: Status[]; auto: boolean } {
+  if (S.world[cid]?.length) return { s: S.world[cid], auto: false };
   const ts = S.trips.filter(t => t.dest.cid === cid);
-  if (ts.some(isPast) || S.visits.some(v => v.cid === cid)) return { s: 'visited' as const, auto: true };
-  if (ts.some(t => !isSomeday(t))) return { s: 'planning' as const, auto: true };
-  if (ts.length) return { s: 'want' as const, auto: true };
-  return { s: 'none' as const, auto: false };
+  if (ts.some(isPast) || S.visits.some(v => v.cid === cid)) return { s: ['visited'], auto: true };
+  if (ts.some(t => !isSomeday(t))) return { s: ['planning'], auto: true };
+  if (ts.length) return { s: ['want'], auto: true };
+  return { s: [], auto: false };
 }
 export interface VisitRow { cid: string; places: string; from: string; when: string; trip?: string; id?: string }
 export function visitList(S: AppState): VisitRow[] {

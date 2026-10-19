@@ -106,7 +106,7 @@ export function seed(): AppState {
   });
   return withSources({
     trips: [lisbon, cdmx, kyoto, morocco, kyotoSpring],
-    world: { '352': 'want', '504': 'want', '554': 'want', '704': 'want', '032': 'want', '300': 'want', '304': 'nope' },
+    world: { '352': ['want'], '504': ['want'], '554': ['want'], '704': ['want'], '032': ['want'], '300': ['want'], '304': ['nope'] },
     visits: [
       { id: uid(), cid: '604', places: 'Cusco and Machu Picchu', from: '2023-06', to: '2023-06' },
       { id: uid(), cid: '380', places: 'Rome and Florence', from: '2022-09', to: '2022-09' },

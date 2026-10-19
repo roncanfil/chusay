@@ -26,9 +26,11 @@ export function parseTrip(v: unknown, id: string): Trip {
   return v as unknown as Trip;
 }
 
-export function parseStatus(v: unknown): Status {
-  if (!isObj(v) || !STATUSES.includes(v.status as string)) throw new BadRequest('status must be visited, planning, want or nope');
-  return v.status as Status;
+export function parseStatuses(v: unknown): Status[] {
+  if (!isObj(v)) throw new BadRequest('statuses are missing');
+  const list = arr(v.statuses, 'statuses');
+  if (!list.length || list.some(s => !STATUSES.includes(s as string))) throw new BadRequest('statuses must be visited, planning, want or nope');
+  return list as Status[];
 }
 
 export function parseVisit(v: unknown): Visit {

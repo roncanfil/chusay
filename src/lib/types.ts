@@ -132,7 +132,7 @@ export interface Prefs {
 
 export interface AppState {
   trips: Trip[];
-  world: Record<string, Status>;
+  world: Record<string, Status[]>;
   visits: Visit[];
   prefs: Prefs;
   dismissed: string[];

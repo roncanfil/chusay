@@ -23,10 +23,27 @@ function tipLines(S: AppState, cid: string) {
   return lines;
 }
 
-// the country shapes only redraw when a status or the picked country changes
+const ORDER = Object.keys(STATUS) as Status[];
+
+// the country shapes only redraw when a status or the picked country changes.
+// One status is a flat color; several blend softly into each other like watercolor.
 const Countries = memo(function Countries({ statuses, picked }: { statuses: string; picked: string | null }) {
   const st = statuses.split(',');
-  return <>{WORLD.c.map((c, n) => <path key={c.id} className={`country st-${st[n]} ${picked === c.id ? 'picked' : ''}`} d={c.d} data-cid={c.id} />)}</>;
+  const mixes = [...new Set(st.filter(x => x.includes('-')))];
+  return <>
+    <defs>{mixes.map(m => {
+      const cs = m.split('-');
+      return (
+        <linearGradient key={m} id={`mix-${m}`} x1="0" y1="0" x2="1" y2="1">
+          {cs.map((c, n) => <stop key={c} offset={`${15 + (70 * n) / (cs.length - 1)}%`} style={{ stopColor: `var(--s-${c})` }} />)}
+        </linearGradient>
+      );
+    })}</defs>
+    {WORLD.c.map((c, n) => {
+      const mix = st[n].includes('-');
+      return <path key={c.id} className={`country st-${mix ? 'mix' : st[n] || 'none'} ${picked === c.id ? 'picked' : ''}`} style={mix ? { fill: `url(#mix-${st[n]})` } : undefined} d={c.d} data-cid={c.id} />;
+    })}
+  </>;
 });
 
 export function WorldPage() {
@@ -55,9 +72,15 @@ export function WorldPage() {
   if (!S) return null;
   const status = WORLD.c.map(c => statusOf(S, c.id));
   const counts: Record<string, number> = { visited: 0, planning: 0, want: 0, nope: 0 };
-  status.forEach(x => { if (counts[x.s] != null) counts[x.s]++; });
-  const listOf = (s: Status) => WORLD.c.filter((_, n) => status[n].s === s).map(c => c.n).sort();
-  const setStatus = (cid: string, k: Status | '') => update(st => { if (k) st.world[cid] = k; else delete st.world[cid]; });
+  status.forEach(x => x.s.forEach(s => counts[s]++));
+  const listOf = (s: Status) => WORLD.c.filter((_, n) => status[n].s.includes(s)).map(c => c.n).sort();
+  // tapping a status turns it on or off, starting from what the map shows now
+  const toggleStatus = (cid: string, k: Status) => {
+    const cur = statusOf(S, cid).s;
+    const next = ORDER.filter(s => s === k ? !cur.includes(k) : cur.includes(s));
+    update(st => { if (next.length) st.world[cid] = next; else delete st.world[cid]; });
+  };
+  const clearStatus = (cid: string) => update(st => { delete st.world[cid]; });
 
   function newBoard(cid: string) {
     const ck = (Object.keys(CITY) as CityKey[]).find(k => CITY[k].cid === cid && CITY[k].nomap) || null;
@@ -83,8 +106,8 @@ export function WorldPage() {
           <button type="button" className="icon-btn" onClick={() => setCountry(null)} aria-label="Close">×</button>
         </div>
         <div className="row" style={{ flexWrap: 'wrap' }}><div className="chips">
-          {(Object.entries(STATUS) as [Status, { label: string; color: string }][]).map(([k, s]) => <button key={k} type="button" className="chip" aria-pressed={st.s === k} onClick={() => setStatus(country, k)}><i style={{ background: s.color }} />{s.label}</button>)}
-          {S.world[country] && <button type="button" className="chip" onClick={() => setStatus(country, '')}>Clear</button>}
+          {(Object.entries(STATUS) as [Status, { label: string; color: string }][]).map(([k, s]) => <button key={k} type="button" className="chip" aria-pressed={st.s.includes(k)} onClick={() => toggleStatus(country, k)}><i style={{ background: s.color }} />{s.label}</button>)}
+          {!!S.world[country]?.length && <button type="button" className="chip" onClick={() => clearStatus(country)}>Clear</button>}
         </div></div>
         <div className="row">{board
           ? <Link className="linkish" href={`/trips/${board.id}`}>Open our ideas for {COUNTRY[country]} ›</Link>
@@ -99,7 +122,7 @@ export function WorldPage() {
       <section className="group world-card">
         <div className="legend">
           {(Object.entries(STATUS) as [Status, { label: string; color: string }][]).map(([k, s]) => <span key={k} className="chip"><i style={{ background: s.color }} />{s.label} <span className="n">{counts[k]}</span></span>)}
-          <span className="faint small" style={{ marginLeft: 'auto' }}>Click a country to change it. Drag to move, double-click to zoom.</span>
+          <span className="faint small" style={{ marginLeft: 'auto' }}>Click a country to change it; it can have more than one. Drag to move, double-click to zoom.</span>
         </div>
         <div className="world-box">
           <svg ref={svgRef} viewBox={`0 0 ${WORLD.w} ${WORLD.h}`} role="img" aria-label="World map colored by travel status"
@@ -107,7 +130,7 @@ export function WorldPage() {
             onPointerLeave={() => setTip(null)}
             onClick={e => { const p = (e.target as Element).closest<SVGPathElement>('.country'); if (p && !api.current?.dragging()) setCountry(p.dataset.cid!); }}>
             <defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--s-none)" /><line x1="0" y1="0" x2="0" y2="6" stroke="var(--s-nope)" strokeWidth="3" /></pattern></defs>
-            <Countries statuses={status.map(x => x.s).join(',')} picked={country} />
+            <Countries statuses={status.map(x => x.s.join('-')).join(',')} picked={country} />
           </svg>
           <div className="map-ctrl">
             <button type="button" onClick={() => api.current?.zoom(1.6)} aria-label="Zoom in">+</button>

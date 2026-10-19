@@ -85,7 +85,7 @@ function sync(prev: AppState, next: AppState) {
   if (prev.world !== next.world) {
     for (const cid of new Set([...Object.keys(prev.world), ...Object.keys(next.world)])) {
       const st = next.world[cid];
-      if (prev.world[cid] !== st) run(() => st ? call('PUT', `/api/countries/${cid}`, { status: st }) : call('DELETE', `/api/countries/${cid}`));
+      if (prev.world[cid] !== st) run(() => st?.length ? call('PUT', `/api/countries/${cid}`, { statuses: st }) : call('DELETE', `/api/countries/${cid}`));
     }
   }
   if (prev.visits !== next.visits) {

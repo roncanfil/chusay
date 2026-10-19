@@ -92,10 +92,11 @@ CREATE TABLE IF NOT EXISTS stop_votes (
   PRIMARY KEY (trip_id, idea_id)
 );
 
--- manual overrides only; otherwise the status is derived from trips
+-- manual overrides only; otherwise the status is derived from trips. A country can hold several.
 CREATE TABLE IF NOT EXISTS country_status (
-  country_code TEXT PRIMARY KEY,
-  status       TEXT NOT NULL CHECK (status IN ('visited', 'planning', 'want', 'nope'))
+  country_code TEXT NOT NULL,
+  status       TEXT NOT NULL CHECK (status IN ('visited', 'planning', 'want', 'nope')),
+  PRIMARY KEY (country_code, status)
 );
 
 -- older trips logged by hand

@@ -15,7 +15,15 @@ let db: Database.Database | undefined;
 // Make the same change in SCHEMA too, so a new database starts with it (and skips these).
 // New tables only need SCHEMA.
 const MIGRATIONS: string[] = [
-  // 1: example — 'ALTER TABLE ideas ADD COLUMN opening_hours TEXT',
+  // 1: a country can hold several statuses (visited and want to go); keeps every existing one
+  `CREATE TABLE country_status_new (
+    country_code TEXT NOT NULL,
+    status       TEXT NOT NULL CHECK (status IN ('visited', 'planning', 'want', 'nope')),
+    PRIMARY KEY (country_code, status)
+  );
+  INSERT INTO country_status_new (country_code, status) SELECT country_code, status FROM country_status;
+  DROP TABLE country_status;
+  ALTER TABLE country_status_new RENAME TO country_status;`,
 ];
 
 function migrate(d: Database.Database) {
