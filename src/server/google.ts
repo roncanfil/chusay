@@ -12,7 +12,7 @@ export class GoogleError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 
-interface AddressComponent { longText: string; shortText: string; types: string[] }
+interface AddressComponent { longText: string; shortText: string; types?: string[] } // Google leaves types off some components
 export interface GPlace {
   id: string;
   displayName?: { text: string };
@@ -44,7 +44,7 @@ async function google<T>(path: string, mask: string, body?: unknown): Promise<T>
 }
 
 const part = (p: GPlace, ...types: string[]) => {
-  for (const t of types) { const c = p.addressComponents?.find(a => a.types.includes(t)); if (c) return c; }
+  for (const t of types) { const c = p.addressComponents?.find(a => a.types?.includes(t)); if (c) return c; }
 };
 
 // a place search inside a destination, biased to the trip's center
