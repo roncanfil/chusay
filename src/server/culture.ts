@@ -68,7 +68,7 @@ interface Out { variant: string; note: string; phrases: { en: string; local: str
 async function summarize(country: string, text: string): Promise<Out> {
   const client = new Anthropic({ apiKey: cultureKey() });
   const msg = await client.beta.messages.create({
-    model: 'claude-opus-5-5', max_tokens: 16000,
+    model: 'claude-sonnet-5-5', max_tokens: 16000,
     // a declined request is retried server-side on Anthropic's recommended fallback model
     betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default',
     output_config: { effort: 'medium', format: { type: 'json_schema', schema: SCHEMA } },
