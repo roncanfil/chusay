@@ -8,7 +8,7 @@ export const fromCatalog = (p: CatalogPlace): PlaceResult => ({ name: p.name, ca
 
 async function getJSON<T>(url: string): Promise<T> {
   const r = await fetch(url);
-  if (!r.ok) throw new Error(`Search failed (${r.status})`);
+  if (!r.ok) throw new Error((await r.json().catch(() => null) as { error?: string } | null)?.error || `Search failed (${r.status})`);
   return r.json() as Promise<T>;
 }
 

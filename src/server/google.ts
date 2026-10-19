@@ -33,7 +33,13 @@ async function google<T>(path: string, mask: string, body?: unknown): Promise<T>
     body: body ? JSON.stringify(body) : undefined,
     cache: 'no-store',
   });
-  if (!res.ok) throw new GoogleError(502, `Google Places ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  if (!res.ok) {
+    // keep Google's own reason (key not allowed, API off, quota) so the app can show it
+    const text = await res.text();
+    let why = text.slice(0, 300);
+    try { why = (JSON.parse(text) as { error?: { message?: string } }).error?.message || why; } catch { /* not JSON */ }
+    throw new GoogleError(502, `Google Places ${res.status}: ${why}`);
+  }
   return res.json() as Promise<T>;
 }
 

@@ -40,8 +40,8 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
     try {
       const results = await findPlaces(t, q, google);
       if (n === searchSeq.current) set({ search: { q, loading: false, results } });
-    } catch {
-      if (n === searchSeq.current) set({ search: { q, loading: false, results: [], error: 'Search isn’t working right now.' } });
+    } catch (e) {
+      if (n === searchSeq.current) set({ search: { q, loading: false, results: [], error: `Search isn’t working right now. ${e instanceof Error ? e.message : ''}` } });
     }
   }
   function openAdd() { setQuery(''); setManual(null); setStayUrl(null); searchSeq.current++; set({ adding: true, search: null }); }
