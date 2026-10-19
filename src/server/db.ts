@@ -27,6 +27,8 @@ const MIGRATIONS: string[] = [
   // 2: stays saved from a booking-site link keep its price and preview picture
   `ALTER TABLE ideas ADD COLUMN price TEXT NOT NULL DEFAULT '';
   ALTER TABLE ideas ADD COLUMN image TEXT NOT NULL DEFAULT '';`,
+  // 3: culture notes can hold regional words (Portugal's beers and coffees)
+  `ALTER TABLE culture ADD COLUMN regional TEXT NOT NULL DEFAULT '[]';`,
 ];
 
 function migrate(d: Database.Database) {

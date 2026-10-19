@@ -1,12 +1,12 @@
 import { connection, type NextRequest } from 'next/server';
-import { buildCulture, cachedCulture, cultureKey } from '@/server/culture';
+import { buildCulture, cultureFor, cultureKey } from '@/server/culture';
 import { getDb } from '@/server/db';
 
 // GET /api/culture/620 → the saved phrases and customs for Portugal, or null
 export async function GET(_req: NextRequest, ctx: RouteContext<'/api/culture/[cid]'>) {
   await connection();
   const { cid } = await ctx.params;
-  return Response.json(cachedCulture(getDb(), cid));
+  return Response.json(cultureFor(getDb(), cid));
 }
 
 // POST /api/culture/620?name=Portugal → (re)builds them from Wikivoyage with Claude; null when Wikivoyage has no page

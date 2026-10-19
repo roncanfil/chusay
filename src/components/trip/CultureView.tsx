@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { Disc } from '@/components/Disc';
 import { vars } from '@/components/icons';
 import { CULTURE } from '@/lib/data/culture';
-import { editTrip, toast, useConfig } from '@/lib/store';
+import { editTrip, setView, toast, useConfig, useView } from '@/lib/store';
 import type { Culture, CultureEntry, Trip } from '@/lib/types';
 
-// Useful phrases, Good to do, Best to avoid, and Our notes (never overwritten by a refresh)
+// Useful phrases, Regional words or Good to do / Best to avoid, and Our notes (never overwritten by a refresh)
 export function CultureView({ t }: { t: Trip }) {
   const cfg = useConfig();
   if (!cfg) return null;
@@ -23,18 +23,36 @@ export function CultureView({ t }: { t: Trip }) {
   </>;
 }
 
+// how to say each phrase stays hidden until asked for; remembered on this device
 function CultureSections({ c }: { c: Culture }) {
+  const sayIt = useView().sayIt;
+  const toggle = <button type="button" className="btn-sm" style={{ justifySelf: 'start' }} aria-pressed={sayIt} onClick={() => setView({ sayIt: !sayIt })}>{sayIt ? 'Hide pronunciation' : 'Show pronunciation'}</button>;
   return <>
     <p className="muted culture-note">{c.note}</p>
     <Disc k="phrases" cls="tint" style={vars({ '--sc': '#2F86D6' })} head={<><i className="sec-dot" /><b>Useful phrases</b><span className="faint small">{c.variant}</span></>}>
-      <div className="group">{c.phrases.map(([en, loc, say]) => <div key={en} className="row"><div className="main phr"><span className="en">{en}</span><span className="loc">{loc}</span><span className="say">{say}</span></div></div>)}</div>
+      <div className="group">
+        {c.phrases.map(([en, loc, say]) => <div key={en} className="row"><div className="main phr"><span className="en">{en}</span><span className="loc">{loc}</span>{sayIt && <span className="say">{say}</span>}</div></div>)}
+        <div className="more">{toggle}</div>
+      </div>
     </Disc>
-    <Disc k="dos" cls="tint" style={vars({ '--sc': '#2E9E5B' })} head={<><i className="sec-dot" /><b>Good to do</b><span className="faint small">{c.dos.length}</span></>}>
-      <ul className="group bul do">{c.dos.map(x => <li key={x}>{x}</li>)}</ul>
-    </Disc>
-    <Disc k="donts" cls="tint" style={vars({ '--sc': '#D9534A' })} head={<><i className="sec-dot" /><b>Best to avoid</b><span className="faint small">{c.donts.length}</span></>}>
-      <ul className="group bul dont">{c.donts.map(x => <li key={x}>{x}</li>)}</ul>
-    </Disc>
+    {!!c.regional?.length && (
+      <Disc k="regional" cls="tint" style={vars({ '--sc': '#8E5BD0' })} head={<><i className="sec-dot" /><b>Regional words</b><span className="faint small">they change across the country</span></>}>
+        <div className="group">
+          {c.regional.map(([what, region, loc, say]) => <div key={what + region} className="row"><div className="main phr"><span className="en">{what}<br /><span className="faint small">{region}</span></span><span className="loc">{loc}</span>{sayIt && <span className="say">{say}</span>}</div></div>)}
+          <div className="more">{toggle}</div>
+        </div>
+      </Disc>
+    )}
+    {!!c.dos.length && (
+      <Disc k="dos" cls="tint" style={vars({ '--sc': '#2E9E5B' })} head={<><i className="sec-dot" /><b>Good to do</b><span className="faint small">{c.dos.length}</span></>}>
+        <ul className="group bul do">{c.dos.map(x => <li key={x}>{x}</li>)}</ul>
+      </Disc>
+    )}
+    {!!c.donts.length && (
+      <Disc k="donts" cls="tint" style={vars({ '--sc': '#D9534A' })} head={<><i className="sec-dot" /><b>Best to avoid</b><span className="faint small">{c.donts.length}</span></>}>
+        <ul className="group bul dont">{c.donts.map(x => <li key={x}>{x}</li>)}</ul>
+      </Disc>
+    )}
   </>;
 }
 
@@ -66,7 +84,9 @@ function CountryCulture({ t }: { t: Trip }) {
       try {
         const saved = await call('GET', t);
         if (!live) return;
-        if (saved) { setC(saved); setStatus('ready'); } else build();
+        if (saved) { setC(saved); setStatus('ready'); }
+        // older notes stay on screen while they're redone with the new phrase list
+        if (!saved || saved.stale) build();
       } catch { if (live) setStatus('error'); }
     })();
     return () => { live = false; };

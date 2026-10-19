@@ -169,11 +169,13 @@ export interface Culture {
   variant: string;
   note: string;
   phrases: [string, string, string][];
-  dos: string[];
+  dos: string[]; // empty where the household doesn't want customs (Portugal)
   donts: string[];
+  regional?: [string, string, string, string][]; // [what, region, local, say]: Portugal's beers and coffees
 }
 // Culture built from Wikivoyage by Claude and saved per country
 export interface CultureEntry extends Culture {
   source: string; // the Wikivoyage page, credited under CC BY-SA
   fetchedAt: string;
+  stale?: boolean; // saved in an older shape; shown while it's redone
 }

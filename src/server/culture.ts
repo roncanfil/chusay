@@ -9,6 +9,9 @@ import type { CultureEntry } from '@/lib/types';
 export const cultureKey = () => process.env.ANTHROPIC_API_KEY || '';
 
 type Row = Record<string, unknown>;
+// notes saved before the household's own phrase list (or Portugal's regional words) are redone on next open
+const isStale = (cid: string, c: CultureEntry) => !c.phrases.some(([en]) => /two beers/i.test(en)) || (!!STYLE[cid]?.regional && !c.regional?.length);
+
 export function cachedCulture(db: Database, cid: string): CultureEntry | null {
   const r = db.prepare('SELECT * FROM culture WHERE country_code = ? AND trip_id IS NULL ORDER BY id DESC LIMIT 1').get(cid) as Row | undefined;
   if (!r) return null;
@@ -16,14 +19,19 @@ export function cachedCulture(db: Database, cid: string): CultureEntry | null {
   return {
     lang: variant, variant, note: String(r.intro ?? ''),
     phrases: JSON.parse(String(r.phrases)), dos: JSON.parse(String(r.dos)), donts: JSON.parse(String(r.donts)),
+    regional: JSON.parse(String(r.regional ?? '[]')),
     source: String(r.source_url ?? ''), fetchedAt: String(r.fetched_at ?? ''),
   };
+}
+export function cultureFor(db: Database, cid: string): CultureEntry | null {
+  const c = cachedCulture(db, cid);
+  return c && isStale(cid, c) ? { ...c, stale: true } : c;
 }
 function saveCulture(db: Database, cid: string, c: CultureEntry) {
   db.transaction(() => {
     db.prepare('DELETE FROM culture WHERE country_code = ? AND trip_id IS NULL').run(cid);
-    db.prepare(`INSERT INTO culture (country_code, language_variant, intro, phrases, dos, donts, source_url, fetched_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(cid, c.variant, c.note, JSON.stringify(c.phrases), JSON.stringify(c.dos), JSON.stringify(c.donts), c.source, c.fetchedAt);
+    db.prepare(`INSERT INTO culture (country_code, language_variant, intro, phrases, dos, donts, regional, source_url, fetched_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(cid, c.variant, c.note, JSON.stringify(c.phrases), JSON.stringify(c.dos), JSON.stringify(c.donts), JSON.stringify(c.regional ?? []), c.source, c.fetchedAt);
   })();
 }
 
@@ -46,34 +54,60 @@ async function wikivoyage(title: string): Promise<{ title: string; text: string 
 }
 
 /* ---------- Claude ---------- */
-const SCHEMA = {
-  type: 'object', additionalProperties: false, required: ['variant', 'note', 'phrases', 'dos', 'donts'],
+// the household asked for these in every country, first and in this order
+const MUST = ['Hello', 'Thank you', 'I want a beer', 'I want two beers', 'I want wine', 'I want some water', 'Where’s the bathroom?'];
+// countries they want shaped differently: Portugal skips customs and gets regional words for beer and coffee
+const STYLE: Record<string, { customs: boolean; regional?: string }> = {
+  '620': { customs: false, regional: 'how people ask for a beer (a small draught, a large one, a bottle) and for a coffee (an espresso, one with milk, a galão) differ between regions: Lisbon, Porto and the north, the Algarve, Madeira and the Azores. Give each region’s own words, and say where a word would puzzle people elsewhere' },
+};
+
+const SAY = { type: 'string', description: 'How to say it, in simple English spelling with the stressed syllable in capitals' };
+const schema = (customs: boolean, regional: boolean) => ({
+  type: 'object', additionalProperties: false,
+  required: ['variant', 'note', 'phrases', ...(customs ? ['dos', 'donts'] : []), ...(regional ? ['regional'] : [])],
   properties: {
     variant: { type: 'string', description: 'The language visitors meet, as a short label, e.g. "European Portuguese" or "Darija, with French widely spoken"' },
     note: { type: 'string', description: 'Two or three sentences on speaking with people there' },
     phrases: {
-      type: 'array', description: 'About ten everyday phrases',
-      items: { type: 'object', additionalProperties: false, required: ['en', 'local', 'say'], properties: { en: { type: 'string' }, local: { type: 'string' }, say: { type: 'string', description: 'How to say it, in simple English spelling with the stressed syllable in capitals' } } },
+      type: 'array', description: `First exactly these, in this order, with "en" written as given: ${MUST.join('; ')}. Then up to five other everyday phrases`,
+      items: { type: 'object', additionalProperties: false, required: ['en', 'local', 'say'], properties: { en: { type: 'string' }, local: { type: 'string' }, say: SAY } },
     },
-    dos: { type: 'array', items: { type: 'string' }, description: 'Four to six customs worth following' },
-    donts: { type: 'array', items: { type: 'string' }, description: 'Three to five things best avoided' },
+    ...(customs ? {
+      dos: { type: 'array', items: { type: 'string' }, description: 'Four to six customs worth following' },
+      donts: { type: 'array', items: { type: 'string' }, description: 'Three to five things best avoided' },
+    } : {}),
+    ...(regional ? {
+      regional: {
+        type: 'array', description: 'Regional words, one item per word and region',
+        items: { type: 'object', additionalProperties: false, required: ['what', 'region', 'local', 'say'], properties: {
+          what: { type: 'string', description: 'What you get, in English, e.g. "A small draught beer" or "An espresso"' },
+          region: { type: 'string', description: 'Where people say it, e.g. "Lisbon and the south"' },
+          local: { type: 'string', description: 'How to ask for it there, e.g. "Uma imperial, por favor"' }, say: SAY,
+        } },
+      },
+    } : {}),
   },
-};
-const SYSTEM = `You write the culture notes in a trip planner used by two travelers. From a country's Wikivoyage text, write what a polite visitor should know: the language, everyday phrases, and customs to follow or avoid.
+});
+const SYSTEM = `You write the culture notes in a trip planner used by two travelers. From a country's Wikivoyage text, write what a polite visitor should know: the language and everyday phrases, and, when asked for, customs to follow or avoid.
 Keep each custom to one plain sentence. Write a "best to avoid" item as the thing itself ("Eating the bread placed on the table unless you want it"), not as an order.
+Phrases are what a visitor would say: when a phrase changes with the speaker (as "thank you" does in Portuguese), give both forms in "local".
 Stick to what the text supports, plus phrases and pronunciations you are sure of. No prices, no opening hours, no restaurant or shop names.`;
 
-interface Out { variant: string; note: string; phrases: { en: string; local: string; say: string }[]; dos: string[]; donts: string[] }
+interface Out {
+  variant: string; note: string; phrases: { en: string; local: string; say: string }[]; dos?: string[]; donts?: string[];
+  regional?: { what: string; region: string; local: string; say: string }[];
+}
 
-async function summarize(country: string, text: string): Promise<Out> {
+async function summarize(cid: string, country: string, text: string): Promise<Out> {
+  const style = STYLE[cid] ?? { customs: true };
   const client = new Anthropic({ apiKey: cultureKey() });
   const msg = await client.beta.messages.create({
     model: 'claude-sonnet-5-5', max_tokens: 16000,
     // a declined request is retried server-side on Anthropic's recommended fallback model
     betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default',
-    output_config: { effort: 'medium', format: { type: 'json_schema', schema: SCHEMA } },
+    output_config: { effort: 'medium', format: { type: 'json_schema', schema: schema(style.customs, !!style.regional) } },
     system: SYSTEM,
-    messages: [{ role: 'user', content: `Wikivoyage on ${country}:\n\n${text}` }],
+    messages: [{ role: 'user', content: `Wikivoyage on ${country}:\n\n${text}${style.regional ? `\n\nAlso list regional words: in ${country}, ${style.regional}.` : ''}` }],
   });
   if (msg.stop_reason === 'refusal') throw new Error('Claude declined to summarize this page');
   if (msg.stop_reason === 'max_tokens') throw new Error('Claude ran out of room summarizing this page');
@@ -93,10 +127,11 @@ export function buildCulture(db: Database, cid: string, name: string): Promise<C
     let page = null;
     for (const t of titles) if ((page = await wikivoyage(t))) break;
     if (!page) return null;
-    const out = await summarize(page.title, page.text);
+    const out = await summarize(cid, page.title, page.text);
     const c: CultureEntry = {
       lang: out.variant, variant: out.variant, note: out.note,
-      phrases: out.phrases.map(p => [p.en, p.local, p.say]), dos: out.dos, donts: out.donts,
+      phrases: out.phrases.map(p => [p.en, p.local, p.say]), dos: out.dos ?? [], donts: out.donts ?? [],
+      regional: (out.regional ?? []).map(r => [r.what, r.region, r.local, r.say]),
       source: `https://en.wikivoyage.org/wiki/${encodeURIComponent(page.title.replace(/ /g, '_'))}`, fetchedAt: new Date().toISOString(),
     };
     saveCulture(db, cid, c);

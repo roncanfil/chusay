@@ -122,8 +122,8 @@ export function useConfig() {
 }
 
 /* ---------- view settings: per screen, remembered in this browser ---------- */
-export interface ViewPrefs { dayMap: boolean; dayAll: boolean; density: 'full' | 'compact'; ideasMap: boolean; listW: number | null }
-const VIEW_DEFAULTS: ViewPrefs = { dayMap: true, dayAll: false, density: 'full', ideasMap: true, listW: null };
+export interface ViewPrefs { dayMap: boolean; dayAll: boolean; density: 'full' | 'compact'; ideasMap: boolean; listW: number | null; sayIt: boolean }
+const VIEW_DEFAULTS: ViewPrefs = { dayMap: true, dayAll: false, density: 'full', ideasMap: true, listW: null, sayIt: false };
 const view = createStore<ViewPrefs>(() => ({ ...VIEW_DEFAULTS, ...read<Partial<ViewPrefs>>('chusay-view') }), VIEW_DEFAULTS, v => write('chusay-view', v));
 export const useView = view.use;
 export const setView = (patch: Partial<ViewPrefs>) => view.set({ ...view.get(), ...patch });
