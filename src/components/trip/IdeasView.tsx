@@ -11,7 +11,7 @@ import { fromCatalog, findPlaces } from '@/lib/search';
 import { editTrip, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
 import { isSomeday, scheduledDay } from '@/lib/trips';
 import type { Cat, Idea, Pace, PlaceResult, Prefs, Trip } from '@/lib/types';
-import { IdeaNote, IdeaSource, MapsLink } from './fields';
+import { IdeaCat, IdeaNote, IdeaSource, MapsLink } from './fields';
 import { pan, type SetUI, type TabProps, type TripUI } from './ui';
 
 const TRY = ['pastries', 'fado', 'museum', 'viewpoint', 'hotel', 'market', 'tacos', 'temple', 'riad', 'garden'];
@@ -172,6 +172,7 @@ function IdeaRow({ t, i, ui, set }: { t: Trip; i: Idea; ui: TripUI; set: SetUI }
       <div className="more">
         <IdeaNote t={t} i={i} />
         <IdeaSource t={t} i={i} />
+        <IdeaCat t={t} i={i} />
         <MapsLink t={t} i={i} />
         <PhotoCredit p={i} />
         {!isSomeday(t) && <div className="inline-field">{d >= 0 ? 'Planned for' : 'Add to'} <span className="chips">{t.days.map((x, k) => <button key={x.id} type="button" className="chip dchip" style={vars({ '--dc': dayColor(k) })} aria-pressed={d === k} onClick={() => setDay(k)}>Day {k + 1}</button>)}</span></div>}

@@ -11,7 +11,7 @@ import { uid } from '@/lib/seed';
 import { discIsOpen, editTrip, openDisc, setView, toast, useSession, useView } from '@/lib/store';
 import { dayDate, fmtDay, ideaOf, scheduledDay } from '@/lib/trips';
 import type { OwnPlan, Stop, Trip } from '@/lib/types';
-import { IdeaNote, IdeaSource, MapsLink } from './fields';
+import { IdeaCat, IdeaNote, IdeaSource, MapsLink } from './fields';
 import { pan, type SetUI, type TabProps, type TripUI } from './ui';
 
 const QUICK = ['Meet friends', 'Dinner reservation', 'Free time', 'Rest at the hotel'];
@@ -192,6 +192,7 @@ function StopItem({ t, k, s, ui, set }: { t: Trip; k: number; s: Stop; ui: TripU
       {sel && <div className="stn-more" data-nodrag>
         <IdeaNote t={t} i={i!} />
         <IdeaSource t={t} i={i!} />
+        <IdeaCat t={t} i={i!} />
         <MapsLink t={t} i={i!} />
         <PhotoCredit p={i!} />
         {controls}

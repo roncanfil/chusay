@@ -1,4 +1,5 @@
-import { PinSvg } from '@/components/icons';
+import { PinSvg, vars } from '@/components/icons';
+import { CATS, CAT_KEYS } from '@/lib/constants';
 import { editIdea } from '@/lib/store';
 import { gmaps, isMaps } from '@/lib/trips';
 import type { Idea, Trip } from '@/lib/types';
@@ -9,6 +10,13 @@ export function IdeaNote({ t, i }: { t: Trip; i: Idea }) {
     <label className="note-field"><span>Our notes</span>
       <textarea rows={2} value={i.note} onChange={e => editIdea(t.id, i.id, x => { x.note = e.target.value; })} placeholder="Add a note: booking info, what to order, who recommended it…" />
     </label>
+  );
+}
+
+// fix a category Google guessed wrong; the old kind belonged to the old category, so it goes too
+export function IdeaCat({ t, i }: { t: Trip; i: Idea }) {
+  return (
+    <div className="inline-field">Category <span className="chips">{CAT_KEYS.map(k => <button key={k} type="button" className="chip dchip" style={vars({ '--dc': CATS[k].color })} aria-pressed={i.cat === k} onClick={() => i.cat !== k && editIdea(t.id, i.id, x => { x.cat = k; delete x.kind; })}>{CATS[k].label}</button>)}</span></div>
   );
 }
 
