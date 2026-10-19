@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { artFor } from '@/lib/art';
 import { CATS, ICON, KINDS, type IconKey } from '@/lib/constants';
 import { kindPath } from '@/lib/kinds';
@@ -23,12 +23,13 @@ export function KindIcon({ p, cls = 'ic-sm' }: { p: PlaceLike; cls?: string }) {
 type Photographed = PlaceLike & { placeId?: string; image?: string };
 
 // list thumbnail: a stay's listing picture, the Google place photo (a drawing for sample places), or the category icon if photos are off
-export function Pic({ p }: { p: Photographed }) {
+export function Pic({ p, onBroken }: { p: Photographed; onBroken?: () => void }) {
   const S = useAppState(), cfg = useConfig();
+  const [broken, setBroken] = useState<string | null>(null); // a listing picture that failed to load falls back to the drawing
   const on = S?.prefs.photos !== false, photo = usePhoto(p.placeId, on && !!cfg?.places && !p.image);
   if (!on) return <CatIcon cat={p.cat} />;
   // eslint-disable-next-line @next/next/no-img-element
-  if (p.image) return <span className="ph"><img src={p.image} alt={`Picture of ${p.name}`} loading="lazy" referrerPolicy="no-referrer" /></span>;
+  if (p.image && broken !== p.image) return <span className="ph"><img src={p.image} alt={`Picture of ${p.name}`} loading="lazy" referrerPolicy="no-referrer" onError={() => { setBroken(p.image!); onBroken?.(); }} /></span>;
   if (photo) {
     // a remote Google photo of unknown size; next/image would add nothing here
     // eslint-disable-next-line @next/next/no-img-element
