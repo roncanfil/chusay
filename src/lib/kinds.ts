@@ -21,7 +21,7 @@ const KIND_RULES: Partial<Record<Cat, [RegExp, string][]>> = {
   act: [[/fado|music|jazz|concert|mariachi/, 'music'], [/tour|walk|path/, 'tour'], [/tram|boat|bike|ride|cruise|cable/, 'ride'], [/ocean|aquar/, 'aquarium']],
   shop: [[/feira|flea|souk|tianguis|market|mercado/, 'market']],
 };
-const DEF_KIND: Record<Cat, string> = { food: 'restaurant', sight: 'landmark', act: 'activity', stay: 'stay', shop: 'shop' };
+const DEF_KIND: Record<Cat, string> = { food: 'restaurant', sight: 'landmark', act: 'activity', tour: 'tour', stay: 'stay', shop: 'shop' };
 
 export function kindOf(i: PlaceLike): string {
   if (i.kind && KIND[i.kind]) return i.kind;

@@ -19,6 +19,7 @@
   --c-sight: #4F68B5;
   --c-food: #C27C1E;
   --c-act: #CC5B46;
+  --c-tour: #9A6B2F;
   --c-stay: #8758A3;
   --c-shop: #66833A;
   --c-own: #C2417A;
@@ -44,7 +45,7 @@
     --bg: #121716; --surface: #121716; --surface-2: #1E2524; --ink: #E9EFEE; --ink-2: #AEBBB8; --ink-3: #7E8C89; --line: #263030;
     --accent: #2EC6C1; --accent-ink: #74DED9; --accent-soft: #173936; --on-accent: #062624;
     --land: #1A2221; --water: #123A3B; --park: #1C3024; --road: #26302F; --grid: rgba(255, 255, 255, .045);
-    --c-sight: #8399E0; --c-food: #E2A350; --c-act: #EC846F; --c-stay: #B88FD3; --c-shop: #A2BE6A; --c-own: #EC7FAE;
+    --c-sight: #8399E0; --c-food: #E2A350; --c-act: #EC846F; --c-tour: #CDA06A; --c-stay: #B88FD3; --c-shop: #A2BE6A; --c-own: #EC7FAE;
     --s-visited: #2EC6C1; --s-planning: #E9B45A; --s-want: #8D9FE3; --s-nope: #545852; --s-none: #2E312E; --country-line: #121716;
     --star: #EDB54C; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .3);
     --shadow-border: 0 0 0 1px oklch(1 0 0 / 0.08); --shadow-border-hover: 0 0 0 1px oklch(1 0 0 / 0.14); --img-outline: oklch(1 0 0 / 0.1);
@@ -55,7 +56,7 @@
   --bg: #121716; --surface: #121716; --surface-2: #1E2524; --ink: #E9EFEE; --ink-2: #AEBBB8; --ink-3: #7E8C89; --line: #263030;
   --accent: #2EC6C1; --accent-ink: #74DED9; --accent-soft: #173936; --on-accent: #062624;
   --land: #1A2221; --water: #123A3B; --park: #1C3024; --road: #26302F; --grid: rgba(255, 255, 255, .045);
-  --c-sight: #8399E0; --c-food: #E2A350; --c-act: #EC846F; --c-stay: #B88FD3; --c-shop: #A2BE6A; --c-own: #EC7FAE;
+  --c-sight: #8399E0; --c-food: #E2A350; --c-act: #EC846F; --c-tour: #CDA06A; --c-stay: #B88FD3; --c-shop: #A2BE6A; --c-own: #EC7FAE;
   --s-visited: #2EC6C1; --s-planning: #E9B45A; --s-want: #8D9FE3; --s-nope: #545852; --s-none: #2E312E; --country-line: #121716;
   --star: #EDB54C; --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .3);
   --shadow-border: 0 0 0 1px oklch(1 0 0 / 0.08); --shadow-border-hover: 0 0 0 1px oklch(1 0 0 / 0.14); --img-outline: oklch(1 0 0 / 0.1);

@@ -1,4 +1,4 @@
-export type Cat = 'sight' | 'food' | 'act' | 'stay' | 'shop';
+export type Cat = 'sight' | 'food' | 'act' | 'tour' | 'stay' | 'shop';
 export type CityKey = 'morocco' | 'lisbon' | 'cdmx' | 'kyoto';
 export type Status = 'visited' | 'planning' | 'want' | 'nope';
 export type Vote = 'love' | 'ok' | 'skip' | '';

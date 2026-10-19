@@ -16,8 +16,9 @@ const RULES: [RegExp, Cat, string][] = [
   [/^(church|hindu_temple|mosque|synagogue|place_of_worship|buddhist_temple|shinto_shrine|cathedral|monastery|shrine)$/, 'sight', 'temple'],
   [/^(aquarium|zoo|wildlife_park|wildlife_refuge)$/, 'act', 'aquarium'],
   [/^(live_music_venue|concert_hall|night_club|opera_house|performing_arts_theater|philharmonic_hall|amphitheatre|comedy_club|dance_hall|karaoke)$/, 'act', 'music'],
-  [/^(tour_agency|tourist_information_center|hiking_area)$/, 'act', 'tour'],
-  [/^(cable_car|ferry_terminal|boat_tour_agency|marina|bicycle_rental|amusement_park|ferris_wheel|roller_coaster|water_park|ski_resort|cycling_park)$/, 'act', 'ride'],
+  [/^(tour_agency|boat_tour_agency)$/, 'tour', 'tour'], // tours are booked ahead
+  [/^(tourist_information_center|hiking_area)$/, 'act', 'tour'],
+  [/^(cable_car|ferry_terminal|marina|bicycle_rental|amusement_park|ferris_wheel|roller_coaster|water_park|ski_resort|cycling_park)$/, 'act', 'ride'],
   [/^(spa|sauna|public_bath|wellness_center|stadium|sports_complex|bowling_alley|movie_theater|casino|golf_course|adventure_sports_center|swimming_pool|ice_skating_rink|event_venue|visitor_center)$/, 'act', 'activity'],
   [/^(market|flea_market)$/, 'shop', 'market'],
   [/_store$|_shop$|^(shopping_mall|department_store|supermarket)$/, 'shop', 'shop'],

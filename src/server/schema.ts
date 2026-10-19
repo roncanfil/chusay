@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS ideas (
   trip_id         TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
   google_place_id TEXT,
   name            TEXT NOT NULL,            -- the household's own label for the place
-  category        TEXT NOT NULL CHECK (category IN ('sight', 'food', 'act', 'stay', 'shop')),
+  category        TEXT NOT NULL CHECK (category IN ('sight', 'food', 'act', 'tour', 'stay', 'shop')),
   kind            TEXT,                     -- from Google's primaryType: bakery, museum, …
   area            TEXT NOT NULL DEFAULT '',
   lat             REAL,
