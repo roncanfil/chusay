@@ -14,6 +14,7 @@ export interface TripUI {
   adding: boolean;
   search: { q: string; loading: boolean; results: PlaceResult[]; error?: string } | null;
   datesOpen: boolean;
+  placeOpen: boolean;
   addPanel: { day: number; w: 'ideas' | 'own' } | null;
 }
 export type SetUI = (patch: Partial<TripUI>) => void;
@@ -22,7 +23,7 @@ export interface TabProps { t: Trip; ui: TripUI; set: SetUI; mapOk: boolean }
 
 export const initialUI = (t: Trip): TripUI => ({
   tab: t.start ? 'days' : 'ideas', day: 0, sel: null, open: null, hl: null, panTo: null,
-  cat: 'all', adding: false, search: null, datesOpen: false, addPanel: null,
+  cat: 'all', adding: false, search: null, datesOpen: false, placeOpen: false, addPanel: null,
 });
 
 // ask the map to center on a place

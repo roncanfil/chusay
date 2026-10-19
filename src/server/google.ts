@@ -1,7 +1,7 @@
 import 'server-only';
 import countries from 'i18n-iso-countries';
 import { categorize } from '@/lib/place-types';
-import type { DestinationResult, PlaceResult } from '@/lib/types';
+import type { DestinationHit, DestinationResult, PlaceResult } from '@/lib/types';
 
 // Google finds places and draws maps. It never fills in the household's notes, ratings, prices or hours,
 // so every call asks only for the fields shown (cost also scales with the fields requested).
@@ -58,7 +58,7 @@ export async function searchPlaces(q: string, near: { lat: number; lng: number }
   return (out.places || []).map(toPlaceResult);
 }
 
-// any city, region or country for + New
+// any city, region or country for a trip's destination
 export function toDestination(p: GPlace): DestinationResult | null {
   const country = part(p, 'country');
   if (!p.location || !country) return null;
@@ -68,9 +68,26 @@ export function toDestination(p: GPlace): DestinationResult | null {
     lat: p.location.latitude, lng: p.location.longitude,
   };
 }
-export async function findDestinations(q: string): Promise<DestinationResult[]> {
-  const out = await google<{ places?: GPlace[] }>('places:searchText', 'places.id,places.displayName,places.location,places.addressComponents,places.formattedAddress', { textQuery: q, pageSize: 5, languageCode: 'en' });
-  return (out.places || []).map(toDestination).filter(d => !!d);
+const DEST_MASK = 'id,displayName,location,addressComponents,formattedAddress';
+// Autocomplete forgives typos ("Duoro") and knows regions and natural areas, not only cities.
+// Businesses and sights are left out: a trip goes to a place on the map, not to a restaurant.
+const AREA_TYPES = new Set(['political', 'country', 'locality', 'colloquial_area', 'natural_feature', 'archipelago', 'continent', 'national_park', 'postal_town']);
+interface Prediction { placeId: string; types?: string[]; structuredFormat?: { mainText?: { text: string }; secondaryText?: { text: string } } }
+export async function findDestinations(q: string, session?: string): Promise<DestinationHit[]> {
+  const out = await google<{ suggestions?: { placePrediction?: Prediction }[] }>('places:autocomplete',
+    'suggestions.placePrediction.placeId,suggestions.placePrediction.types,suggestions.placePrediction.structuredFormat',
+    { input: q, languageCode: 'en', ...(session ? { sessionToken: session } : {}) });
+  const hits = (out.suggestions || []).map(s => s.placePrediction).filter(p => !!p && p.types?.some(t => AREA_TYPES.has(t)))
+    .slice(0, 6).map(p => ({ placeId: p!.placeId, name: p!.structuredFormat?.mainText?.text || '', address: p!.structuredFormat?.secondaryText?.text || '' }));
+  if (hits.length) return hits;
+  // nothing that looks like an area: fall back to a full search, which also finds a resort or an island hotel
+  const found = await google<{ places?: GPlace[] }>('places:searchText', 'places.id,places.displayName,places.formattedAddress', { textQuery: q, pageSize: 5, languageCode: 'en' });
+  return (found.places || []).map(p => ({ placeId: p.id, name: p.displayName?.text || '', address: p.formattedAddress || '' }));
+}
+// the picked destination's center and country; the session token ties it to its autocomplete for billing
+export async function destination(id: string, session?: string): Promise<DestinationResult | null> {
+  const qs = new URLSearchParams({ languageCode: 'en', ...(session ? { sessionToken: session } : {}) });
+  return toDestination(await google<GPlace>(`places/${encodeURIComponent(id)}?${qs}`, DEST_MASK));
 }
 
 // A photo for a row, loaded by place id when the row is shown. Photo names can't be stored,

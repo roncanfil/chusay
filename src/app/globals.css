@@ -150,6 +150,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .tabs { margin-top: 18px; }
 .dates-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; padding: 16px 18px; }
 .dates-form .field { flex: 1; min-width: 150px; }
+.place-form { display: grid; align-items: stretch; }
 
 /* days */
 .daypills { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; margin-top: 22px; scrollbar-width: thin; }

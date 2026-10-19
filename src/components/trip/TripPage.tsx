@@ -2,13 +2,15 @@
 
 import Link from 'next/link';
 import { useCallback, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { cityKeyFor, useDestinationSearch } from '@/components/DestinationSearch';
 import { vars } from '@/components/icons';
 import { TripMap, type MapPlace, type MapRoute } from '@/components/map/TripMap';
 import { dayColor, TAB_COLORS, type Tab } from '@/lib/constants';
+import { CITY } from '@/lib/data/cities';
 import { uid } from '@/lib/seed';
 import { editTrip, openDisc, setView, toast, toggleMapHidden, useAppState, useConfig, useSession, useView } from '@/lib/store';
 import { canMap, fmtRange, ideaOf, isoDate, isPast, isSomeday, relTime, scheduledDay, today } from '@/lib/trips';
-import type { Trip } from '@/lib/types';
+import type { CityKey, DestinationResult, Trip } from '@/lib/types';
 import { CultureView } from './CultureView';
 import { DaysView } from './DaysView';
 import { FeedbackView } from './FeedbackView';
@@ -100,6 +102,21 @@ function TripView({ t }: { t: Trip }) {
     scrollTo(0, 0);
   }
 
+  // moving the trip to another place keeps its ideas, days and name; the map and search follow the new center
+  const where = useDestinationSearch(movePlace);
+  function movePlace(d: DestinationResult) {
+    editTrip(t.id, tt => { tt.dest = { name: d.name, country: d.country, cid: d.cid }; tt.center = { lat: d.lat, lng: d.lng }; tt.city = cityKeyFor(d); });
+    set({ placeOpen: false });
+    toast(`${t.name} is now in ${d.name}. Ideas and days stayed as they were.`);
+  }
+  function moveSample(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const k = new FormData(e.currentTarget).get('city') as CityKey, c = CITY[k];
+    editTrip(t.id, tt => { tt.dest = { name: c.name, country: c.country, cid: c.cid }; tt.center = null; tt.city = k; });
+    set({ placeOpen: false });
+    toast(`${t.name} is now in ${c.name}.`);
+  }
+
   const tabProps = { t, ui: { ...ui, tab }, set, mapOk };
   return (
     <div ref={layoutRef} className={`wrap wide trip-layout ${showMap ? 'has-map' : ''} tab-${tab}`} style={vars({ '--tc': TAB_COLORS[tab], '--list-w': view.listW ? view.listW + 'px' : undefined })}>
@@ -107,7 +124,9 @@ function TripView({ t }: { t: Trip }) {
         <div><Link className="linkish" href="/">‹ All trips</Link></div>
         <h1>{t.name}</h1>
         <div className="meta num">
-          <span>{t.dest.name}{t.dest.name !== t.dest.country ? ', ' + t.dest.country : ''}</span><span>·</span><span>{fmtRange(t)}</span>
+          <span>{t.dest.name}{t.dest.name !== t.dest.country ? ', ' + t.dest.country : ''}</span>
+          <button type="button" className="btn-sm" aria-expanded={ui.placeOpen} onClick={() => { where.reset(); set({ placeOpen: !ui.placeOpen }); }}>{ui.placeOpen ? 'Cancel' : 'Change place'}</button>
+          <span>·</span><span>{fmtRange(t)}</span>
           {someday ? <button type="button" className="btn-sm" aria-expanded={ui.datesOpen} onClick={() => set({ datesOpen: !ui.datesOpen })}>{ui.datesOpen ? 'Cancel' : 'Pick dates'}</button>
             : past ? <span className="pill">Past trip</span> : relTime(t) ? <span className="pill go">{relTime(t)}</span> : null}
         </div>
@@ -118,6 +137,12 @@ function TripView({ t }: { t: Trip }) {
             <button className="btn primary" type="submit">Make it a trip</button>
           </form>
         )}
+        {ui.placeOpen && (cfg?.places
+          ? <div className="group dates-form place-form"><label className="field">Where is this trip?{where.input}</label>{where.results}</div>
+          : <form className="group dates-form" onSubmit={moveSample}>
+            <label className="field">Where is this trip?<select name="city" defaultValue={t.city ?? undefined}>{Object.entries(CITY).map(([k, c]) => <option key={k} value={k}>{c.name}{c.name !== c.country ? ', ' + c.country : ''}</option>)}</select></label>
+            <button className="btn primary" type="submit">Move trip</button>
+          </form>)}
         <div className="tabs" role="tablist">
           {tabs.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={tab === k} style={vars({ '--tc': TAB_COLORS[k] })} onClick={() => set({ tab: k, hl: null, sel: null, open: null })}><i className="tab-dot" />{l}</button>)}
         </div>

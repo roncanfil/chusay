@@ -47,7 +47,14 @@ export interface PlaceResult extends PlaceLike {
   lng: number | null;
 }
 
-// A destination found with Google, for + New.
+// A destination as listed while searching; picking one fetches its DestinationResult.
+export interface DestinationHit {
+  placeId: string;
+  name: string;
+  address: string;
+}
+
+// A trip's destination found with Google.
 export interface DestinationResult {
   placeId: string;
   name: string;
