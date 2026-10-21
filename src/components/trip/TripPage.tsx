@@ -9,7 +9,7 @@ import { dayColor, TAB_COLORS, type Tab } from '@/lib/constants';
 import { CITY } from '@/lib/data/cities';
 import { uid } from '@/lib/seed';
 import { editTrip, openDisc, setView, toast, toggleMapHidden, useAppState, useConfig, useSession, useView } from '@/lib/store';
-import { canMap, fmtRange, ideaOf, isoDate, isPast, isSomeday, offMap, planned, relTime, scheduledDay, staysOn, today } from '@/lib/trips';
+import { canMap, fmtRange, ideaOf, isoDate, isPast, inCat, isSomeday, offMap, planned, relTime, scheduledDay, staysOn, today } from '@/lib/trips';
 import type { CityKey, DestinationResult, Trip } from '@/lib/types';
 import { CultureView } from './CultureView';
 import { DaysView } from './DaysView';
@@ -56,7 +56,7 @@ function TripView({ t }: { t: Trip }) {
   const mapOk = canMap(t, !!cfg?.mapsKey);
   const showMap = mapOk && ((tab === 'days' && view.dayMap) || (tab === 'ideas' && view.ideasMap));
   const mspec = tab === 'days' ? dayMapSpec(t, ui.day, view.dayAll)
-    : { places: t.ideas.filter(i => (ui.cat === 'all' || i.cat === ui.cat) && (!offMap(t, i) || planned(t, i))).map(i => ({ idea: i })), routes: [], key: `ideas-${t.id}-${ui.cat}` };
+    : { places: t.ideas.filter(i => (ui.cat === 'all' || inCat(i, ui.cat)) && (!offMap(t, i) || planned(t, i))).map(i => ({ idea: i })), routes: [], key: `ideas-${t.id}-${ui.cat}` };
 
   // clicking a pin opens its row, and the row scrolls into view
   function onPin(id: string) {

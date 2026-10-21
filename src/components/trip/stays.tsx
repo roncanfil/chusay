@@ -103,15 +103,16 @@ export function StayForm({ t, url, onDone }: { t: Trip; url: string; onDone: () 
 // in an opened stay: its price, and its pin, placed or moved by searching an address or area
 export function StayFields({ t, i }: { t: Trip; i: Idea }) {
   const [moving, setMoving] = useState(false);
-  if (i.cat !== 'stay') return null;
+  if (i.cat !== 'stay' && i.cat !== 'car') return null;
+  const car = i.cat === 'car';
   const pin = (p: Pin) => { editIdea(t.id, i.id, x => { x.lat = p.lat; x.lng = p.lng; x.hood = p.hood; }); setMoving(false); toast(`Moved ${i.name} to ${p.hood}.`); };
   return <>
     <label className="note-field"><span>Price</span>
-      <input className="input" value={i.price || ''} onChange={e => editIdea(t.id, i.id, x => { x.price = e.target.value; })} placeholder="e.g. €140 a night" />
+      <input className="input" value={i.price || ''} onChange={e => editIdea(t.id, i.id, x => { x.price = e.target.value; })} placeholder={car ? 'e.g. €35 a day, full insurance' : 'e.g. €140 a night'} />
     </label>
     {i.lat == null || moving
-      ? <PinFinder t={t} label={i.lat == null ? 'Place it on the map' : 'Move the pin to'} onPick={pin} />
-      : <span className="faint small">On the map{i.hood ? ` in ${i.hood}` : ''}. <button type="button" className="linkish" onClick={() => setMoving(true)}>Move the pin</button></span>}
+      ? <PinFinder t={t} label={car ? (i.lat == null ? 'Where to pick it up (optional)' : 'Move the pick-up pin to') : i.lat == null ? 'Place it on the map' : 'Move the pin to'} onPick={pin} />
+      : <span className="faint small">{car ? 'Picked up' : 'On the map'}{i.hood ? ` in ${i.hood}` : ''}. <button type="button" className="linkish" onClick={() => setMoving(true)}>Move the pin</button></span>}
   </>;
 }
 

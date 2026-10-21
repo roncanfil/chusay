@@ -779,3 +779,8 @@ label.btn-sm[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .rows-edit-row .input { font-size: 14.5px; padding: 7px 10px; font-weight: 400; }
 .rows-edit .linkish { justify-self: start; }
 @media (max-width: 640px) { .rows-edit-row { grid-template-columns: minmax(0, 1fr) auto; } .rows-edit-row .input:not(:first-child) { grid-column: 1; } .rows-edit-row .icon-btn { grid-row: 1; grid-column: 2; } }
+/* Ideas sections drag by their grip; stays and rental cars can be compared side by side */
+.grip { cursor: grab; color: var(--ink-3); font-size: 14px; letter-spacing: -3px; padding: 0 4px 0 0; user-select: none; touch-action: none; }
+.grip:hover { color: var(--ink); }
+.compare-n { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; align-items: start; }
+.compare-n .ph.big { max-width: none; }

@@ -109,6 +109,9 @@ const MIGRATIONS: string[] = [
   ALTER TABLE trips ADD COLUMN map_off TEXT NOT NULL DEFAULT '[]';`,
   // 9: each trip's Culture tab gets quirky things about its own place
   `ALTER TABLE culture ADD COLUMN quirks TEXT NOT NULL DEFAULT '[]';`,
+  // 10: a trip idea can be under several categories, and the Ideas sections keep our order
+  `ALTER TABLE ideas ADD COLUMN extra_cats TEXT NOT NULL DEFAULT '[]';
+  ALTER TABLE trips ADD COLUMN cat_order TEXT NOT NULL DEFAULT '[]';`,
 ];
 
 // foreign keys are off while migrating, so rebuilding a table (copy, drop, rename) doesn't cascade-delete

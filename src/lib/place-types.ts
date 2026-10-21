@@ -3,6 +3,7 @@ import type { Cat } from './types';
 // Google place types → our category and the finer kind used for icons (see KIND in kinds.ts).
 // Checked in order, most specific first, against primaryType and then the other types.
 const RULES: [RegExp, Cat, string][] = [
+  [/^car_rental$/, 'car', 'car'],
   [/^(lodging|hotel|hostel|motel|resort_hotel|bed_and_breakfast|guest_house|inn|campground|camping_cabin|cottage|extended_stay_hotel|farmstay|japanese_inn|budget_japanese_inn|private_guest_room|rv_park)$/, 'stay', 'stay'],
   [/^(bakery|pastry_shop|bagel_shop|donut_shop|confectionery)$/, 'food', 'bakery'],
   [/^(cafe|coffee_shop|tea_house|cat_cafe|dog_cafe|cafeteria)$/, 'food', 'cafe'],

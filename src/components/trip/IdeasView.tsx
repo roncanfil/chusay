@@ -10,7 +10,7 @@ import { searchCatalog, suggestions } from '@/lib/picks';
 import { uid } from '@/lib/seed';
 import { fromCatalog, findPlaces } from '@/lib/search';
 import { editTrip, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
-import { isPast, isSomeday, isUrl, planned, scheduledDay, stayLabel } from '@/lib/trips';
+import { catsOfIdea, inCat, isPast, isSomeday, isUrl, planned, scheduledDay, stayLabel } from '@/lib/trips';
 import type { Cat, Idea, Pace, PlaceResult, Prefs, Trip } from '@/lib/types';
 import { IdeaCat, IdeaNote, IdeaSource, MapsLink } from './fields';
 import { StayDays, StayFields, StayForm } from './stays';
@@ -31,9 +31,18 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
   // Sortable moves DOM nodes React owns; after a drop the groups are re-mounted from state
   const [dragKey, setDragKey] = useState(0);
 
-  // drag ideas up and down inside their category, e.g. stays in order of preference; that order is the list's order
+  // drag ideas up and down inside their category, e.g. stays in order of preference; that order is the list's order.
+  // Whole sections drag by their ⋮⋮ grip, and keep that order for the trip
   useEffect(() => {
     const root = listRef.current; if (!root) return;
+    const sections = Sortable.create(root, {
+      animation: 150, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', handle: '.grip', draggable: '[data-sec]',
+      onUpdate() {
+        const order = [...root.querySelectorAll<HTMLElement>(':scope > [data-sec]')].map(e => e.dataset.sec!);
+        editTrip(t.id, tt => { tt.catOrder = [...order, ...(tt.catOrder ?? []).filter(k => !order.includes(k))]; });
+        setDragKey(k => k + 1);
+      },
+    });
     const made = [...root.querySelectorAll<HTMLElement>('.group[data-cat]')].map(el => Sortable.create(el, {
       animation: 150, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', delay: 150, delayOnTouchOnly: true, preventOnFilter: false,
       draggable: '.row.link', filter: 'button,input,textarea,select,a', ghostClass: 'sortable-ghost',
@@ -41,19 +50,21 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
         const order = [...el.querySelectorAll<HTMLElement>('[data-row]')].map(r => r.dataset.row!), cat = el.dataset.cat;
         editTrip(t.id, tt => {
           const mine = order.map(id => tt.ideas.find(i => i.id === id)!).filter(Boolean);
-          let n = 0; tt.ideas = tt.ideas.map(i => i.cat === cat ? mine[n++] ?? i : i);
+          let n = 0; tt.ideas = tt.ideas.map(i => inCat(i, cat!) ? mine[n++] ?? i : i);
         });
         setDragKey(k => k + 1);
       },
     }));
-    return () => made.forEach(s => s.destroy());
+    return () => { sections.destroy(); made.forEach(s => s.destroy()); };
   });
+  const [comparing, setComparing] = useState<string | null>(null); // a section shown as options side by side
   // what's left off the maps is kept with the trip: whole categories, or single places (a stay we didn't pick)
   const catOff = (k: string) => !!t.mapOffCats?.includes(k);
   const toggleCat = (k: string) => editTrip(t.id, tt => { const l = tt.mapOffCats ?? []; tt.mapOffCats = l.includes(k) ? l.filter(x => x !== k) : [...l, k]; });
 
   const counts: Record<string, number> = { all: t.ideas.length };
-  t.ideas.forEach(i => { counts[i.cat] = (counts[i.cat] || 0) + 1; });
+  t.ideas.forEach(i => catsOfIdea(i).forEach(k => { counts[k] = (counts[k] || 0) + 1; }));
+  const ordered = [...CAT_KEYS].sort((a, b) => rank(t, a) - rank(t, b));
   const cats = ([['all', 'All'], ...CAT_KEYS.map(k => [k, CATS[k].label])] as [Cat | 'all', string][]).filter(([k]) => counts[k]);
   const picks = suggestions(S, t), P = S.prefs, s = ui.search;
 
@@ -153,7 +164,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
     </Disc>
   );
 
-  const groups = (ui.cat === 'all' ? CAT_KEYS : [ui.cat]).filter(k => counts[k]);
+  const groups = (ui.cat === 'all' ? ordered : [ui.cat]).filter(k => counts[k]);
   return <>
     <div className="toolbar">
       <button type="button" className="btn primary" onClick={openAdd}>+ Add a place</button>
@@ -177,10 +188,14 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
     {!t.ideas.length
       ? <div className="group empty"><b style={{ color: 'var(--ink)' }}>No ideas saved yet</b><span>Search for places, or open your picks.</span><button type="button" className="btn primary" onClick={openAdd}>+ Add a place</button></div>
       : <div ref={listRef} key={dragKey}>{groups.map(k => (
-        <Disc key={k} k={`cat-${k}`} cls="tint" style={vars({ '--sc': CATS[k].color })} head={<><CatIcon cat={k} /><b>{CATS[k].label}</b><span className="faint small">{counts[k]}</span></>}>
-          {k === 'stay' && counts[k] > 1 && <span className="faint small drag-hint">Drag to put them in order of preference, favorite first.</span>}
-          <div className="group" data-cat={k}>{t.ideas.filter(i => i.cat === k).map(i => <IdeaRow key={i.id} t={t} i={i} ui={ui} set={set} offMap={!!i.offMap} catOff={catOff(i.cat)} toggleMap={() => editTrip(t.id, tt => { const x = tt.ideas.find(y => y.id === i.id)!; if (x.offMap) delete x.offMap; else x.offMap = true; })} />)}</div>
-        </Disc>
+        <div key={k} data-sec={k}><Disc k={`cat-${k}`} cls="tint" style={vars({ '--sc': CATS[k].color })} head={<><span className="grip" aria-label="Drag to reorder sections" title="Drag to reorder sections">⋮⋮</span><CatIcon cat={k} /><b>{CATS[k].label}</b><span className="faint small">{counts[k]}</span></>}>
+          {counts[k] > 1 && <span className="faint small drag-hint">
+            {comparing === k ? 'Side by side, in your order.' : `Drag to put them in order of preference${k === 'stay' || k === 'car' ? ', favorite first' : ''}.`}
+            {(k === 'stay' || k === 'car') && <> <button type="button" className="linkish" onClick={() => setComparing(comparing === k ? null : k)}>{comparing === k ? 'Back to the list' : 'Compare them'}</button></>}
+          </span>}
+          {comparing === k ? <Compare t={t} list={t.ideas.filter(i => inCat(i, k))} open={id => { setComparing(null); set({ open: id, hl: id, panTo: pan(id) }); }} />
+          : <div className="group" data-cat={k}>{t.ideas.filter(i => inCat(i, k)).map(i => <IdeaRow key={i.id} t={t} i={i} ui={ui} set={set} offMap={!!i.offMap} catOff={catOff(i.cat)} toggleMap={() => editTrip(t.id, tt => { const x = tt.ideas.find(y => y.id === i.id)!; if (x.offMap) delete x.offMap; else x.offMap = true; })} />)}</div>}
+        </Disc></div>
       ))}</div>}
   </>;
 }
@@ -253,5 +268,26 @@ function MoveIdea({ t, i, done }: { t: Trip; i: Idea; done: () => void }) {
       <button type="button" className="chip" onClick={() => move('muhu')}>Muhu, for later</button>
       {others.map(x => <button key={x.id} type="button" className="chip" onClick={() => move(x.id)}>{x.name}</button>)}
     </span></div>
+  );
+}
+
+// the trip's own order of sections; ones it hasn't placed keep the usual order after them
+const rank = (t: Trip, k: string) => { const n = t.catOrder?.indexOf(k) ?? -1; return n < 0 ? 100 + CAT_KEYS.indexOf(k) : n; };
+
+// stays or rental cars side by side, in the order of preference; "Open" goes back to the list with that one opened
+function Compare({ t, list, open }: { t: Trip; list: Idea[]; open: (id: string) => void }) {
+  return (
+    <div className="compare-n">{list.map(i => (
+      <div key={i.id} className="cmp-col" style={vars({ '--cc': CATS[i.cat].color })}>
+        <Pic p={i} big />
+        <b className="cmp-name">{i.name}</b>
+        {i.price && <div><span className="lbl">Price</span>{i.price}</div>}
+        {i.hood && <div><span className="lbl">{i.cat === 'car' ? 'Pick up' : 'Area'}</span>{i.hood}</div>}
+        {i.cat === 'stay' && stayLabel(t, i) && <div><span className="lbl">Staying</span>{stayLabel(t, i)}</div>}
+        {i.note && <div><span className="lbl">Our notes</span><span className="cmp-note">{i.note}</span></div>}
+        <SrcChip v={i.source} />
+        <div className="acts"><button type="button" className="btn-sm" onClick={() => open(i.id)}>Open</button></div>
+      </div>
+    ))}</div>
   );
 }

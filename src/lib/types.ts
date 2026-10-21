@@ -1,4 +1,4 @@
-export type BuiltinCat = 'sight' | 'food' | 'act' | 'tour' | 'stay' | 'shop';
+export type BuiltinCat = 'sight' | 'food' | 'act' | 'tour' | 'stay' | 'shop' | 'car';
 // the built-in categories, or one the household added (its id)
 export type Cat = BuiltinCat | (string & {});
 export type CityKey = 'morocco' | 'lisbon' | 'cdmx' | 'kyoto';
@@ -42,6 +42,7 @@ export interface Idea extends PlaceLike {
   image?: string; // stays: the listing's own preview picture, by URL (never stored as a file)
   stayDays?: string[]; // stays: the days we're staying there, by day id, or ['*'] for every day of the trip
   offMap?: boolean; // left off the maps until it's on a day (a stay we didn't pick)
+  extraCats?: Cat[]; // more categories it's listed under; `cat` stays the main one (its color and map pin)
 }
 
 // What a booking-site link could tell about a stay; anything missing is filled in by hand.
@@ -128,6 +129,7 @@ export interface Trip {
   notes: string;
   feedback: Feedback;
   mapOffCats?: string[]; // whole categories left off the maps
+  catOrder?: string[]; // the Ideas sections in the order we put them
 }
 
 export interface Visit {

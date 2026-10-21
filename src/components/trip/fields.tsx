@@ -3,7 +3,7 @@ import { NewCategory } from '@/components/NewCategory';
 import { CATS, CAT_KEYS } from '@/lib/constants';
 import { editIdea } from '@/lib/store';
 import { kindLabel } from '@/lib/kinds';
-import { gmaps, isMaps, stayLabel } from '@/lib/trips';
+import { gmaps, inCat, isMaps, stayLabel } from '@/lib/trips';
 import type { Idea, Trip } from '@/lib/types';
 
 // the top of an opened place in the itinerary: its picture large, and what, where, how much and which nights at a glance
@@ -21,11 +21,19 @@ export function IdeaNote({ t, i }: { t: Trip; i: Idea }) {
   );
 }
 
-// fix a category Google guessed wrong; the old kind belonged to the old category, so it goes too
+// one or more categories; the first picked is the main one (its color and map pin). Changing the main one drops the old kind,
+// which belonged to the old category
+function toggleCat(x: Idea, k: string) {
+  const extra = x.extraCats ?? [];
+  if (x.cat === k) { if (!extra.length) return; x.cat = extra[0]; x.extraCats = extra.slice(1); delete x.kind; }
+  else x.extraCats = extra.includes(k) ? extra.filter(c => c !== k) : [...extra, k];
+  if (!x.extraCats?.length) delete x.extraCats;
+}
 export function IdeaCat({ t, i }: { t: Trip; i: Idea }) {
   return (
-    <div className="inline-field">Category <span className="chips">{CAT_KEYS.map(k => <button key={k} type="button" className="chip dchip" style={vars({ '--dc': CATS[k].color })} aria-pressed={i.cat === k} onClick={() => i.cat !== k && editIdea(t.id, i.id, x => { x.cat = k; delete x.kind; })}>{CATS[k].label}</button>)}
-      <NewCategory scope="trip" onMade={k => editIdea(t.id, i.id, x => { x.cat = k; delete x.kind; })} /></span></div>
+    <div className="inline-field">Category <span className="chips">{CAT_KEYS.map(k => <button key={k} type="button" className="chip dchip" style={vars({ '--dc': CATS[k].color })} aria-pressed={inCat(i, k)} title={i.cat === k ? 'The main one: its color on the map' : undefined} onClick={() => editIdea(t.id, i.id, x => toggleCat(x, k))}>{CATS[k].label}</button>)}
+      <NewCategory scope="trip" onMade={k => editIdea(t.id, i.id, x => toggleCat(x, k))} /></span>
+      {!!i.extraCats?.length && <span className="faint small" style={{ fontWeight: 400 }}>{CATS[i.cat]?.label} gives its color on the map</span>}</div>
   );
 }
 

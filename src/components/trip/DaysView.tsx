@@ -9,7 +9,7 @@ import { kindLabel } from '@/lib/kinds';
 import { suggestDay } from '@/lib/picks';
 import { uid } from '@/lib/seed';
 import { discIsOpen, editTrip, openDisc, setView, toast, useSession, useView } from '@/lib/store';
-import { dayDate, fmtDay, ideaOf, offMap, scheduledDay, staysOn } from '@/lib/trips';
+import { dayDate, fmtDay, ideaOf, isOption, offMap, scheduledDay, staysOn } from '@/lib/trips';
 import type { OwnPlan, Stop, Trip } from '@/lib/types';
 import { IdeaCat, IdeaHero, IdeaNote, IdeaSource, MapsLink } from './fields';
 import { StayDays, StayFields } from './stays';
@@ -27,7 +27,7 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
   const list = view.dayAll || !mapOk, compact = view.density === 'compact';
   // places left off the map still go on a day from here; they come last
   const unplanned = t.ideas.filter(i => scheduledDay(t, i.id) < 0).sort((a, b) => Number(offMap(t, a)) - Number(offMap(t, b)));
-  const canSuggest = unplanned.some(i => i.cat !== 'stay' && i.lat != null);
+  const canSuggest = unplanned.some(i => !isOption(i) && i.lat != null);
 
   // stops drag to reorder and between days; ideas drag in from "+ From ideas"
   useEffect(() => {

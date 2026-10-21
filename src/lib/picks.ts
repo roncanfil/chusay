@@ -1,7 +1,7 @@
 import { CATS, INTERESTS, PACE } from './constants';
 import { CATALOG } from './data/catalog';
 import { uid } from './seed';
-import { ideaOf, offMap, scheduledDay } from './trips';
+import { ideaOf, isOption, offMap, scheduledDay } from './trips';
 import type { AppState, CatalogPlace, Idea, Trip } from './types';
 
 // Canned stand-in for Google Places search. The real app searches Google, biased to the trip's center.
@@ -40,7 +40,7 @@ export function suggestions(S: AppState, t: Trip) {
 // Mutates the (draft) trip and returns how many places it planned.
 export function suggestDay(S: AppState, t: Trip, k: number) {
   const per = PACE[S.prefs.pace][1];
-  const pool = t.ideas.filter(i => i.cat !== 'stay' && i.lat != null && scheduledDay(t, i.id) < 0 && !offMap(t, i));
+  const pool = t.ideas.filter(i => !isOption(i) && i.lat != null && scheduledDay(t, i.id) < 0 && !offMap(t, i));
   if (!pool.length) return 0;
   const d2 = (a: Idea, b: Idea) => (a.lat! - b.lat!) ** 2 + ((a.lng! - b.lng!) * Math.cos(a.lat! * Math.PI / 180)) ** 2;
   const near = (p: Idea) => pool.filter(q => d2(p, q) < 0.0002).length;

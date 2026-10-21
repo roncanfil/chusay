@@ -13,7 +13,7 @@ export const KIND: Record<string, [string, string]> = {
   activity: ['Activity', ICON.act], music: ['Live music', 'M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z'],
   tour: ['Walk or tour', 'M5 21V4M5 4h11l-2 4 2 4H5'], ride: ['Ride', 'M6 4h12a1 1 0 0 1 1 1v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1zM5 11h14M8 22l2-4M16 22l-2-4'],
   aquarium: ['Aquarium', 'M3 12c3-5 10-6 14 0-4 6-11 5-14 0zM17 12l4-3v6zM8 11.5h.01'],
-  stay: ['Stay', ICON.stay], shop: ['Shop', ICON.shop],
+  stay: ['Stay', ICON.stay], shop: ['Shop', ICON.shop], car: ['Rental car', ICON.car],
 };
 const KIND_RULES: Partial<Record<Cat, [RegExp, string][]>> = {
   food: [[/pastel|past[eé]is|bakery|manteigaria|nata|padaria|panader/, 'bakery'], [/caf[eé]|coffee|kiosk|\btea\b/, 'cafe'], [/\bbar\b|ginj|cocktail|rooftop|wine|pub/, 'bar'], [/market|mercado|food hall/, 'market']],
@@ -21,7 +21,7 @@ const KIND_RULES: Partial<Record<Cat, [RegExp, string][]>> = {
   act: [[/fado|music|jazz|concert|mariachi/, 'music'], [/tour|walk|path/, 'tour'], [/tram|boat|bike|ride|cruise|cable/, 'ride'], [/ocean|aquar/, 'aquarium']],
   shop: [[/feira|flea|souk|tianguis|market|mercado/, 'market']],
 };
-const DEF_KIND: Partial<Record<Cat, string>> = { food: 'restaurant', sight: 'landmark', act: 'activity', tour: 'tour', stay: 'stay', shop: 'shop' };
+const DEF_KIND: Partial<Record<Cat, string>> = { food: 'restaurant', sight: 'landmark', act: 'activity', tour: 'tour', stay: 'stay', shop: 'shop', car: 'car' };
 
 export function kindOf(i: PlaceLike): string {
   if (i.kind && KIND[i.kind]) return i.kind;

@@ -25,6 +25,11 @@ export const canMap = (t: Trip, google: boolean) => google ? !!tripCenter(t) || 
 export const ideaOf = (t: Trip, id?: string) => t.ideas.find(i => i.id === id);
 export const scheduledDay = (t: Trip, ideaId: string) => t.days.findIndex(d => d.stops.some(s => s.idea === ideaId));
 // left off the maps (by hand, or with its whole category) until it's planned on a day
+// an idea is listed under its main category and any others it was given
+export const inCat = (i: Idea, k: string) => i.cat === k || !!i.extraCats?.includes(k);
+export const catsOfIdea = (i: Idea) => [i.cat, ...(i.extraCats ?? [])];
+// options compared and picked from, rather than places to visit
+export const isOption = (i: Idea) => i.cat === 'stay' || i.cat === 'car';
 export const offMap = (t: Trip, i: Idea) => !!i.offMap || !!t.mapOffCats?.includes(i.cat);
 // on a day, or a stay we're sleeping at: shown on the maps whatever was hidden
 export const planned = (t: Trip, i: Idea) => scheduledDay(t, i.id) >= 0 || !!i.stayDays?.length;
