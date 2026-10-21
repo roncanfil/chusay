@@ -1,4 +1,4 @@
-import type { Cat, PlaceLike } from './types';
+import type { BuiltinCat, PlaceLike } from './types';
 
 // Drawn stand-ins for place photos (64x64 SVG markup). The real app shows Google place photos.
 const ART: Record<string, string> = {
@@ -14,7 +14,7 @@ const ART: Record<string, string> = {
 };
 const ART_BY_NAME: Record<string, string> = {'Memmo Alfama': 'memmo', 'Castelo de São Jorge': 'castle', 'A Ginjinha': 'ginja', 'Fado at Clube de Fado': 'fado', 'Jerónimos Monastery': 'jeronimos', 'Pastéis de Belém': 'pasteis', 'Belém Tower': 'belem', 'LX Factory': 'lx', 'Feira da Ladra': 'feira'};
 
-const GEN: Record<Cat, (h: number) => string> = {
+const GEN: Record<BuiltinCat, (h: number) => string> = {
   sight: (h) => `<rect width="64" height="64" fill="hsl(${h} 55% 86%)"/><rect y="54" width="64" height="10" fill="hsl(${(h + 70) % 360} 28% 68%)"/><rect x="13" y="30" width="38" height="24" fill="#EFE7D6"/><path d="M10 31 32 17l22 14z" fill="#E1D5BB"/><g fill="#CDBF9F"><rect x="17" y="33" width="4" height="19"/><rect x="25" y="33" width="4" height="19"/><rect x="35" y="33" width="4" height="19"/><rect x="43" y="33" width="4" height="19"/></g>`,
   food: (h) => `<rect width="64" height="64" fill="hsl(${h} 40% 78%)"/><circle cx="33" cy="33" r="20" fill="#FFFFFF"/><circle cx="33" cy="33" r="15" fill="#F4EFE7"/><circle cx="28" cy="30" r="5.5" fill="hsl(${(h + 20) % 360} 62% 55%)"/><circle cx="38" cy="35" r="6" fill="hsl(${(h + 130) % 360} 42% 48%)"/><circle cx="31" cy="40" r="3.6" fill="#F2C94C"/><path d="M8 18v28M5 18v8a3 3 0 0 0 6 0v-8" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round"/>`,
   act: (h) => `<rect width="64" height="64" fill="hsl(${h} 50% 82%)"/><path d="M9 20h46v8a4 4 0 0 0 0 8v8H9v-8a4 4 0 0 0 0-8z" fill="#FFFFFF"/><path d="M9 20h12v24H9v-8a4 4 0 0 0 0-8z" fill="hsl(${h} 55% 50%)"/><path d="M27 28h20M27 34h14" stroke="hsl(${h} 30% 70%)" stroke-width="3" stroke-linecap="round"/>`,
@@ -25,5 +25,5 @@ const GEN: Record<Cat, (h: number) => string> = {
 export function artFor(i: PlaceLike): string {
   const k = ART_BY_NAME[i.name]; if (k) return ART[k];
   let h = 0; for (const c of i.name) h = (h * 31 + c.charCodeAt(0)) % 360;
-  return GEN[i.cat](h);
+  return (GEN[i.cat as BuiltinCat] ?? GEN.sight)(h); // a category the household added gets the general drawing
 }

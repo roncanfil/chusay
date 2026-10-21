@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS ideas (
   trip_id         TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
   google_place_id TEXT,
   name            TEXT NOT NULL,            -- the household's own label for the place
-  category        TEXT NOT NULL CHECK (category IN ('sight', 'food', 'act', 'tour', 'stay', 'shop')),
+  category        TEXT NOT NULL,            -- sight, food, act, tour, stay, shop, or the id of one in categories
   kind            TEXT,                     -- from Google's primaryType: bakery, museum, …
   area            TEXT NOT NULL DEFAULT '',
   lat             REAL,
@@ -116,12 +116,22 @@ CREATE TABLE IF NOT EXISTS muhu (
   created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- categories the household added, for trip ideas or for Muhu
+CREATE TABLE IF NOT EXISTS categories (
+  id         TEXT PRIMARY KEY,
+  scope      TEXT NOT NULL CHECK (scope IN ('trip', 'muhu')),
+  label      TEXT NOT NULL,
+  color      TEXT NOT NULL,
+  icon       TEXT NOT NULL,                -- an SVG path
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Muhu searches kept under a name, with their filters
 CREATE TABLE IF NOT EXISTS muhu_searches (
   id         TEXT PRIMARY KEY,
   name       TEXT NOT NULL,
   query      TEXT NOT NULL DEFAULT '',
-  category   TEXT NOT NULL DEFAULT '',    -- '' = all categories
+  category   TEXT NOT NULL DEFAULT '',    -- comma-separated; '' = all categories
   want       TEXT NOT NULL DEFAULT 'any', -- 'any', or high / med / low / '' (not set)
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

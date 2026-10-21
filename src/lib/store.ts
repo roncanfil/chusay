@@ -1,5 +1,6 @@
 import { produce } from 'immer';
 import { useEffect, useSyncExternalStore } from 'react';
+import { addCustomCats } from './constants';
 import type { AppState, Idea, MuhuIdea, Trip } from './types';
 
 // A tiny external store: one shared state object, like the prototype's global S.
@@ -23,7 +24,8 @@ function write(key: string, v: unknown) {
 }
 
 /* ---------- shared data: SQLite on the server, through the API routes, so both of you see the same ---------- */
-const data = createStore<AppState | null>(() => null, null);
+// the household's own categories join the built-in ones before anything draws with them
+const data = createStore<AppState | null>(() => null, null, s => { if (s) addCustomCats(s.categories); });
 let loaded = false, loading = false, edits = 0;
 
 // null until the first load arrives (and always while rendering on the server)
@@ -106,6 +108,7 @@ function sync(prev: AppState, next: AppState) {
       return cur.length ? call('PUT', '/api/muhu', cur, k) : Promise.resolve();
     });
   }
+  for (const c of next.categories) if (!prev.categories.some(p => p.id === c.id)) run(() => call('POST', '/api/categories', c));
   if (prev.searches !== next.searches) {
     for (const x of next.searches) if (!prev.searches.some(p => p.id === x.id)) run(() => call('POST', '/api/muhu/searches', x));
     for (const x of prev.searches) if (!next.searches.some(n => n.id === x.id)) run(() => call('DELETE', `/api/muhu/searches/${x.id}`));

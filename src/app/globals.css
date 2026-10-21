@@ -718,3 +718,19 @@ label.btn-sm[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .chip.saved button.x:hover { color: var(--ink); }
 .save-search { display: flex; align-items: center; gap: 8px; }
 .save-search .input { width: 220px; padding: 6px 10px; font-size: 14px; }
+/* the household's own categories: "+ New category" opens a small form in place */
+.chip.new-cat { border-style: dashed; color: var(--accent-ink); }
+.new-cat-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px dashed color-mix(in srgb, var(--dc) 50%, var(--line)); border-radius: 12px; background: color-mix(in srgb, var(--dc) 6%, var(--surface)); font-weight: 400; }
+.new-cat-form .input { width: 210px; padding: 6px 10px; font-size: 14px; }
+.swatches { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); padding: 0; }
+.swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
+.icon-pick { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); display: grid; place-items: center; padding: 0; }
+.icon-pick svg { width: 16px; height: 16px; }
+.icon-pick[aria-pressed="true"] { background: var(--dc); border-color: var(--dc); color: #fff; }
+.new-cat-form .acts { display: inline-flex; gap: 10px; align-items: center; }
+.filter-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; }
+.filter-btn .dot { width: 8px; height: 8px; }
+.filter-btn .caret { font-size: 16px; width: 10px; }
+.filter-btn[aria-expanded="true"] .caret { transform: rotate(90deg); }
+.cat-filter { margin-top: 12px; }

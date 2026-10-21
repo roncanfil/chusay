@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent, type FormEvent, type KeyboardEvent, type MouseEvent, type RefObject } from 'react';
 import { Disc } from '@/components/Disc';
+import { NewCategory } from '@/components/NewCategory';
 import { ListSegIcon, MapSegIcon, PinSvg, SrcChip, vars } from '@/components/icons';
 import { GoogleMap, useMapsFailed } from '@/components/map/GoogleMap';
 import type { MapPlace, PanRequest } from '@/components/map/TripMap';
@@ -219,7 +220,7 @@ function MuhuDetails({ S, m }: { S: AppState; m: MuhuIdea }) {
       const on = m.cats.includes(k);
       return <button key={k} type="button" className="chip dchip" style={vars({ '--dc': MUHU_CATS[k].color })} aria-pressed={on}
         onClick={() => ed(x => { x.cats = on ? x.cats.filter(c => c !== k) : [...x.cats, k]; })}>{MUHU_CATS[k].label}</button>;
-    })}</span></div>
+    })}<NewCategory scope="muhu" onMade={k => ed(x => { x.cats.push(k); })} /></span></div>
     <div className="inline-field">How much <span className="chips">{(Object.entries(WANT) as [Exclude<Want, ''>, string][]).map(([k, l]) => (
       <button key={k} type="button" className="chip" aria-pressed={m.want === k} onClick={() => ed(x => { x.want = x.want === k ? '' : k; })}>{l}</button>
     ))}</span></div>
@@ -310,9 +311,9 @@ function SidePanel({ S, list, pick, onPin, viewKey, withMap }: { S: AppState; li
 // saved searches as buttons under the search box; the one in use is pressed, and the search in use can be saved under a name
 function SavedSearches({ S, now, apply }: { S: AppState; now: Omit<SavedSearch, 'id' | 'name'>; apply: (x: SavedSearch) => void }) {
   const [naming, setNaming] = useState<string | null>(null);
-  const same = (x: SavedSearch) => x.q.trim() === now.q.trim() && x.cat === now.cat && x.want === now.want;
-  const active = !!(now.q.trim() || now.cat || now.want !== 'any'), saved = S.searches.some(same);
-  const suggest = [now.q.trim(), now.cat && MUHU_CATS[now.cat].label, now.want !== 'any' && (now.want ? WANT[now.want] : 'Wish not set')].filter(Boolean).join(' · ');
+  const same = (x: SavedSearch) => x.q.trim() === now.q.trim() && [...x.cats].sort().join() === [...now.cats].sort().join() && x.want === now.want;
+  const active = !!(now.q.trim() || now.cats.length || now.want !== 'any'), saved = S.searches.some(same);
+  const suggest = [now.q.trim(), now.cats.map(c => MUHU_CATS[c]?.label).filter(Boolean).join(' + '), now.want !== 'any' && (now.want ? WANT[now.want] : 'Wish not set')].filter(Boolean).join(' · ');
   function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const name = String(new FormData(e.currentTarget).get('name')).trim() || suggest;
@@ -344,10 +345,9 @@ export function MuhuPage() {
   const S = useAppState(), cfg = useConfig(), view = useView(), wide = useWide();
   const [by, setBy] = useState<'country' | 'cat'>('country');
   const [cid, setCid] = useState<string | null>(null);
-  const [cat, setCat] = useState<MuhuCat | null>(null);
   const [open, setOpen] = useState<Pick | null>(null);
   const [panel, setPanel] = useState<'add' | 'import' | null>(null);
-  const [q, setQ] = useState(''), [fCat, setFCat] = useState<MuhuCat | ''>(''), [fWant, setFWant] = useState<Want | 'any'>('any');
+  const [q, setQ] = useState(''), [fCats, setFCats] = useState<MuhuCat[]>([]), [catsOpen, setCatsOpen] = useState(false), [fWant, setFWant] = useState<Want | 'any'>('any');
   // ideas not yet looked up on Google get the app's best guess, once
   const google = !!cfg?.places, list = S?.muhu;
   useEffect(() => { if (google && list) guessPlaces(list); }, [google, list]);
@@ -358,13 +358,17 @@ export function MuhuPage() {
     .sort((a, b) => b.list.length - a.list.length || a.name.localeCompare(b.name));
   const inCat = (k: MuhuCat) => S.muhu.filter(m => catsOf(m).includes(k));
   const cats = MUHU_KEYS.filter(k => inCat(k).length);
-  const country = countries.find(c => c.cid === cid) || countries[0], category = cat && cats.includes(cat) ? cat : cats[0];
+  const country = countries.find(c => c.cid === cid) || countries[0];
+  // one or more categories: the tiles when browsing by category, the filter otherwise; none picked = all of them
+  const picked = fCats.filter(k => MUHU_CATS[k]), inPicked = (m: MuhuIdea) => !picked.length || catsOf(m).some(c => picked.includes(c));
+  const toggleCat = (k: MuhuCat) => { setFCats(l => l.includes(k) ? l.filter(x => x !== k) : [...l, k]); setOpen(null); };
+  const oneCat = picked.length === 1 ? picked[0] : null;
   // the search looks through every idea; the filters narrow whatever is shown
-  const searching = !!q.trim(), catFilter = by === 'country' || searching ? fCat : '';
-  const keep = (m: MuhuIdea) => matches(m, q) && (!catFilter || catsOf(m).includes(catFilter)) && (fWant === 'any' || m.want === fWant);
-  const filtered = !!(searching || catFilter || fWant !== 'any');
+  const searching = !!q.trim();
+  const keep = (m: MuhuIdea) => matches(m, q) && inPicked(m) && (fWant === 'any' || m.want === fWant);
+  const filtered = !!(searching || picked.length || fWant !== 'any');
   const found = searching ? S.muhu.filter(keep) : [];
-  const shown = (searching ? found : by === 'country' ? country?.list ?? [] : category ? inCat(category) : []).filter(keep);
+  const shown = searching ? found : (by === 'country' ? country?.list ?? [] : S.muhu).filter(keep);
   const pick = open && S.muhu.find(m => m.id === open.id) || null;
   // on wide screens the picked idea opens on the right; "Photo & map" keeps that column (with the map) even with nothing picked
   const side = wide && (view.muhuSide || !!pick);
@@ -374,7 +378,7 @@ export function MuhuPage() {
     const Item = view.muhuTiles ? MuhuTile : MuhuRow;
     const all = [...list].sort(byWant).map(m => {
       const sel = !!open && open.id === m.id && (side || open.group === group);
-      return <Item key={m.id} S={S} m={m} cat={cat ?? mainCat(m)} sel={sel} open={sel && !side} toggle={() => choose(m.id, group)} photos={photos} />;
+      return <Item key={m.id} S={S} m={m} cat={cat ?? catsOf(m).find(c => picked.includes(c)) ?? mainCat(m)} sel={sel} open={sel && !side} toggle={() => choose(m.id, group)} photos={photos} />;
     });
     return view.muhuTiles ? <div className="mideas">{all}</div> : <div className="group">{all}</div>;
   };
@@ -397,7 +401,7 @@ export function MuhuPage() {
         </div>
       ) : <>
         <input type="search" className="input muhu-search" value={q} onChange={e => { setQ(e.target.value); setOpen(null); }} placeholder="Search every idea: names, places, notes, months…" aria-label="Search ideas" />
-        <SavedSearches S={S} now={{ q, cat: fCat, want: fWant }} apply={x => { setQ(x.q); setFCat(x.cat); setFWant(x.want); if (x.cat) setBy('country'); setOpen(null); }} />
+        <SavedSearches S={S} now={{ q, cats: picked, want: fWant }} apply={x => { setQ(x.q); setFCats(x.cats); setFWant(x.want); setOpen(null); }} />
         {!searching && <>
           <div className="seg muhu-by" role="group" aria-label="Show">
             <button type="button" aria-pressed={by === 'country'} onClick={() => setBy('country')}>By country</button>
@@ -410,16 +414,17 @@ export function MuhuPage() {
               </button>
             ))}</div>
             : <div className="mtiles">{cats.map(k => (
-              <button key={k} type="button" className="mtile with-ic" style={vars({ '--sc': MUHU_CATS[k].color })} aria-pressed={k === category} onClick={() => { setCat(k); setOpen(null); }}>
+              <button key={k} type="button" className="mtile with-ic" style={vars({ '--sc': MUHU_CATS[k].color })} aria-pressed={picked.includes(k)} onClick={() => toggleCat(k)}>
                 <MuhuIcon cat={k} /><b>{MUHU_CATS[k].label}</b><small className="num">{ideas(inCat(k).length)}</small>
               </button>
             ))}</div>}
         </>}
         <div className="toolbar muhu-tools">
           {(by === 'country' || searching) && (
-            <select className="input filter" value={fCat} onChange={e => { setFCat(e.target.value as MuhuCat | ''); setOpen(null); }} aria-label="Category">
-              <option value="">All categories</option>{MUHU_KEYS.map(k => <option key={k} value={k}>{MUHU_CATS[k].label}</option>)}
-            </select>
+            <button type="button" className="btn-sm filter-btn" aria-expanded={catsOpen} onClick={() => setCatsOpen(o => !o)}>
+              {picked.length ? picked.map(k => <i key={k} className="dot" style={vars({ '--cc': MUHU_CATS[k].color })} />) : null}
+              {!picked.length ? 'All categories' : picked.length === 1 ? MUHU_CATS[picked[0]].label : `${picked.length} categories`} <span className="caret" aria-hidden="true">›</span>
+            </button>
           )}
           <select className="input filter" value={fWant} onChange={e => { setFWant(e.target.value as Want | 'any'); setOpen(null); }} aria-label="How much we want it">
             <option value="any">Any wish</option>{(Object.entries(WANT) as [Exclude<Want, ''>, string][]).map(([k, l]) => <option key={k} value={k}>{l}</option>)}<option value="">Not set</option>
@@ -434,8 +439,16 @@ export function MuhuPage() {
               <button type="button" aria-pressed={!view.muhuSide} onClick={() => setView({ muhuSide: false })}>Ideas only</button>
             </div>
           )}
-          {filtered && <span className="faint small">{shown.length ? ideas(shown.length) : 'Nothing matches'} · <button type="button" className="linkish" onClick={() => { setQ(''); setFCat(''); setFWant('any'); }}>Clear</button></span>}
+          {filtered && <span className="faint small">{shown.length ? ideas(shown.length) : 'Nothing matches'} · <button type="button" className="linkish" onClick={() => { setQ(''); setFCats([]); setFWant('any'); }}>Clear</button></span>}
         </div>
+        {/* the category filter opens in place: pick as many as you like */}
+        {catsOpen && (by === 'country' || searching) && (
+          <div className="chips cat-filter">
+            <button type="button" className="chip" aria-pressed={!picked.length} onClick={() => setFCats([])}>All</button>
+            {MUHU_KEYS.map(k => <button key={k} type="button" className="chip dchip" style={vars({ '--dc': MUHU_CATS[k].color })} aria-pressed={picked.includes(k)} onClick={() => toggleCat(k)}>{MUHU_CATS[k].label}</button>)}
+            <NewCategory scope="muhu" />
+          </div>
+        )}
         <div className={side ? 'muhu-split' : ''}>
           <div className="muhu-list">{searching ? countries.map(c => {
             const list = found.filter(m => m.cid === c.cid);
@@ -444,7 +457,7 @@ export function MuhuPage() {
                 {items(list, null, `q-${c.cid}`)}
               </Disc>
             );
-          }) : by === 'country' ? MUHU_KEYS.map(k => {
+          }) : by === 'country' ? MUHU_KEYS.filter(k => !picked.length || picked.includes(k)).map(k => {
             const list = country.list.filter(m => catsOf(m).includes(k) && keep(m));
             return !!list.length && (
               <Disc key={k} k={`muhu-${country.cid}-${k}`} cls="tint" style={vars({ '--sc': MUHU_CATS[k].color })} head={<><MuhuIcon cat={k} /><b>{MUHU_CATS[k].label}</b><span className="faint small">{list.length}</span></>}>
@@ -452,14 +465,14 @@ export function MuhuPage() {
               </Disc>
             );
           }) : countries.map(c => {
-            const list = c.list.filter(m => catsOf(m).includes(category) && keep(m));
+            const list = c.list.filter(keep);
             return !!list.length && (
-              <Disc key={c.cid} k={`muhu-${category}-${c.cid}`} cls="tint" style={vars({ '--sc': MUHU_CATS[category].color })} head={<><b>{c.name}</b><span className="faint small">{list.length}</span></>}>
-                {items(list, category, c.cid)}
+              <Disc key={c.cid} k={`muhu-cat-${c.cid}`} cls="tint" style={vars({ '--sc': oneCat ? MUHU_CATS[oneCat].color : 'var(--s-want)' })} head={<><b>{c.name}</b><span className="faint small">{list.length}</span></>}>
+                {items(list, oneCat, c.cid)}
               </Disc>
             );
           })}</div>
-          {side && <SidePanel S={S} list={shown} pick={pick} viewKey={searching ? 'muhu-search' : `muhu-${by}-${by === 'country' ? country.cid : category}`} onPin={id => choose(id, 'pin')} withMap={view.muhuSide} />}
+          {side && <SidePanel S={S} list={shown} pick={pick} viewKey={searching ? 'muhu-search' : `muhu-${by}-${by === 'country' ? country.cid : picked.join('+')}`} onPin={id => choose(id, 'pin')} withMap={view.muhuSide} />}
         </div>
       </>}
     </div>

@@ -1,5 +1,5 @@
 import 'server-only';
-import type { MuhuIdea, Prefs, SavedSearch, Status, Trip, Visit } from '@/lib/types';
+import type { CustomCat, MuhuIdea, Prefs, SavedSearch, Status, Trip, Visit } from '@/lib/types';
 
 // Light shape checks for what the browser sends; SQLite's constraints catch the rest.
 export class BadRequest extends Error {}
@@ -55,8 +55,17 @@ export function parseMuhu(v: unknown): MuhuIdea[] {
 
 export function parseSearch(v: unknown): SavedSearch {
   if (!isObj(v)) throw new BadRequest('bad search');
-  for (const k of ['id', 'name', 'q', 'cat', 'want']) str(v[k], k);
+  for (const k of ['id', 'name', 'q', 'want']) str(v[k], k);
+  arr(v.cats, 'cats').forEach(c => str(c, 'cats'));
   return v as unknown as SavedSearch;
+}
+
+export function parseCategory(v: unknown): CustomCat {
+  if (!isObj(v)) throw new BadRequest('bad category');
+  for (const k of ['id', 'label', 'icon']) str(v[k], k);
+  if (!/^#[0-9a-f]{6}$/i.test(str(v.color, 'color'))) throw new BadRequest('color must look like #12A39F');
+  if (v.scope !== 'trip' && v.scope !== 'muhu') throw new BadRequest('scope must be trip or muhu');
+  return v as unknown as CustomCat;
 }
 
 export function parsePrefs(v: unknown): Prefs {

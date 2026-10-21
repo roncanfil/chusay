@@ -1,4 +1,5 @@
 import { PinSvg, vars } from '@/components/icons';
+import { NewCategory } from '@/components/NewCategory';
 import { CATS, CAT_KEYS } from '@/lib/constants';
 import { editIdea } from '@/lib/store';
 import { gmaps, isMaps } from '@/lib/trips';
@@ -16,7 +17,8 @@ export function IdeaNote({ t, i }: { t: Trip; i: Idea }) {
 // fix a category Google guessed wrong; the old kind belonged to the old category, so it goes too
 export function IdeaCat({ t, i }: { t: Trip; i: Idea }) {
   return (
-    <div className="inline-field">Category <span className="chips">{CAT_KEYS.map(k => <button key={k} type="button" className="chip dchip" style={vars({ '--dc': CATS[k].color })} aria-pressed={i.cat === k} onClick={() => i.cat !== k && editIdea(t.id, i.id, x => { x.cat = k; delete x.kind; })}>{CATS[k].label}</button>)}</span></div>
+    <div className="inline-field">Category <span className="chips">{CAT_KEYS.map(k => <button key={k} type="button" className="chip dchip" style={vars({ '--dc': CATS[k].color })} aria-pressed={i.cat === k} onClick={() => i.cat !== k && editIdea(t.id, i.id, x => { x.cat = k; delete x.kind; })}>{CATS[k].label}</button>)}
+      <NewCategory scope="trip" onMade={k => editIdea(t.id, i.id, x => { x.cat = k; delete x.kind; })} /></span></div>
   );
 }
 

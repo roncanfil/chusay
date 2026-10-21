@@ -1,4 +1,4 @@
-import type { Cat, MuhuCat, Pace, Status, Want } from './types';
+import type { Cat, CustomCat, MuhuCat, Pace, Status, Want } from './types';
 
 export const CATS: Record<Cat, { label: string; color: string }> = {
   sight: { label: 'Sights', color: 'var(--c-sight)' },
@@ -65,3 +65,29 @@ export const MUHU_KEYS = Object.keys(MUHU_CATS) as MuhuCat[];
 export const WANT: Record<Exclude<Want, ''>, string> = { high: 'Must do', med: 'Would like to', low: 'If we’re nearby' };
 // a seed copied onto a trip lands in the closest trip category
 export const MUHU_TO_TRIP: Record<MuhuCat, Cat> = { outdoors: 'sight', food: 'food', built: 'sight', events: 'act', fun: 'act', culture: 'sight', kids: 'act', shop: 'shop', other: 'sight' };
+
+/* ---------- categories the household added: merged into the same lookups, so every list, chip, filter and map pin knows them ---------- */
+export const NEW_CAT_COLORS = ['#12A39F', '#D9488B', '#2F86D6', '#E07B2E', '#7A9E25', '#6A55D6', '#A8743F', '#C94F4F', '#3E7C8C', '#B58B00'];
+export const NEW_CAT_ICONS: Record<string, string> = {
+  heart: 'M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.3a4.3 4.3 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z',
+  waves: 'M2 10c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0',
+  camera: 'M4 8h3l2-3h6l2 3h3v11H4zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z',
+  music: 'M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
+  boat: 'M3 16l2 4h14l2-4zM12 3v11M12 3l6 9h-6',
+  tag: 'M3 12V4h8l10 10-8 8zM7.5 8.5h.01',
+  leaf: 'M5 19c0-9 5-14 15-14 0 10-5 15-14 15M5 19l7-7',
+};
+let applied = '';
+export function addCustomCats(list: CustomCat[] = []) {
+  const key = JSON.stringify(list); if (key === applied) return; applied = key;
+  for (const c of list) {
+    if (c.scope === 'trip') {
+      CATS[c.id] = { label: c.label, color: c.color }; KINDS[c.id] = CATS[c.id]; ICON[c.id] = c.icon;
+      if (!CAT_KEYS.includes(c.id)) CAT_KEYS.push(c.id);
+    } else {
+      MUHU_CATS[c.id] = { label: c.label, color: c.color, icon: c.icon }; MUHU_TO_TRIP[c.id] = 'sight';
+      if (!MUHU_KEYS.includes(c.id)) MUHU_KEYS.splice(MUHU_KEYS.indexOf('other'), 0, c.id); // "Other" stays last
+    }
+  }
+}

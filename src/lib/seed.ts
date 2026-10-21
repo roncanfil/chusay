@@ -116,6 +116,7 @@ export function seed(): AppState {
     dismissed: [],
     muhu: [],
     searches: [],
+    categories: [],
   });
 }
 

@@ -78,6 +78,30 @@ const MIGRATIONS: string[] = [
     SELECT id, country_code, country_name, name, categories, want, area, season, getting_there, note, source, created_at FROM muhu ORDER BY created_at, rowid;
   DROP TABLE muhu;
   ALTER TABLE muhu_new RENAME TO muhu;`,
+  // 6: trip ideas can use categories the household adds, so the fixed list of categories goes; ideas is copied as in 4
+  `CREATE TABLE ideas_new (
+    id              TEXT PRIMARY KEY,
+    trip_id         TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    google_place_id TEXT,
+    name            TEXT NOT NULL,
+    category        TEXT NOT NULL,
+    kind            TEXT,
+    area            TEXT NOT NULL DEFAULT '',
+    lat             REAL,
+    lng             REAL,
+    tags            TEXT NOT NULL DEFAULT '[]',
+    note            TEXT NOT NULL DEFAULT '',
+    source          TEXT NOT NULL DEFAULT '',
+    price           TEXT NOT NULL DEFAULT '',
+    image           TEXT NOT NULL DEFAULT '',
+    position        INTEGER NOT NULL DEFAULT 0,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  INSERT INTO ideas_new (id, trip_id, google_place_id, name, category, kind, area, lat, lng, tags, note, source, price, image, position, created_at)
+    SELECT id, trip_id, google_place_id, name, category, kind, area, lat, lng, tags, note, source, price, image, position, created_at FROM ideas;
+  DROP TABLE ideas;
+  ALTER TABLE ideas_new RENAME TO ideas;
+  CREATE INDEX IF NOT EXISTS ideas_trip ON ideas(trip_id, position);`,
 ];
 
 // foreign keys are off while migrating, so rebuilding a table (copy, drop, rename) doesn't cascade-delete

@@ -1,4 +1,6 @@
-export type Cat = 'sight' | 'food' | 'act' | 'tour' | 'stay' | 'shop';
+export type BuiltinCat = 'sight' | 'food' | 'act' | 'tour' | 'stay' | 'shop';
+// the built-in categories, or one the household added (its id)
+export type Cat = BuiltinCat | (string & {});
 export type CityKey = 'morocco' | 'lisbon' | 'cdmx' | 'kyoto';
 export type Status = 'visited' | 'planning' | 'want' | 'nope';
 export type Vote = 'love' | 'ok' | 'skip' | '';
@@ -142,7 +144,7 @@ export interface Prefs {
 }
 
 // Muhu ("seed" in Quechua): something we want to see in a country, saved without a trip or dates
-export type MuhuCat = 'outdoors' | 'food' | 'built' | 'events' | 'fun' | 'culture' | 'kids' | 'shop' | 'other';
+export type MuhuCat = 'outdoors' | 'food' | 'built' | 'events' | 'fun' | 'culture' | 'kids' | 'shop' | 'other' | (string & {});
 export type Want = 'high' | 'med' | 'low' | '';
 export interface MuhuIdea {
   id: string;
@@ -168,14 +170,24 @@ export interface SavedSearch {
   id: string;
   name: string;
   q: string;
-  cat: MuhuCat | '';
+  cats: MuhuCat[]; // none = every category
   want: Want | 'any';
+}
+
+// a category the household added, for trip ideas or for Muhu
+export interface CustomCat {
+  id: string;
+  scope: 'trip' | 'muhu';
+  label: string;
+  color: string;
+  icon: string; // an SVG path, from the choices offered
 }
 
 export interface AppState {
   trips: Trip[];
   muhu: MuhuIdea[];
   searches: SavedSearch[];
+  categories: CustomCat[];
   world: Record<string, Status[]>;
   visits: Visit[];
   prefs: Prefs;

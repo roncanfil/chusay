@@ -1,4 +1,4 @@
-import { ICON } from './constants';
+import { CATS, ICON } from './constants';
 import type { Cat, PlaceLike } from './types';
 
 // A finer "kind" inside each category, so two food spots can look different on the map.
@@ -21,14 +21,14 @@ const KIND_RULES: Partial<Record<Cat, [RegExp, string][]>> = {
   act: [[/fado|music|jazz|concert|mariachi/, 'music'], [/tour|walk|path/, 'tour'], [/tram|boat|bike|ride|cruise|cable/, 'ride'], [/ocean|aquar/, 'aquarium']],
   shop: [[/feira|flea|souk|tianguis|market|mercado/, 'market']],
 };
-const DEF_KIND: Record<Cat, string> = { food: 'restaurant', sight: 'landmark', act: 'activity', tour: 'tour', stay: 'stay', shop: 'shop' };
+const DEF_KIND: Partial<Record<Cat, string>> = { food: 'restaurant', sight: 'landmark', act: 'activity', tour: 'tour', stay: 'stay', shop: 'shop' };
 
 export function kindOf(i: PlaceLike): string {
   if (i.kind && KIND[i.kind]) return i.kind;
   const hay = [i.name, i.kw || ''].join(' ').toLowerCase();
   const hit = (KIND_RULES[i.cat] || []).find(([re]) => re.test(hay));
-  return hit ? hit[1] : DEF_KIND[i.cat];
+  return hit ? hit[1] : DEF_KIND[i.cat] ?? i.cat; // a category the household added is its own kind
 }
-export const kindLabel = (i: PlaceLike) => KIND[kindOf(i)][0];
-export const kindPath = (i: PlaceLike) => KIND[kindOf(i)][1];
+export const kindLabel = (i: PlaceLike) => KIND[kindOf(i)]?.[0] ?? CATS[i.cat]?.label ?? '';
+export const kindPath = (i: PlaceLike) => KIND[kindOf(i)]?.[1] ?? ICON[i.cat] ?? ICON.sight;
 export const short = (n: string, max = 24) => n.length > max ? n.slice(0, max - 1).replace(/[\s,]+\S*$/, '') + '…' : n;
