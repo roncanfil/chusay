@@ -1,6 +1,7 @@
 import { connection, type NextRequest } from 'next/server';
-import { buildCulture, cultureFor, cultureKey } from '@/server/culture';
+import { buildCulture, cultureFor, cultureKey, saveCulture } from '@/server/culture';
 import { getDb } from '@/server/db';
+import { handle, parseCultureEdit } from '@/server/validate';
 
 // GET /api/culture/620 → the saved phrases and customs for Portugal, or null
 export async function GET(_req: NextRequest, ctx: RouteContext<'/api/culture/[cid]'>) {
@@ -17,4 +18,10 @@ export async function POST(req: NextRequest, ctx: RouteContext<'/api/culture/[ci
     console.error(e);
     return Response.json({ error: e instanceof Error ? e.message : 'Culture request failed' }, { status: 502 });
   }
+}
+
+// PUT /api/culture/620 → the notes as the household edited them; they stay until someone asks for a rewrite
+export async function PUT(req: NextRequest, ctx: RouteContext<'/api/culture/[cid]'>) {
+  const { cid } = await ctx.params;
+  return handle(async () => { saveCulture(getDb(), cid, parseCultureEdit(await req.json())); });
 }

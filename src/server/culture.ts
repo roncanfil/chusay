@@ -10,7 +10,7 @@ export const cultureKey = () => process.env.ANTHROPIC_API_KEY || '';
 
 type Row = Record<string, unknown>;
 // notes saved before the household's own phrase list, Portugal's regional words or American English are redone on next open
-const AMERICAN_SINCE = '2026-10-21T23:00:00Z';
+const AMERICAN_SINCE = '2026-10-21T16:47:00Z'; // when this rule shipped; must never be in the future, or every open rewrites the notes
 const isStale = (cid: string, c: CultureEntry) => c.fetchedAt < AMERICAN_SINCE
   || (STYLE[cid]?.phrases !== false && !c.phrases.some(([en]) => /two beers/i.test(en))) || (!!STYLE[cid]?.regional && !c.regional?.length);
 
@@ -29,7 +29,7 @@ export function cultureFor(db: Database, cid: string): CultureEntry | null {
   const c = cachedCulture(db, cid);
   return c && isStale(cid, c) ? { ...c, stale: true } : c;
 }
-function saveCulture(db: Database, cid: string, c: CultureEntry) {
+export function saveCulture(db: Database, cid: string, c: CultureEntry) {
   db.transaction(() => {
     db.prepare('DELETE FROM culture WHERE country_code = ? AND trip_id IS NULL').run(cid);
     db.prepare(`INSERT INTO culture (country_code, language_variant, intro, phrases, dos, donts, regional, source_url, fetched_at)
@@ -146,6 +146,13 @@ const QUIRK_SCHEMA = {
   properties: { quirks: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['title', 'text'], properties: { title: { type: 'string' }, text: { type: 'string' } } } } },
 };
 
+export function saveQuirks(db: Database, tripId: string, cid: string, q: Quirks) {
+  db.transaction(() => {
+    db.prepare('DELETE FROM culture WHERE trip_id = ?').run(tripId);
+    db.prepare('INSERT INTO culture (trip_id, country_code, intro, quirks, source_url, fetched_at) VALUES (?, ?, ?, ?, ?, ?)').run(tripId, cid, q.place, JSON.stringify(q.items), q.source, q.fetchedAt);
+  })();
+}
+
 export function cachedQuirks(db: Database, tripId: string): Quirks | null {
   const r = db.prepare('SELECT * FROM culture WHERE trip_id = ? ORDER BY id DESC LIMIT 1').get(tripId) as Row | undefined;
   return r ? { place: String(r.intro ?? ''), items: JSON.parse(String(r.quirks ?? '[]')), source: String(r.source_url ?? ''), fetchedAt: String(r.fetched_at ?? '') } : null;
@@ -184,10 +191,7 @@ export function buildQuirks(db: Database, trip: { id: string; place: string; cou
     if (!block || block.type !== 'text') throw new Error('Claude returned no text');
     const out = JSON.parse(block.text) as { quirks: { title: string; text: string }[] };
     const q: Quirks = { place: trip.place, items: out.quirks.map(x => [x.title, x.text]), source: `https://en.wikivoyage.org/wiki/${encodeURIComponent(page.title.replace(/ /g, '_'))}`, fetchedAt: new Date().toISOString() };
-    db.transaction(() => {
-      db.prepare('DELETE FROM culture WHERE trip_id = ?').run(trip.id);
-      db.prepare('INSERT INTO culture (trip_id, country_code, intro, quirks, source_url, fetched_at) VALUES (?, ?, ?, ?, ?, ?)').run(trip.id, trip.cid, q.place, JSON.stringify(q.items), q.source, q.fetchedAt);
-    })();
+    saveQuirks(db, trip.id, trip.cid, q);
     return q;
   })().finally(() => quirking.delete(trip.id));
   quirking.set(trip.id, job);

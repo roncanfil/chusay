@@ -1,6 +1,7 @@
 import { connection, type NextRequest } from 'next/server';
-import { buildQuirks, cachedQuirks, cultureKey } from '@/server/culture';
+import { buildQuirks, cachedQuirks, cultureKey, saveQuirks } from '@/server/culture';
 import { getDb } from '@/server/db';
+import { handle, parseQuirksEdit } from '@/server/validate';
 
 // GET /api/culture/trip/<id> → the trip's saved local quirks, or null
 export async function GET(_req: NextRequest, ctx: RouteContext<'/api/culture/trip/[id]'>) {
@@ -17,4 +18,10 @@ export async function POST(req: NextRequest, ctx: RouteContext<'/api/culture/tri
     console.error(e);
     return Response.json({ error: e instanceof Error ? e.message : 'Quirks request failed' }, { status: 502 });
   }
+}
+
+// PUT /api/culture/trip/<id>?cid=620 → the quirks as the household edited them
+export async function PUT(req: NextRequest, ctx: RouteContext<'/api/culture/trip/[id]'>) {
+  const { id } = await ctx.params;
+  return handle(async () => { saveQuirks(getDb(), id, req.nextUrl.searchParams.get('cid') || '', parseQuirksEdit(await req.json())); });
 }

@@ -1,5 +1,5 @@
 import 'server-only';
-import type { CustomCat, MuhuIdea, Prefs, SavedSearch, Status, Trip, Visit } from '@/lib/types';
+import type { CultureEntry, CustomCat, MuhuIdea, Prefs, Quirks, SavedSearch, Status, Trip, Visit } from '@/lib/types';
 
 // Light shape checks for what the browser sends; SQLite's constraints catch the rest.
 export class BadRequest extends Error {}
@@ -66,6 +66,22 @@ export function parseCategory(v: unknown): CustomCat {
   if (!/^#[0-9a-f]{6}$/i.test(str(v.color, 'color'))) throw new BadRequest('color must look like #12A39F');
   if (v.scope !== 'trip' && v.scope !== 'muhu') throw new BadRequest('scope must be trip or muhu');
   return v as unknown as CustomCat;
+}
+
+// culture notes and quirks as edited in the Culture tab: lists of text rows
+const rows = (v: unknown, what: string) => arr(v, what).forEach(r => arr(r, what).forEach(x => str(x, what)));
+export function parseCultureEdit(v: unknown): CultureEntry {
+  if (!isObj(v)) throw new BadRequest('bad culture');
+  for (const k of ['variant', 'note', 'source', 'fetchedAt']) str(v[k], k);
+  rows(v.phrases, 'phrases'); rows(v.regional ?? [], 'regional');
+  for (const k of ['dos', 'donts']) arr(v[k], k).forEach(x => str(x, k));
+  return v as unknown as CultureEntry;
+}
+export function parseQuirksEdit(v: unknown): Quirks {
+  if (!isObj(v)) throw new BadRequest('bad quirks');
+  for (const k of ['place', 'source', 'fetchedAt']) str(v[k], k);
+  rows(v.items, 'items');
+  return v as unknown as Quirks;
 }
 
 export function parsePrefs(v: unknown): Prefs {
