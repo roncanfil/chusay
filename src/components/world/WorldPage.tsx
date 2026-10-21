@@ -6,7 +6,7 @@ import { memo, useEffect, useLayoutEffect, useRef, useState, type FormEvent } fr
 import { STATUS } from '@/lib/constants';
 import { CITY } from '@/lib/data/cities';
 import worldData from '@/lib/data/world.json';
-import { panZoom, type PanZoom } from '@/lib/map/panzoom';
+import { panZoom, type Bounds, type PanZoom } from '@/lib/map/panzoom';
 import { mkTrip, uid } from '@/lib/seed';
 import { toast, update, useAppState } from '@/lib/store';
 import { fmtMonth, fmtRange, isoMonth, isSomeday, statusOf, today, visitList } from '@/lib/trips';
@@ -26,6 +26,19 @@ function tipLines(S: AppState, cid: string) {
 }
 
 const ORDER = Object.keys(STATUS) as Status[];
+
+// the country's main land: its biggest piece plus the pieces close to it, so Portugal isn't zoomed out to the Azores
+function countryBox(d: string): Bounds {
+  const parts = d.split('M').filter(Boolean).map(p => {
+    const n = p.match(/-?[\d.]+/g)!.map(Number); let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (let k = 0; k + 1 < n.length; k += 2) { x0 = Math.min(x0, n[k]); x1 = Math.max(x1, n[k]); y0 = Math.min(y0, n[k + 1]); y1 = Math.max(y1, n[k + 1]); }
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  });
+  const main = parts.reduce((a, b) => b.w * b.h > a.w * a.h ? b : a), reach = Math.max(main.w, main.h);
+  const near = parts.filter(p => Math.abs(p.x + p.w / 2 - main.x - main.w / 2) < reach && Math.abs(p.y + p.h / 2 - main.y - main.h / 2) < reach);
+  const x = Math.min(...near.map(p => p.x)), y = Math.min(...near.map(p => p.y));
+  return { x, y, w: Math.max(...near.map(p => p.x + p.w)) - x, h: Math.max(...near.map(p => p.y + p.h)) - y };
+}
 
 // the country shapes only redraw when a status or the picked country changes.
 // One status is a flat color; several blend softly into each other like watercolor.
@@ -65,6 +78,8 @@ export function WorldPage() {
   }, [ready]);
   useEffect(() => {
     if (!country) return;
+    const d = WORLD.c.find(c => c.id === country)?.d;
+    if (d) api.current?.fit(countryBox(d));
     panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setCountry(null); };
     document.addEventListener('keydown', esc);

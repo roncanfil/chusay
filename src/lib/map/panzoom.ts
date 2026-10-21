@@ -7,6 +7,7 @@ export interface PanZoom {
   center(x: number, y: number): void;
   reset(): void;
   all(): void;
+  fit(b: Bounds): void;
   dragging(): boolean;
   destroy(): void;
 }
@@ -74,6 +75,8 @@ export function panZoom(svg: SVGSVGElement, key: string, bounds: Bounds, initial
     center(x, y) { v.x = x - v.w / 2; v.y = y - v.h! / 2; apply(); },
     reset() { v = home(); apply(); },
     all() { v = { x: bounds.x, y: bounds.y, w: maxW() }; apply(); },
+    // show this box with some room around it (small countries still get a little context)
+    fit(b) { const w = Math.max(b.w * 1.6, b.h * 1.6 * aspect(), maxW() / 12); v = { x: b.x + b.w / 2 - w / 2, y: b.y + b.h / 2 - w / aspect() / 2, w }; apply(); },
     dragging: () => Date.now() - moved < 250,
     destroy() {
       svg.removeEventListener('pointerdown', down); svg.removeEventListener('dblclick', dbl);
