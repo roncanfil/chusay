@@ -1,6 +1,6 @@
 import { produce } from 'immer';
 import { useEffect, useSyncExternalStore } from 'react';
-import type { AppState, Idea, Trip } from './types';
+import type { AppState, Idea, MuhuIdea, Trip } from './types';
 
 // A tiny external store: one shared state object, like the prototype's global S.
 function createStore<T>(init: () => T, server: T, persist?: (v: T) => void) {
@@ -77,6 +77,7 @@ function later(key: string, send: Send, delay = 500) {
 }
 function flush() { queued.forEach(q => { clearTimeout(q.timer); run(q.send, true); }); queued.clear(); }
 
+const muhuDirty = new Set<string>();
 function sync(prev: AppState, next: AppState) {
   for (const t of next.trips) {
     if (prev.trips.find(p => p.id === t.id) === t) continue;
@@ -92,6 +93,16 @@ function sync(prev: AppState, next: AppState) {
     for (const v of next.visits) if (!prev.visits.some(p => p.id === v.id)) run(() => call('POST', '/api/visits', v));
     for (const v of prev.visits) if (!next.visits.some(n => n.id === v.id)) run(() => call('DELETE', `/api/visits/${v.id}`));
   }
+  if (prev.muhu !== next.muhu) {
+    for (const m of next.muhu) if (prev.muhu.find(p => p.id === m.id) !== m) muhuDirty.add(m.id);
+    for (const m of prev.muhu) if (!next.muhu.some(n => n.id === m.id)) { muhuDirty.delete(m.id); run(() => call('DELETE', `/api/muhu/${m.id}`)); }
+    // one request for everything that changed, so importing a whole list is a single save
+    if (muhuDirty.size) later('muhu', k => {
+      const ids = new Set(muhuDirty); muhuDirty.clear();
+      const cur = getState()?.muhu.filter(m => ids.has(m.id)) ?? [];
+      return cur.length ? call('PUT', '/api/muhu', cur, k) : Promise.resolve();
+    });
+  }
   if (prev.prefs !== next.prefs) later('prefs', k => call('PUT', '/api/preferences', getState()!.prefs, k));
   for (const place of next.dismissed) if (!prev.dismissed.includes(place)) run(() => call('POST', '/api/dismissed', { place }));
 }
@@ -104,6 +115,7 @@ if (typeof window !== 'undefined') {
 
 export const findTrip = (s: AppState, id: string) => s.trips.find(t => t.id === id) as Trip;
 export const editTrip = (id: string, fn: (t: Trip, s: AppState) => void) => update(s => fn(findTrip(s, id), s));
+export const editMuhu = (id: string, fn: (m: MuhuIdea) => void) => update(s => { const m = s.muhu.find(x => x.id === id); if (m) fn(m); });
 export const editIdea = (tripId: string, ideaId: string, fn: (i: Idea) => void) => editTrip(tripId, t => fn(t.ideas.find(i => i.id === ideaId)!));
 
 /* ---------- which Google services are switched on: read from the server's environment at runtime ---------- */

@@ -17,10 +17,11 @@ function Logo() {
   );
 }
 
-function NavLinks({ current }: { current: 'trips' | 'world' | null }) {
+function NavLinks({ current }: { current: 'trips' | 'muhu' | 'world' | null }) {
   return (
     <nav className="nav" aria-label="Main">
       <Link href="/" aria-current={current === 'trips' ? 'page' : undefined}>Trips</Link>
+      <Link href="/muhu" aria-current={current === 'muhu' ? 'page' : undefined}>Muhu</Link>
       <Link href="/world" aria-current={current === 'world' ? 'page' : undefined}>World map</Link>
     </nav>
   );
@@ -28,7 +29,7 @@ function NavLinks({ current }: { current: 'trips' | 'world' | null }) {
 
 function CurrentNav() {
   const path = usePathname();
-  return <NavLinks current={path.startsWith('/world') ? 'world' : 'trips'} />;
+  return <NavLinks current={path.startsWith('/world') ? 'world' : path.startsWith('/muhu') ? 'muhu' : 'trips'} />;
 }
 
 export function TopBar() {

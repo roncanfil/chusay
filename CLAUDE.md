@@ -34,7 +34,7 @@ Every push to `main` goes live on their server within a few minutes. Work direct
 
 ## How it’s built
 
-- `src/app/` routes: `/` trips, `/trips/[id]` (tabs: Itinerary, Ideas, Culture, Feedback), `/world`, and `api/*` route handlers.
+- `src/app/` routes: `/` trips, `/trips/[id]` (tabs: Itinerary, Ideas, Culture, Feedback), `/muhu` (ideas per country, no trip), `/world`, and `api/*` route handlers.
 - `src/components/` UI per page; `map/` has the Google map and the SVG sketch-map fallback.
 - `src/lib/store.ts` is the browser store: `update(fn)` applies an Immer change at once and syncs only what changed to the API (`PUT /api/trips/:id` for a trip). Use `editTrip` / `editIdea` / `update` for every data change.
 - `src/server/` is SQLite: `schema.ts` (tables), `repo.ts` (load/save), `db.ts` (opening and **migrations**), `validate.ts`, `google.ts` (Places API).

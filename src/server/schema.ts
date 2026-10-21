@@ -1,4 +1,4 @@
-// The eleven tables from the build guide. A Someday list is a trip with no start date.
+// The tables from the build guide. A Someday list is a trip with no start date.
 // Field names follow the guide; a few extra columns keep the preview working (noted inline).
 export const SCHEMA = /* sql */ `
 CREATE TABLE IF NOT EXISTS trips (
@@ -93,6 +93,22 @@ CREATE TABLE IF NOT EXISTS stop_votes (
   idea_id TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
   vote    TEXT NOT NULL CHECK (vote IN ('love', 'ok', 'skip')),
   PRIMARY KEY (trip_id, idea_id)
+);
+
+-- Muhu: things to see in a country, kept without a trip or dates
+CREATE TABLE IF NOT EXISTS muhu (
+  id           TEXT PRIMARY KEY,
+  country_code TEXT NOT NULL,              -- ISO 3166 numeric, matches the world map
+  country_name TEXT NOT NULL,
+  name         TEXT NOT NULL,
+  categories   TEXT NOT NULL DEFAULT '[]', -- JSON, the first one gives the color
+  want         TEXT NOT NULL DEFAULT '' CHECK (want IN ('high', 'med', 'low', '')),
+  area         TEXT NOT NULL DEFAULT '',
+  season       TEXT NOT NULL DEFAULT '',   -- when to go, as typed
+  getting_there TEXT NOT NULL DEFAULT '',
+  note         TEXT NOT NULL DEFAULT '',
+  source       TEXT NOT NULL DEFAULT '',
+  created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- manual overrides only; otherwise the status is derived from trips. A country can hold several.

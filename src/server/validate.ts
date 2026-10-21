@@ -1,5 +1,5 @@
 import 'server-only';
-import type { Prefs, Status, Trip, Visit } from '@/lib/types';
+import type { MuhuIdea, Prefs, Status, Trip, Visit } from '@/lib/types';
 
 // Light shape checks for what the browser sends; SQLite's constraints catch the rest.
 export class BadRequest extends Error {}
@@ -38,6 +38,17 @@ export function parseVisit(v: unknown): Visit {
   str(v.id, 'id'); str(v.cid, 'cid'); str(v.places, 'places');
   if (!/^\d{4}-\d{2}$/.test(str(v.from, 'from'))) throw new BadRequest('from must be YYYY-MM');
   return v as unknown as Visit;
+}
+
+const WANTS = ['high', 'med', 'low', ''];
+export function parseMuhu(v: unknown): MuhuIdea[] {
+  return arr(v, 'muhu').map(m => {
+    if (!isObj(m)) throw new BadRequest('bad muhu idea');
+    for (const k of ['id', 'cid', 'country', 'name', 'area', 'when', 'far', 'note']) str(m[k], k);
+    arr(m.cats, 'cats');
+    if (!WANTS.includes(m.want as string)) throw new BadRequest('want must be high, med, low or empty');
+    return m as unknown as MuhuIdea;
+  });
 }
 
 export function parsePrefs(v: unknown): Prefs {

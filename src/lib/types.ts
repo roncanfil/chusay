@@ -141,8 +141,26 @@ export interface Prefs {
   photos?: boolean;
 }
 
+// Muhu ("seed" in Quechua): something we want to see in a country, saved without a trip or dates
+export type MuhuCat = 'outdoors' | 'food' | 'built' | 'events' | 'fun' | 'culture' | 'kids' | 'shop' | 'other';
+export type Want = 'high' | 'med' | 'low' | '';
+export interface MuhuIdea {
+  id: string;
+  cid: string; // ISO 3166 numeric, like the world map
+  country: string;
+  name: string;
+  cats: MuhuCat[]; // one or more; the first gives its color
+  want: Want;
+  area: string;
+  when: string; // when to go: months, seasons or a festival's dates, as typed
+  far: string; // how to get there from home, as typed
+  note: string;
+  source?: string;
+}
+
 export interface AppState {
   trips: Trip[];
+  muhu: MuhuIdea[];
   world: Record<string, Status[]>;
   visits: Visit[];
   prefs: Prefs;

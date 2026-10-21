@@ -20,6 +20,8 @@ const SORTED = WORLD.c.map(c => [c.id, c.n] as const).sort((a, b) => a[1].locale
 function tipLines(S: AppState, cid: string) {
   const lines = S.trips.filter(t => t.dest.cid === cid).map(t => [t.name, isSomeday(t) ? `${t.ideas.length} ideas` : fmtRange(t)]);
   for (const v of S.visits.filter(v => v.cid === cid)) lines.push([v.places, fmtMonth(v.from)]);
+  const seeds = S.muhu.filter(m => m.cid === cid).length;
+  if (seeds) lines.push(['Muhu', `${seeds} ${seeds === 1 ? 'idea' : 'ideas'}`]);
   return lines;
 }
 
@@ -173,7 +175,7 @@ export function WorldPage() {
               <div className="chips">{listOf(s).map(n => <span key={n} className="chip"><i style={{ background: STATUS[s].color }} />{n}</span>)}{!listOf(s).length && <span className="faint">None yet</span>}</div>
             </div>
           ))}
-          <p className="faint small">Saving ideas for a country puts it on the wish list. A trip with dates moves it to Planning, and once the trip is over it counts as Visited.</p>
+          <p className="faint small">Saving ideas for a country, as a Someday list or in Muhu, puts it on the wish list. A trip with dates moves it to Planning, and once the trip is over it counts as Visited.</p>
         </section>
       </div>
     </div>

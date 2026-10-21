@@ -56,7 +56,7 @@ export function statusOf(S: AppState, cid: string): { s: Status[]; auto: boolean
   const ts = S.trips.filter(t => t.dest.cid === cid);
   if (ts.some(isPast) || S.visits.some(v => v.cid === cid)) return { s: ['visited'], auto: true };
   if (ts.some(t => !isSomeday(t))) return { s: ['planning'], auto: true };
-  if (ts.length) return { s: ['want'], auto: true };
+  if (ts.length || S.muhu.some(m => m.cid === cid)) return { s: ['want'], auto: true };
   return { s: [], auto: false };
 }
 export interface VisitRow { cid: string; places: string; from: string; when: string; trip?: string; id?: string }

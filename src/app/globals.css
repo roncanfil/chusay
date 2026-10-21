@@ -627,7 +627,7 @@ a.src:hover { text-decoration: underline; }
 @media (max-width: 480px) { .tabs { gap: 16px; } .tabs button { font-size: 14px; gap: 5px; } }
 /* press feedback: buttons give a little under the finger (rows and section heads stay still) */
 :where(.btn, .btn-sm, .icon-btn, button.chip, .add-pill, .seg button, .daypill, .map-ctrl button, .stars button) { transition: scale 150ms var(--ease-out); }
-:where(.btn, .btn-sm, .icon-btn, button.chip, .add-pill, .seg button, .daypill, .map-ctrl button, .stars button, .tile):active:not(:disabled) { scale: .96; }
+:where(.btn, .btn-sm, .icon-btn, button.chip, .add-pill, .seg button, .daypill, .map-ctrl button, .stars button, .tile, .mtile):active:not(:disabled) { scale: .96; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition-property: opacity, color, background-color, border-color, box-shadow, fill !important; }
   :active { scale: none !important; }
@@ -660,3 +660,21 @@ a.src:hover { text-decoration: underline; }
 .manual { padding: 14px 18px; display: grid; gap: 12px; border-top: 1px solid var(--line); }
 .dest-results .row { width: 100%; border-width: 0; background: none; text-align: left; }
 .dest-results .row + .row { border-top: 1px solid var(--line); }
+/* Muhu: tiles pick a country or a category, the ideas open in place below */
+.muhu-by { margin-top: 22px; }
+.mtiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 14px; }
+.mtile { display: grid; gap: 4px; align-content: start; justify-items: start; text-align: left; padding: 14px 16px; border-radius: 18px; border: 1px solid color-mix(in srgb, var(--sc) 35%, var(--line)); background: color-mix(in srgb, var(--sc) 9%, var(--surface)); color: var(--ink); min-width: 0; transition: background-color 150ms ease, border-color 150ms ease; }
+.mtile:hover { background: color-mix(in srgb, var(--sc) 15%, var(--surface)); }
+.mtile[aria-pressed="true"] { background: color-mix(in srgb, var(--sc) 22%, var(--surface)); border-color: var(--sc); box-shadow: inset 0 0 0 1px var(--sc); }
+.mtile b { font-size: 16.5px; font-weight: 700; line-height: 1.25; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mtile small { font-size: 13px; color: var(--ink-2); }
+.mtile.with-ic { grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; align-items: center; }
+.mtile.with-ic .ic { grid-row: span 2; }
+.mtile.with-ic b { white-space: normal; }
+.mix { display: flex; gap: 2px; width: 100%; height: 6px; margin-top: 8px; border-radius: 3px; overflow: hidden; }
+.mix i { background: var(--cc); min-width: 4px; }
+.muhu-list { max-width: 760px; margin-top: 18px; }
+.must { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft); vertical-align: 2px; }
+.more .input { font-size: 15px; padding: 8px 10px; }
+.more .form-row { gap: 10px; }
+@media (max-width: 480px) { .mtiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .mtile { padding: 12px 14px; } .mtile.with-ic { column-gap: 10px; } .mtile.with-ic .ic { width: 30px; height: 30px; } .mtile b { font-size: 15px; } }

@@ -5,6 +5,7 @@ A trip planner for one household: plan the next trip, collect ideas for places y
 - **Trips**: tiles for trips coming up, Someday lists and trips you’ve been on.
 - **Itinerary**: each day is a colored line of stops you drag between days, with your own notes and optional times.
 - **Ideas**: places saved with Google search or typed in by hand, grouped by category, with a map.
+- **Muhu**: ideas of things to see in a country, kept without a trip or dates. Tiles pick a country or a category; a Notion list exported as CSV can be imported, and any idea can be copied onto a trip in that country.
 - **World map**: countries colored by visited, planning and wish list.
 - Color coding everywhere and everything opens in place, no pop-ups.
 
@@ -83,10 +84,10 @@ docker run -d --name chusay -p 3210:3000 -v chusay-data:/data -e APP_PASSWORD=ch
 
 ## How it fits together
 
-- `src/app/` – routes: `/` trips, `/trips/[id]` trip page, `/world` world map, and `api/*` route handlers.
+- `src/app/` – routes: `/` trips, `/trips/[id]` trip page, `/muhu` ideas by country, `/world` world map, and `api/*` route handlers.
 - `src/components/` – the UI, one folder per page, plus the sketch maps in `map/`.
 - `src/lib/` – types, constants, date and format helpers, picks and search, and sample data (`seed.ts`, `data/`).
-- `src/server/` – SQLite: `schema.ts` (eleven tables), `repo.ts` (reads and writes), `validate.ts`.
+- `src/server/` – SQLite: `schema.ts` (twelve tables), `repo.ts` (reads and writes), `validate.ts`.
 
 The browser loads everything from `GET /api/state`, applies each change at once, then sends only what changed: the edited trip (`PUT /api/trips/:id`, debounced while typing), a country status, a visit, preferences or a dismissed pick. Saving a trip only touches that trip’s rows. When a tab comes back into view it reloads, so you see the other person’s changes. If you both edit the same trip at the same moment, the last save wins.
 
