@@ -47,8 +47,10 @@ export function refresh(force = false) {
 }
 
 // Every change applies here at once, then only what changed is sent: Immer keeps untouched trips identical.
+let lastEdit = 0;
 export function update(fn: (draft: AppState) => void) {
   const prev = data.get(); if (!prev) return;
+  lastEdit = Date.now();
   const next = produce(prev, fn);
   edits++; data.set(next); sync(prev, next);
 }
@@ -118,8 +120,11 @@ function sync(prev: AppState, next: AppState) {
 }
 
 if (typeof window !== 'undefined') {
-  // pick up the other person's changes when coming back to the tab; send anything waiting when leaving
+  // pick up the other person's (or another screen's) changes when coming back to the tab or window, and every minute while
+  // it's open, so an old copy doesn't overwrite newer changes; send anything waiting when leaving
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(true); else flush(); });
+  window.addEventListener('focus', () => refresh(true));
+  setInterval(() => { if (document.visibilityState === 'visible' && Date.now() - lastEdit > 30_000) refresh(true); }, 60_000);
   window.addEventListener('pagehide', flush);
 }
 

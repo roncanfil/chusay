@@ -58,6 +58,8 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
     return () => { sections.destroy(); made.forEach(s => s.destroy()); };
   });
   const [comparing, setComparing] = useState<string | null>(null); // a section shown as options side by side
+  const [picked, setPicked] = useState<string[] | null>(null); // picking several ideas at once; null when not picking
+  const pickToggle = (id: string) => setPicked(p => p && (p.includes(id) ? p.filter(x => x !== id) : [...p, id]));
   // what's left off the maps is kept with the trip: whole categories, or single places (a stay we didn't pick)
   const catOff = (k: string) => !!t.mapOffCats?.includes(k);
   const toggleCat = (k: string) => editTrip(t.id, tt => { const l = tt.mapOffCats ?? []; tt.mapOffCats = l.includes(k) ? l.filter(x => x !== k) : [...l, k]; });
@@ -168,6 +170,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
   return <>
     <div className="toolbar">
       <button type="button" className="btn primary" onClick={openAdd}>+ Add a place</button>
+      {t.ideas.length > 1 && <button type="button" className="btn" aria-pressed={!!picked} onClick={() => setPicked(p => p ? null : [])}>Select</button>}
       {mapOk && (
         <div className="seg map-switch" role="group" aria-label="Map">
           <button type="button" aria-pressed={view.ideasMap} onClick={() => setView({ ideasMap: true })}><MapSegIcon />With map</button>
@@ -178,6 +181,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
         {cats.map(([k, l]) => <button key={k} type="button" aria-pressed={ui.cat === k} onClick={() => set({ cat: k, open: null, hl: null })}>{k !== 'all' && <CatIcon cat={k} cls="ic-sm" />}{l}</button>)}
       </div>
     </div>
+    {picked && <PickBar t={t} picked={picked} setPicked={setPicked} all={t.ideas.map(i => i.id)} />}
     {searchBox}
     {picksBox}
     {mapOk && view.ideasMap && t.ideas.length > 0 && (
@@ -194,7 +198,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
             {(k === 'stay' || k === 'car') && <> <button type="button" className="linkish" onClick={() => setComparing(comparing === k ? null : k)}>{comparing === k ? 'Back to the list' : 'Compare them'}</button></>}
           </span>}
           {comparing === k ? <Compare t={t} list={t.ideas.filter(i => inCat(i, k))} open={id => { setComparing(null); set({ open: id, hl: id, panTo: pan(id) }); }} />
-          : <div className="group" data-cat={k}>{t.ideas.filter(i => inCat(i, k)).map(i => <IdeaRow key={i.id} t={t} i={i} ui={ui} set={set} offMap={!!i.offMap} catOff={catOff(i.cat)} toggleMap={() => editTrip(t.id, tt => { const x = tt.ideas.find(y => y.id === i.id)!; if (x.offMap) delete x.offMap; else x.offMap = true; })} />)}</div>}
+          : <div className="group" data-cat={k}>{t.ideas.filter(i => inCat(i, k)).map(i => <IdeaRow key={i.id} t={t} i={i} ui={ui} set={set} pick={picked ? { on: picked.includes(i.id), toggle: () => pickToggle(i.id) } : null} offMap={!!i.offMap} catOff={catOff(i.cat)} toggleMap={() => editTrip(t.id, tt => { const x = tt.ideas.find(y => y.id === i.id)!; if (x.offMap) delete x.offMap; else x.offMap = true; })} />)}</div>}
         </Disc></div>
       ))}</div>}
   </>;
@@ -202,9 +206,10 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
 
 // opening a row shows the note, the source, day chips to plan it, and Remove idea
 // offMap: this idea left off the map; catOff: its whole category is
-function IdeaRow({ t, i, ui, set, offMap, catOff, toggleMap }: { t: Trip; i: Idea; ui: TripUI; set: SetUI; offMap: boolean; catOff: boolean; toggleMap: () => void }) {
-  const d = isSomeday(t) ? -1 : scheduledDay(t, i.id), open = ui.open === i.id;
-  const toggleOpen = () => { const o = open ? null : i.id; set({ open: o, hl: o, ...(o ? { panTo: pan(o) } : {}) }); };
+// pick: while picking several, a tap ticks the row instead of opening it
+function IdeaRow({ t, i, ui, set, pick, offMap, catOff, toggleMap }: { t: Trip; i: Idea; ui: TripUI; set: SetUI; pick: { on: boolean; toggle: () => void } | null; offMap: boolean; catOff: boolean; toggleMap: () => void }) {
+  const d = isSomeday(t) ? -1 : scheduledDay(t, i.id), open = !pick && ui.open === i.id;
+  const toggleOpen = () => { if (pick) return pick.toggle(); const o = open ? null : i.id; set({ open: o, hl: o, ...(o ? { panTo: pan(o) } : {}) }); };
   const click = (e: MouseEvent) => { if (!(e.target as Element).closest('button,a')) toggleOpen(); };
   const key = (e: KeyboardEvent) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); toggleOpen(); } };
   function setDay(k: number) {
@@ -217,7 +222,8 @@ function IdeaRow({ t, i, ui, set, offMap, catOff, toggleMap }: { t: Trip; i: Ide
     set({ open: null, hl: null }); toast(`Removed ${i.name}.`);
   }
   return <>
-    <div className={`row link ${open ? 'sel' : ''}`} data-row={i.id} style={vars({ '--cc': CATS[i.cat].color })} aria-expanded={open} tabIndex={0} onClick={click} onKeyDown={key}>
+    <div className={`row link ${open || pick?.on ? 'sel' : ''}`} data-row={i.id} style={vars({ '--cc': CATS[i.cat].color })} aria-expanded={pick ? undefined : open} aria-checked={pick ? pick.on : undefined} role={pick ? 'checkbox' : undefined} tabIndex={0} onClick={click} onKeyDown={key}>
+      {pick && <span className={`tick ${pick.on ? 'on' : ''}`} aria-hidden="true">{pick.on ? '✓' : ''}</span>}
       <Pic p={i} />
       <div className="main"><span className="title">{i.name}</span><span className="meta"><KindIcon p={i} />{[kindLabel(i), i.price, i.hood, i.note, (offMap || catOff) && i.lat != null && !planned(t, i) && 'not on the map'].filter(Boolean).join(' · ')}</span><SrcChip v={i.source} /></div>
       {d >= 0 && <span className="tag-day" style={vars({ '--dc': dayColor(d) })}>Day {d + 1}</span>}
@@ -246,28 +252,56 @@ function IdeaRow({ t, i, ui, set, offMap, catOff, toggleMap }: { t: Trip; i: Ide
 
 
 // take an idea off this trip and keep it elsewhere: another trip, or Muhu for some later trip (it leaves this trip's days too)
-function MoveIdea({ t, i, done }: { t: Trip; i: Idea; done: () => void }) {
-  const S = useAppState()!;
-  const others = S.trips.filter(x => x.id !== t.id && !isPast(x)).sort((a, b) => Number(b.dest.cid === t.dest.cid) - Number(a.dest.cid === t.dest.cid));
-  function move(to: string | 'muhu') {
-    update(s => {
-      const from = s.trips.find(x => x.id === t.id)!;
-      from.ideas = from.ideas.filter(x => x.id !== i.id);
-      from.days.forEach(d => { d.stops = d.stops.filter(x => x.idea !== i.id); });
-      delete from.feedback.votes[i.id];
+// takes ideas off this trip (and its days), and keeps them in another trip, in Muhu, or nowhere (removed)
+function moveIdeas(t: Trip, ids: string[], to: string | 'muhu' | null) {
+  update(s => {
+    const from = s.trips.find(x => x.id === t.id)!, moving = from.ideas.filter(x => ids.includes(x.id));
+    from.ideas = from.ideas.filter(x => !ids.includes(x.id));
+    from.days.forEach(d => { d.stops = d.stops.filter(x => !x.idea || !ids.includes(x.idea)); });
+    ids.forEach(id => { delete from.feedback.votes[id]; });
+    for (const i of moving) {
       // a new id: an idea belongs to one trip, and the old one is deleted with this trip's next save
       const copy: Idea = { ...i, id: uid() }; delete copy.stayDays; delete copy.offMap; // its days and map choice belonged to this trip
       if (to === 'muhu') s.muhu.push({ id: uid(), cid: t.dest.cid, country: t.dest.country, name: i.name, cats: [TRIP_TO_MUHU[i.cat] ?? 'other'], want: '', area: i.hood, when: '', far: '', note: i.note,
         ...(i.source ? { source: i.source } : {}), ...(i.placeId ? { placeId: i.placeId, match: 'set' as const } : {}), lat: i.lat, lng: i.lng, ...(i.image ? { image: i.image } : {}) });
-      else s.trips.find(x => x.id === to)!.ideas.push(copy);
-    });
-    done(); toast(`Moved ${i.name} to ${to === 'muhu' ? `Muhu, under ${t.dest.country}` : S.trips.find(x => x.id === to)!.name}.`);
-  }
+      else if (to) s.trips.find(x => x.id === to)!.ideas.push(copy);
+    }
+  });
+}
+const otherTrips = (S: { trips: Trip[] }, t: Trip) => S.trips.filter(x => x.id !== t.id && !isPast(x)).sort((a, b) => Number(b.dest.cid === t.dest.cid) - Number(a.dest.cid === t.dest.cid));
+const whereTo = (S: { trips: Trip[] }, t: Trip, to: string) => to === 'muhu' ? `Muhu, under ${t.dest.country}` : S.trips.find(x => x.id === to)!.name;
+
+function MoveIdea({ t, i, done }: { t: Trip; i: Idea; done: () => void }) {
+  const S = useAppState()!;
+  const move = (to: string) => { moveIdeas(t, [i.id], to); done(); toast(`Moved ${i.name} to ${whereTo(S, t, to)}.`); };
   return (
     <div className="inline-field">Move to <span className="chips">
       <button type="button" className="chip" onClick={() => move('muhu')}>Muhu, for later</button>
-      {others.map(x => <button key={x.id} type="button" className="chip" onClick={() => move(x.id)}>{x.name}</button>)}
+      {otherTrips(S, t).map(x => <button key={x.id} type="button" className="chip" onClick={() => move(x.id)}>{x.name}</button>)}
     </span></div>
+  );
+}
+
+// several ideas at once: tick them, then move them all to Muhu or another trip, or remove them (asked once more first)
+function PickBar({ t, picked, setPicked, all }: { t: Trip; picked: string[]; setPicked: (p: string[] | null) => void; all: string[] }) {
+  const S = useAppState()!;
+  const [sure, setSure] = useState(false);
+  const n = picked.length, what = `${n} ${n === 1 ? 'idea' : 'ideas'}`;
+  const move = (to: string) => { moveIdeas(t, picked, to); setPicked(null); toast(`Moved ${what} to ${whereTo(S, t, to)}.`); };
+  return (
+    <div className="pick-bar">
+      <b>{n ? `${what} picked` : 'Tap ideas to pick them'}</b>
+      <button type="button" className="linkish small" onClick={() => setPicked(n === all.length ? [] : all)}>{n === all.length ? 'Pick none' : 'Pick all'}</button>
+      <span className="sp" />
+      {n > 0 && (sure
+        ? <><span className="small">Remove {what} from this trip?</span><button type="button" className="btn-sm danger" onClick={() => { moveIdeas(t, picked, null); setPicked(null); toast(`Removed ${what}.`); }}>Yes, remove</button><button type="button" className="btn-sm" onClick={() => setSure(false)}>No</button></>
+        : <span className="chips">
+          <button type="button" className="chip" onClick={() => move('muhu')}>Move to Muhu</button>
+          {otherTrips(S, t).map(x => <button key={x.id} type="button" className="chip" onClick={() => move(x.id)}>Move to {x.name}</button>)}
+          <button type="button" className="chip" onClick={() => setSure(true)}>Remove</button>
+        </span>)}
+      <button type="button" className="btn-sm" onClick={() => setPicked(null)}>Done</button>
+    </div>
   );
 }
 

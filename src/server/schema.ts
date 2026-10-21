@@ -142,6 +142,12 @@ CREATE TABLE IF NOT EXISTS muhu_searches (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- ideas removed from a trip (or moved off it): a stale copy of the trip saved later can't bring them back
+CREATE TABLE IF NOT EXISTS gone_ideas (
+  id         TEXT PRIMARY KEY,
+  removed_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- manual overrides only; otherwise the status is derived from trips. A country can hold several.
 CREATE TABLE IF NOT EXISTS country_status (
   country_code TEXT NOT NULL,

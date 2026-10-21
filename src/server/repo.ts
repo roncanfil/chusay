@@ -65,6 +65,10 @@ export function loadState(db: Database): AppState {
 /* ---------- write: one trip at a time; saving a trip never touches another one ---------- */
 export function saveTrip(db: Database, t: Trip) {
   db.transaction(() => {
+    // another screen may still hold an older copy of this trip: ideas already removed stay removed
+    const gone = new Set((db.prepare('SELECT id FROM gone_ideas WHERE id IN (SELECT value FROM json_each(?))').all(JSON.stringify(t.ideas.map(i => i.id))) as Row[]).map(r => String(r.id)));
+    if (gone.size) t = { ...t, ideas: t.ideas.filter(i => !gone.has(i.id)), days: t.days.map(d => ({ ...d, stops: d.stops.filter(s => !s.idea || !gone.has(s.idea)) })) };
+    db.prepare(`INSERT OR IGNORE INTO gone_ideas (id) SELECT id FROM ideas WHERE trip_id = ? AND id NOT IN (SELECT value FROM json_each(?))`).run(t.id, JSON.stringify(t.ideas.map(i => i.id)));
     db.prepare(`INSERT INTO trips (id, name, destination_name, country_name, country_code, city_key, center_lat, center_lng, start_date, length_days, notes, map_off, cat_order)
       VALUES (@id, @name, @dn, @cn, @cc, @city, @lat, @lng, @start, @len, @notes, @mapOff, @catOrder)
       ON CONFLICT(id) DO UPDATE SET name = excluded.name, destination_name = excluded.destination_name, country_name = excluded.country_name,
@@ -149,7 +153,7 @@ export function dismissPick(db: Database, place: string) { db.prepare('INSERT OR
 // the proof of concept's "Reset sample data": wipes everything and loads the given state
 export function replaceAll(db: Database, s: AppState) {
   db.transaction(() => {
-    for (const table of ['stop_votes', 'stops', 'days', 'ideas', 'feedback', 'culture', 'trips', 'country_status', 'visits', 'preferences', 'dismissed_picks', 'muhu', 'muhu_searches', 'categories']) db.prepare(`DELETE FROM ${table}`).run();
+    for (const table of ['gone_ideas', 'stop_votes', 'stops', 'days', 'ideas', 'feedback', 'culture', 'trips', 'country_status', 'visits', 'preferences', 'dismissed_picks', 'muhu', 'muhu_searches', 'categories']) db.prepare(`DELETE FROM ${table}`).run();
     s.trips.forEach(t => saveTrip(db, t));
     saveMuhu(db, s.muhu);
     s.searches.forEach(x => addSearch(db, x));
