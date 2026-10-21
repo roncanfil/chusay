@@ -2,14 +2,13 @@
 
 import { useEffect, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react';
 import Sortable from 'sortablejs';
-import { Disc } from '@/components/Disc';
-import { CatIcon, KindIcon, ListSegIcon, MapSegIcon, PhotoCredit, Pic, SrcChip, vars } from '@/components/icons';
-import { CATS, dayColor } from '@/lib/constants';
-import { kindLabel } from '@/lib/kinds';
+import { CatIcon, MapSegIcon, PhotoCredit, Pic, vars } from '@/components/icons';
+import { CATS, dayColor, ICON } from '@/lib/constants';
+import { kindLabel, kindPath } from '@/lib/kinds';
 import { suggestDay } from '@/lib/picks';
 import { uid } from '@/lib/seed';
-import { discIsOpen, editTrip, openDisc, setView, toast, useSession, useView } from '@/lib/store';
-import { dayDate, fmtDay, ideaOf, isOption, offMap, scheduledDay, staysOn } from '@/lib/trips';
+import { editTrip, setView, toast, useView } from '@/lib/store';
+import { dayDate, fmtDay, fmtRange, ideaOf, isOption, offMap, scheduledDay, staysOn } from '@/lib/trips';
 import type { OwnPlan, Stop, Trip } from '@/lib/types';
 import { IdeaCat, IdeaHero, IdeaNote, IdeaSource, MapsLink } from './fields';
 import { StayDays, StayFields } from './stays';
@@ -17,14 +16,14 @@ import { pan, type SetUI, type TabProps, type TripUI } from './ui';
 
 const QUICK = ['Meet friends', 'Dinner reservation', 'Free time', 'Rest at the hotel'];
 
-/* ----- Itinerary: each day is a colored "subway line" of stops ----- */
+/* ----- Itinerary: the agenda, every day a calendar card with its stops ----- */
 export function DaysView({ t, ui, set, mapOk }: TabProps) {
-  const view = useView(), session = useSession();
+  const view = useView();
   const daysRef = useRef<HTMLDivElement>(null);
   // Sortable moves DOM nodes React owns; after a drop the lists are re-mounted from state
   const [dragKey, setDragKey] = useState(0);
   const [stayOpen, setStayOpen] = useState<string | null>(null); // "day:idea" of an opened "Staying at" line
-  const list = view.dayAll || !mapOk, compact = view.density === 'compact';
+  const compact = view.density === 'compact';
   // places left off the map still go on a day from here; they come last
   const unplanned = t.ideas.filter(i => scheduledDay(t, i.id) < 0).sort((a, b) => Number(offMap(t, a)) - Number(offMap(t, b)));
   const canSuggest = unplanned.some(i => !isOption(i) && i.lat != null);
@@ -61,8 +60,8 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
   function addDay() {
     const k = t.days.length;
     editTrip(t.id, tt => { tt.len++; tt.days.push({ id: uid(), title: '', stops: [] }); });
-    set({ day: k }); openDisc(`day-${t.id}-${k}`);
-    requestAnimationFrame(() => { const all = daysRef.current?.querySelectorAll('.disc.day, .dayblock'); all?.[all.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+    set({ day: k });
+    requestAnimationFrame(() => { const all = daysRef.current?.querySelectorAll('.agday'); all?.[all.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
   }
   function suggest(k: number) {
     let n = 0;
@@ -81,19 +80,17 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
   }
   function addToDay(k: number, ideaId: string) { editTrip(t.id, tt => { tt.days[k].stops.push({ id: uid(), idea: ideaId, time: '' }); }); set({ day: k }); }
 
+  // a quiet bar: how long the trip is, a day to add, and how much to show
   const bar = (
     <div className="viewbar">
-      <div className="viewbar-l">{mapOk && <>
-        <div className="seg" role="group" aria-label="Map">
-          <button type="button" aria-pressed={view.dayMap} onClick={() => { setView({ dayMap: true }); set({ sel: null, hl: null }); }}><MapSegIcon />With map</button>
-          <button type="button" aria-pressed={!view.dayMap} onClick={() => { setView({ dayMap: false, dayAll: true }); set({ sel: null, hl: null }); }}>List only</button>
-        </div>
-        <div className="seg" role="group" aria-label="Days">
-          <button type="button" aria-pressed={!list} onClick={() => { setView({ dayAll: false }); set({ sel: null, hl: null }); }}>One day</button>
-          <button type="button" aria-pressed={list} onClick={() => { setView({ dayAll: true }); set({ sel: null, hl: null }); }}><ListSegIcon />All days</button>
-        </div>
-      </>}</div>
+      <span className="fbar-txt num">{t.days.length} {t.days.length === 1 ? 'day' : 'days'} · {fmtRange(t)}</span>
       <div className="viewbar-r">
+        {mapOk && (
+          <div className="seg" role="group" aria-label="Map">
+            <button type="button" aria-pressed={view.dayMap} onClick={() => { setView({ dayMap: true }); set({ sel: null, hl: null }); }}><MapSegIcon />With map</button>
+            <button type="button" aria-pressed={!view.dayMap} onClick={() => { setView({ dayMap: false }); set({ sel: null, hl: null }); }}>List only</button>
+          </div>
+        )}
         <div className="seg" role="group" aria-label="How much to show">
           <button type="button" aria-pressed={!compact} onClick={() => setView({ density: 'full' })}>Detailed</button>
           <button type="button" aria-pressed={compact} onClick={() => setView({ density: 'compact' })}>Compact</button>
@@ -103,49 +100,53 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
     </div>
   );
 
+  // Agenda: every day as a calendar card, its date in the day's color; tapping the date puts that day on the map
   return <>
     {bar}
-    <div key={dragKey} ref={daysRef} className={`days ${compact ? 'compact' : ''} ${list ? 'as-list' : ''}`}>
+    <div key={dragKey} ref={daysRef} className={`days agenda-days ${compact ? 'compact' : ''}`}>
       {t.days.map((d, k) => {
-        const key = `day-${t.id}-${k}`, open = list || discIsOpen(session, key, k === 0);
-        const head = <span className="dh"><b className="day-pill">Day {k + 1}</b><span className="dd num">{fmtDay(dayDate(t, k))}</span>{!open && d.title && <span className="dh-title">{d.title}</span>}</span>;
+        const dt = dayDate(t, k), cur = ui.day === k;
         // quick add buttons sit at the top of each day, next to its name, and open their panel right there
         const ap = ui.addPanel?.day === k ? ui.addPanel.w : null;
         const pill = (w: 'ideas' | 'own', label: ReactNode) => <button type="button" className={`add-pill ${w}`} aria-expanded={ap === w} onClick={() => set({ addPanel: ap === w ? null : { day: k, w }, day: k })}>{label}</button>;
-        const inner = <>
-          <div className="day-top">
-            <input className="day-title" value={d.title} onChange={e => editTrip(t.id, tt => { tt.days[k].title = e.target.value; })} placeholder="Name this day" aria-label={`Day ${k + 1} name`} />
-            <div className="day-add">{pill('ideas', <>+ From ideas <span className="n">{unplanned.length}</span></>)}{pill('own', '+ Your own')}</div>
-          </div>
-          {staysOn(t, k).map(i => {
-            const key = `${k}:${i.id}`, isOpen = stayOpen === key;
-            return <div key={i.id} className="stay-wrap" style={vars({ '--cc': CATS[i.cat].color })}>
-              <button type="button" className="stay-base" aria-expanded={isOpen} onClick={() => { setStayOpen(isOpen ? null : key); set({ day: k, hl: isOpen ? null : i.id, ...(isOpen ? {} : { panTo: pan(i.id) }) }); }}>
-                <CatIcon cat={i.cat} cls="ic-sm" /><span>Staying at <b>{i.name}</b>{i.hood ? ` · ${i.hood}` : ''}</span><span className="caret" aria-hidden="true">›</span>
-              </button>
-              {/* everything about where we sleep, opened in place */}
-              {isOpen && <div className="stay-more">
-                <IdeaHero t={t} i={i} /><IdeaNote t={t} i={i} /><IdeaSource t={t} i={i} /><StayFields t={t} i={i} /><StayDays t={t} i={i} /><MapsLink t={t} i={i} /><PhotoCredit p={i} />
-              </div>}
-            </div>;
-          })}
-          {ap === 'own' && <OwnForm onAdd={(title, time) => addOwn(k, title, time)} />}
-          {ap === 'ideas' && (
-            <div className="add-panel">{unplanned.length
-              ? <div className="adder" data-day={k}>{unplanned.map(i => (
-                <div key={i.id} className="row" data-idea={i.id} style={vars({ '--cc': CATS[i.cat].color })}>
-                  <Pic p={i} /><div className="main"><span className="title">{i.name}</span><span className="meta">{kindLabel(i)}{i.hood ? ' · ' + i.hood : ''}{offMap(t, i) ? ' · not on the map' : ''}</span></div>
-                  <button type="button" className="btn-sm" onClick={() => addToDay(k, i.id)}>+ Add</button>
-                </div>))}</div>
-              : <p className="faint small">Every idea is planned. Add more on the Ideas tab.</p>}
+        return (
+          <section key={d.id} className={`agday ${cur ? 'cur' : ''}`} style={vars({ '--dc': dayColor(k) })}>
+            <button type="button" className="agdate" aria-pressed={cur} title="Show this day on the map" onClick={() => set({ day: k, sel: null, hl: null })}>
+              <small>{dt.toLocaleDateString('en-US', { weekday: 'short' })}</small><b className="num">{dt.getDate()}</b><span>Day {k + 1}</span>
+            </button>
+            <div className="agbody">
+              <div className="aghead">
+                <input className="day-title" value={d.title} onChange={e => editTrip(t.id, tt => { tt.days[k].title = e.target.value; })} placeholder={fmtDay(dt)} aria-label={`Day ${k + 1} name`} />
+                <div className="day-add">{pill('ideas', <>+ From ideas <span className="n">{unplanned.length}</span></>)}{pill('own', '+ Your own')}</div>
+              </div>
+              {staysOn(t, k).map(i => {
+                const key = `${k}:${i.id}`, isOpen = stayOpen === key;
+                return <div key={i.id} className="stay-wrap" style={vars({ '--cc': CATS[i.cat].color })}>
+                  <button type="button" className="stay-base" aria-expanded={isOpen} onClick={() => { setStayOpen(isOpen ? null : key); set({ day: k, hl: isOpen ? null : i.id, ...(isOpen ? {} : { panTo: pan(i.id) }) }); }}>
+                    <CatIcon cat={i.cat} cls="ic-sm" /><span>Staying at <b>{i.name}</b>{i.hood ? ` · ${i.hood}` : ''}</span><span className="caret" aria-hidden="true">›</span>
+                  </button>
+                  {/* everything about where we sleep, opened in place */}
+                  {isOpen && <div className="stay-more">
+                    <IdeaHero t={t} i={i} /><IdeaNote t={t} i={i} /><IdeaSource t={t} i={i} /><StayFields t={t} i={i} /><StayDays t={t} i={i} /><MapsLink t={t} i={i} /><PhotoCredit p={i} />
+                  </div>}
+                </div>;
+              })}
+              {ap === 'own' && <OwnForm onAdd={(title, time) => addOwn(k, title, time)} />}
+              {ap === 'ideas' && (
+                <div className="add-panel">{unplanned.length
+                  ? <div className="adder" data-day={k}>{unplanned.map(i => (
+                    <div key={i.id} className="row" data-idea={i.id} style={vars({ '--cc': CATS[i.cat].color })}>
+                      <Pic p={i} /><div className="main"><span className="title">{i.name}</span><span className="meta">{kindLabel(i)}{i.hood ? ' · ' + i.hood : ''}{offMap(t, i) ? ' · not on the map' : ''}</span></div>
+                      <button type="button" className="btn-sm" onClick={() => addToDay(k, i.id)}>+ Add</button>
+                    </div>))}</div>
+                  : <p className="faint small">Every idea is planned. Add more on the Ideas tab.</p>}
+                </div>
+              )}
+              {!d.stops.length && <div className="open-day"><p>Nothing planned yet.</p>{canSuggest && <button type="button" className="btn-sm" onClick={() => suggest(k)}>Suggest a plan</button>}</div>}
+              <ol className="subway agenda" data-day={k}>{d.stops.map(s => <StopItem key={s.id} t={t} k={k} s={s} ui={ui} set={set} />)}</ol>
             </div>
-          )}
-          {!d.stops.length && <div className="open-day"><p>Nothing planned yet.</p>{canSuggest && <button type="button" className="btn-sm" onClick={() => suggest(k)}>Suggest a plan for this day</button>}</div>}
-          <ol className="subway" data-day={k}>{d.stops.map(s => <StopItem key={s.id} t={t} k={k} s={s} ui={ui} set={set} />)}</ol>
-        </>;
-        return list
-          ? <section key={d.id} className="dayblock" style={vars({ '--dc': dayColor(k) })}><h2 className="dayblock-head">{head}</h2>{inner}</section>
-          : <Disc key={d.id} k={key} head={head} open={k === 0} cls={'day' + (ui.day === k ? ' current' : '')} style={vars({ '--dc': dayColor(k) })} onOpen={() => set({ day: k, sel: null, hl: null })}>{inner}</Disc>;
+          </section>
+        );
       })}
     </div>
   </>;
@@ -172,7 +173,11 @@ function OwnForm({ onAdd }: { onAdd: (title: string, time: string) => void }) {
 }
 
 // clicking a stop opens it inline to edit the note, set a time, move it to another day or take it off
+// a stop's category, as a small colored badge with its kind's icon
+const Badge = ({ path }: { path: string }) => <span className="kb" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d={path} /></svg></span>;
+
 function StopItem({ t, k, s, ui, set }: { t: Trip; k: number; s: Stop; ui: TripUI; set: SetUI }) {
+  const compact = useView().density === 'compact';
   const i = s.own ? null : ideaOf(t, s.idea);
   if (!s.own && !i) return null;
   const sel = ui.sel === s.id;
@@ -186,9 +191,8 @@ function StopItem({ t, k, s, ui, set }: { t: Trip; k: number; s: Stop; ui: TripU
     const o = s.own;
     return (
       <li className={`stn own ${sel ? 'sel' : ''}`} data-day={k} data-stop={s.id} style={vars({ '--cc': 'var(--c-own)' })} onClick={pick}>
-        <span className="rail"><span className="station" /></span>
-        <span className="nm"><CatIcon cat="own" /><span className="tx"><b>{o.title || 'Our plan'}</b><small><CatIcon cat="own" cls="ic-sm" />Our own plan{o.where ? ' · ' + o.where : ''}</small>{o.note && <span className="note">{o.note}</span>}<SrcChip v={o.link} /></span></span>
-        <span className="time num">{s.time || null}</span>
+        <span className="agtime num">{s.time}</span><Badge path={ICON.own} />
+        <span className="nm"><span className="tx"><b>{o.title || 'Our plan'}</b><small>Our own plan{o.where ? ' · ' + o.where : ''}</small>{o.note && !compact && <span className="note">{o.note}</span>}</span></span>
         {sel && <div className="stn-more" data-nodrag>
           <OwnField t={t} k={k} s={s} f="title" label="What" ph="Meet friends, a reservation, free time…" />
           <OwnField t={t} k={k} s={s} f="where" label="Where" ph="An address, their place, a café… (optional)" />
@@ -201,9 +205,8 @@ function StopItem({ t, k, s, ui, set }: { t: Trip; k: number; s: Stop; ui: TripU
   }
   return (
     <li className={`stn ${sel ? 'sel' : ''}`} data-day={k} data-stop={s.id} data-idea={i!.id} style={vars({ '--cc': CATS[i!.cat].color })} onClick={pick}>
-      <span className="rail"><span className="station" /></span>
-      <span className="nm"><Pic p={i!} /><span className="tx"><b>{i!.name}</b><small><KindIcon p={i!} />{kindLabel(i!)}{i!.price ? ' · ' + i!.price : ''}{i!.hood ? ' · ' + i!.hood : ''}</small>{i!.note && <span className="note">{i!.note}</span>}<SrcChip v={i!.source} /></span></span>
-      <span className="time num">{s.time || null}</span>
+      <span className="agtime num">{s.time}</span><Badge path={kindPath(i!)} />
+      <span className="nm"><span className="tx"><b>{i!.name}</b><small>{[kindLabel(i!), i!.price, i!.hood].filter(Boolean).join(' · ')}</small>{i!.note && !compact && !sel && <span className="note">{i!.note}</span>}</span></span>
       {sel && <div className="stn-more" data-nodrag>
         <IdeaHero t={t} i={i!} />
         <IdeaNote t={t} i={i!} />

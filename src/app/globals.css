@@ -791,3 +791,42 @@ label.btn-sm[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .btn-sm.danger { color: #fff; background: #C94F4F; box-shadow: none; }
 .tick { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--line); display: grid; place-items: center; flex: none; font-size: 13px; font-weight: 800; color: #fff; }
 .tick.on { background: var(--accent); border-color: var(--accent); }
+/* ===== Itinerary as an agenda: every day a calendar card, its big date in the day's color ===== */
+.viewbar .fbar-txt { color: var(--ink-3); font-size: 14px; }
+.agenda-days { display: grid; }
+.agday { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 16px; padding: 16px 0; border-top: 1px solid var(--line); }
+.agday:first-child { border-top: 0; padding-top: 6px; }
+.agdate { border: 0; border-radius: 14px; background: color-mix(in srgb, var(--dc) 13%, var(--surface)); color: color-mix(in srgb, var(--dc) 88%, var(--ink)); display: grid; justify-items: center; align-content: start; padding: 8px 0 9px; height: fit-content; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 76px); transition: background-color 150ms ease; }
+.agdate small { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.agdate b { font-size: 26px; font-weight: 800; line-height: 1.1; }
+.agdate span { font-size: 11.5px; font-weight: 700; opacity: .85; }
+.agdate:hover { background: color-mix(in srgb, var(--dc) 22%, var(--surface)); }
+.agday.cur .agdate { background: var(--dc); color: #fff; }
+.agbody { min-width: 0; display: grid; gap: 4px; align-content: start; }
+.aghead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 2px; }
+.days .aghead .day-title { flex: 1 1 160px; min-width: 0; font-size: 17px; font-weight: 700; margin: 0; padding: 4px 0; width: auto; color: var(--ink); border-radius: 0; background: none; }
+.days .aghead .day-title::placeholder { font-weight: 600; color: var(--ink-3); }
+.days .aghead .day-title:hover, .days .aghead .day-title:focus { background: none; box-shadow: 0 1px 0 var(--line); }
+.agday .open-day { padding: 2px 0 4px; }
+.agday .stay-wrap { margin: 2px 0 4px; }
+.agday .add-panel { margin: 0 0 8px; }
+.subway.agenda .stn { grid-template-columns: 46px 26px minmax(0, 1fr); column-gap: 12px; padding: 0 8px 0 0; align-items: center; border-radius: 10px; }
+.subway.agenda .stn::before { display: none; }
+.agtime { font-size: 13px; font-weight: 600; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+.kb { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--cc); color: #fff; flex: none; }
+.kb svg { width: 14px; height: 14px; }
+.subway.agenda .stn .nm { padding: 8px 0; display: block; }
+.subway.agenda .tx { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; padding-top: 0; }
+.subway.agenda .tx b { font-size: 15px; font-weight: 600; }
+.subway.agenda .tx small { font-size: 13px; color: var(--ink-3); display: inline; }
+.subway.agenda .tx .note { flex-basis: 100%; -webkit-line-clamp: 1; font-size: 13px; color: var(--ink-3); }
+.subway.agenda .stn.own .tx b { color: color-mix(in srgb, var(--c-own) 75%, var(--ink)); }
+.subway.agenda .stn-more { grid-column: 2 / 4; padding: 2px 0 14px; }
+.days.compact .subway.agenda .stn .nm { padding: 4px 0; }
+@media (max-width: 640px) {
+  .agday { grid-template-columns: 52px minmax(0, 1fr); gap: 12px; }
+  .agdate b { font-size: 22px; }
+  .subway.agenda .stn { grid-template-columns: 40px 24px minmax(0, 1fr); column-gap: 9px; }
+  .subway.agenda .stn-more { grid-column: 1 / 4; }
+}
+@media (max-width: 639px) { .agdate { position: static; } }

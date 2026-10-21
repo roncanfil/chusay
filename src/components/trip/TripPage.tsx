@@ -9,7 +9,7 @@ import { dayColor, TAB_COLORS, type Tab } from '@/lib/constants';
 import { CITY } from '@/lib/data/cities';
 import { uid } from '@/lib/seed';
 import { editTrip, openDisc, setView, toast, toggleMapHidden, useAppState, useConfig, useSession, useView } from '@/lib/store';
-import { canMap, fmtRange, ideaOf, isoDate, isPast, inCat, isSomeday, offMap, planned, relTime, scheduledDay, staysOn, today } from '@/lib/trips';
+import { canMap, fmtRange, ideaOf, isoDate, isPast, inCat, isSomeday, offMap, planned, relTime, staysOn, today } from '@/lib/trips';
 import type { CityKey, DestinationResult, Trip } from '@/lib/types';
 import { CultureView } from './CultureView';
 import { DaysView } from './DaysView';
@@ -26,20 +26,16 @@ export function TripPage({ id }: { id: string }) {
 }
 
 // map pins and routes for the itinerary: one day's stops, or every day's route in its own color
-function dayMapSpec(t: Trip, day: number, all: boolean): { places: MapPlace[]; routes: MapRoute[]; key: string } {
-  if (all) {
-    const routes = t.days.map((d, k) => ({ color: dayColor(k), ideas: d.stops.map(s => ideaOf(t, s.idea)).filter(i => !!i) }));
-    const shown = routes.flatMap(r => r.ideas), stays = t.days.flatMap((_, k) => staysOn(t, k)).filter((i, n, a) => a.indexOf(i) === n && !shown.includes(i));
-    return { places: [...shown, ...stays].filter((i, n, a) => a.indexOf(i) === n).map(i => ({ idea: i })), routes, key: `days-all-${t.id}` };
-  }
-  const d = t.days[day];
-  // an empty day shows the unplanned ideas, dimmed, except the ones left off the map
-  const places = !d ? [] : d.stops.length ? d.stops.map(s => ideaOf(t, s.idea)).filter(i => !!i).map(i => ({ idea: i }))
-    : t.ideas.filter(i => scheduledDay(t, i.id) < 0 && !offMap(t, i)).map(i => ({ idea: i, dim: true }));
-  const routes = d && d.stops.length ? [{ color: dayColor(day), ideas: places.map(p => p.idea) }] : [];
-  // where we sleep that day is always on its map, outside the day's route
-  const stays = staysOn(t, day).filter(i => !places.some(p => p.idea === i)).map(i => ({ idea: i }));
-  return { places: [...places.filter(p => !stays.some(s => s.idea === p.idea)), ...stays], routes, key: `day-${t.id}-${day}` };
+// the agenda's map: the whole trip, the picked day bright with its route, the other days faded back.
+// A trip with nothing planned yet shows its unplanned ideas, faded, except the ones left off the map
+function dayMapSpec(t: Trip, day: number): { places: MapPlace[]; routes: MapRoute[]; key: string } {
+  const places: MapPlace[] = [];
+  t.days.forEach((d, k) => d.stops.forEach(s => { const i = ideaOf(t, s.idea); if (i && !places.some(p => p.idea === i)) places.push({ idea: i, dim: k !== day }); }));
+  // where we sleep that day is always bright, outside the day's route
+  for (const i of staysOn(t, day)) { const p = places.find(x => x.idea === i); if (p) p.dim = false; else places.push({ idea: i }); }
+  if (!places.length) return { places: t.ideas.filter(i => !offMap(t, i)).map(i => ({ idea: i, dim: true })), routes: [], key: `day-${t.id}-${day}` };
+  const route = (t.days[day]?.stops ?? []).map(s => ideaOf(t, s.idea)).filter(i => !!i);
+  return { places: places.sort((a, b) => Number(!!b.dim) - Number(!!a.dim)), routes: route.length > 1 ? [{ color: dayColor(day), ideas: route }] : [], key: `day-${t.id}-${day}` };
 }
 
 const clampListW = (lay: HTMLElement, px: number) => Math.round(Math.max(320, Math.min(lay.clientWidth - 280, px)));
@@ -55,7 +51,7 @@ function TripView({ t }: { t: Trip }) {
   const tab = tabs.some(([k]) => k === ui.tab) ? ui.tab : tabs[0][0];
   const mapOk = canMap(t, !!cfg?.mapsKey);
   const showMap = mapOk && ((tab === 'days' && view.dayMap) || (tab === 'ideas' && view.ideasMap));
-  const mspec = tab === 'days' ? dayMapSpec(t, ui.day, view.dayAll)
+  const mspec = tab === 'days' ? dayMapSpec(t, ui.day)
     : { places: t.ideas.filter(i => (ui.cat === 'all' || inCat(i, ui.cat)) && (!offMap(t, i) || planned(t, i))).map(i => ({ idea: i })), routes: [], key: `ideas-${t.id}-${ui.cat}` };
 
   // clicking a pin opens its row, and the row scrolls into view
@@ -67,10 +63,11 @@ function TripView({ t }: { t: Trip }) {
       set({ open, hl, ...(open && ui.cat !== 'all' && idea.cat !== ui.cat ? { cat: 'all' as const } : {}) });
       if (open) openDisc('cat-' + idea.cat);
     } else {
-      const s = t.days[ui.day]?.stops.find(x => x.idea === id);
+      // the map shows every day: a pin opens its stop on whichever day it's on
+      const k = t.days.findIndex(d => d.stops.some(x => x.idea === id)), s = t.days[k]?.stops.find(x => x.idea === id);
       const sel = s && ui.sel !== s.id ? s.id : null;
       hl = sel ? id : null;
-      set({ sel, hl });
+      set({ sel, hl, ...(k >= 0 ? { day: k } : {}) });
     }
     if (hl) requestAnimationFrame(() => layoutRef.current?.querySelector(tab === 'ideas' ? `[data-row="${id}"]` : `.stn[data-idea="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
   }
