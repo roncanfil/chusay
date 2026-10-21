@@ -23,6 +23,7 @@ export interface MapProps {
   hl: string | null;
   panTo: PanRequest | null;
   onPin: (ideaId: string) => void;
+  onMove?: (ideaId: string, lat: number, lng: number) => void; // Google maps only: the highlighted pin can be dragged
 }
 
 // Google Maps when the server has a browser key; otherwise the preview's sketch maps

@@ -70,7 +70,7 @@ function declutter(box: HTMLElement, pins: Pin[]) {
   }
 }
 
-export function GoogleMap({ t, places, routes, viewKey, hl, panTo, onPin, mapsKey, mapId }: MapProps & { mapsKey: string; mapId: string }) {
+export function GoogleMap({ t, places, routes, viewKey, hl, panTo, onPin, onMove, mapsKey, mapId }: MapProps & { mapsKey: string; mapId: string }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const pins = useRef(new Map<string, Pin>());
@@ -79,6 +79,11 @@ export function GoogleMap({ t, places, routes, viewKey, hl, panTo, onPin, mapsKe
   const located = places.filter(p => p.idea.lat != null);
 
   const click = useEffectEvent((id: string) => onPin(id));
+  const moved = useEffectEvent((id: string, m: Marker) => {
+    const at = m.position; if (!at) return;
+    const ll = at instanceof google.maps.LatLng ? at.toJSON() : at as google.maps.LatLngLiteral;
+    onMove?.(id, ll.lat, ll.lng);
+  });
   const tidy = useEffectEvent(() => { if (boxRef.current) declutter(boxRef.current, [...pins.current.values()]); });
   const center = useEffectEvent(() => centerOf(t, located));
 
@@ -114,12 +119,14 @@ export function GoogleMap({ t, places, routes, viewKey, hl, panTo, onPin, mapsKe
         const el = pinElement();
         const marker = new google.maps.marker.AdvancedMarkerElement({ map, content: el, gmpClickable: true });
         marker.addEventListener('gmp-click', () => click(i.id));
+        marker.addEventListener('dragend', () => moved(i.id, marker));
         p = { marker, el, label: el.lastElementChild as HTMLSpanElement };
         pins.current.set(i.id, p);
       }
       p.marker.position = { lat: i.lat!, lng: i.lng! };
       p.marker.title = `${i.name} · ${kindLabel(i)}`;
       p.marker.zIndex = hl === i.id ? 10 : dim ? 0 : 1;
+      p.marker.gmpDraggable = !!onMove && hl === i.id;
       p.el.style.setProperty('--cc', color ?? CATS[i.cat].color);
       p.el.querySelector('path')!.setAttribute('d', icon ?? kindPath(i));
       p.el.classList.toggle('dim', !!dim); p.el.classList.toggle('hl', hl === i.id);

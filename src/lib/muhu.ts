@@ -1,4 +1,4 @@
-import { WANT } from './constants';
+import { MUHU_CATS, WANT } from './constants';
 import { findAnywhere } from './search';
 import { editMuhu } from './store';
 import { uid } from './seed';
@@ -13,6 +13,14 @@ export const byWant = (a: MuhuIdea, b: MuhuIdea) => RANK[a.want] - RANK[b.want];
 export const mainCat = (m: MuhuIdea): MuhuCat => m.cats[0] || 'other';
 export const catsOf = (m: MuhuIdea): MuhuCat[] => m.cats.length ? m.cats : ['other'];
 export const wantLabel = (w: Want) => w ? WANT[w] : '';
+
+// every word typed must appear somewhere: name, place, country, notes, when, getting there, source or category
+export function matches(m: MuhuIdea, q: string) {
+  const words = plain(q).split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const hay = plain([m.name, m.area, m.country, m.note, m.when, m.far, m.source, wantLabel(m.want), ...catsOf(m).map(c => MUHU_CATS[c].label)].join(' '));
+  return words.every(w => hay.includes(w));
+}
 
 /* ---------- reading a CSV, quotes and line breaks inside cells included ---------- */
 export function parseCsv(text: string): string[][] {

@@ -7,7 +7,7 @@ import { GoogleMap, useMapsFailed } from '@/components/map/GoogleMap';
 import type { MapPlace, PanRequest } from '@/components/map/TripMap';
 import { CATS, MUHU_CATS, MUHU_KEYS, MUHU_TO_TRIP, WANT } from '@/lib/constants';
 import worldData from '@/lib/data/world.json';
-import { byWant, catsOf, fromNotion, guessPlaces, mainCat, mapsUrl, placeQuery, plain, readExport, uploadPhoto, type ImportResult } from '@/lib/muhu';
+import { byWant, catsOf, fromNotion, guessPlaces, mainCat, mapsUrl, matches, placeQuery, plain, readExport, uploadPhoto, type ImportResult } from '@/lib/muhu';
 import { usePhoto } from '@/lib/photos';
 import { findAnywhere } from '@/lib/search';
 import { uid } from '@/lib/seed';
@@ -172,20 +172,24 @@ function GoogleField({ m }: { m: MuhuIdea }) {
     try { setHits(await findAnywhere(q)); } catch (err) { toast(err instanceof Error ? err.message : 'Search isn’t working right now.'); }
   }
   const pick = (p: PlaceResult) => { editMuhu(m.id, x => { x.placeId = p.placeId; x.lat = p.lat; x.lng = p.lng; x.match = 'set'; }); setQ(null); setHits(null); toast(`Linked to ${p.name} on Google.`); };
+  // only the map pin moves; the photo stays from the place it was linked to
+  const pinOnly = (p: PlaceResult) => { editMuhu(m.id, x => { x.lat = p.lat; x.lng = p.lng; }); setQ(null); setHits(null); toast(`Moved the pin to ${p.name}.`); };
   const unlink = () => editMuhu(m.id, x => { delete x.placeId; x.lat = null; x.lng = null; x.match = 'none'; });
   return <>
-    <div className="inline-field">On Google
-      <span className="faint small">{!m.placeId ? 'not linked' : m.match === 'auto' ? 'matched by name, check it' : 'linked'}</span>
-      <button type="button" className="btn-sm" aria-expanded={q !== null} onClick={() => { setQ(q === null ? placeQuery(m) : null); setHits(null); }}>{m.placeId ? 'Wrong place?' : 'Find it'}</button>
-      {m.placeId && <button type="button" className="btn-sm" onClick={unlink}>Unlink</button>}
+    <div className="inline-field">On Google and the map
+      <span className="faint small">{!m.placeId ? (m.lat != null ? 'pinned, no Google place' : 'not on the map yet') : m.match === 'auto' ? 'matched by name, check it' : 'linked'}</span>
+      <button type="button" className="btn-sm" aria-expanded={q !== null} onClick={() => { setQ(q === null ? placeQuery(m) : null); setHits(null); }}>{m.placeId || m.lat != null ? 'Change place or pin' : 'Find it'}</button>
+      {(m.placeId || m.lat != null) && <button type="button" className="btn-sm" onClick={unlink}>Unlink</button>}
     </div>
     {q !== null && (
       <div className="group">
-        <form className="search row" onSubmit={search}><input className="input" value={q} onChange={e => setQ(e.target.value)} autoFocus /><button className="btn-sm" type="submit">Search</button></form>
+        <form className="search row" onSubmit={search}><input className="input" value={q} onChange={e => setQ(e.target.value)} autoFocus placeholder="A place, an address or a town" /><button className="btn-sm" type="submit">Search</button></form>
         {hits && (hits.length ? hits.slice(0, 5).map(p => (
           <div key={p.placeId || p.name} className="row"><div className="main"><span className="title">{p.name}</span>{p.hood && <span className="meta">{p.hood}</span>}</div>
-            <button type="button" className="btn-sm" onClick={() => pick(p)}>This one</button></div>
+            <button type="button" className="btn-sm" onClick={() => pick(p)} title="Its Google photo and its pin">This one</button>
+            {p.lat != null && <button type="button" className="btn-sm" onClick={() => pinOnly(p)} title="Keep the photo, move only the pin">Pin only</button>}</div>
         )) : <div className="empty">Nothing found. Try fewer words.</div>)}
+        {!hits && <div className="more" style={{ paddingTop: 12 }}><span className="faint small">“This one” links the place (its photo and pin). “Pin only” just moves the pin. On a computer you can also drag the pin on the map.</span></div>}
       </div>
     )}
   </>;
@@ -201,6 +205,7 @@ function MuhuDetails({ S, m }: { S: AppState; m: MuhuIdea }) {
     toast(`Added to ${S.trips.find(t => t.id === id)!.name}, under ${CATS[MUHU_TO_TRIP[mainCat(m)]].label}.`);
   }
   return <>
+    <TextField label="Name" value={m.name} set={v => ed(x => { x.name = v; })} ph="What it is" />
     <label className="note-field"><span>Our notes</span>
       <textarea rows={2} value={m.note} onChange={e => ed(x => { x.note = e.target.value; })} placeholder="What it is, who told us, what to know before going…" />
     </label>
@@ -286,13 +291,14 @@ function SidePanel({ S, list, pick, onPin, viewKey }: { S: AppState; list: MuhuI
   }));
   const t: Trip = { id: 'muhu', name: 'Muhu', city: null, dest: { name: pick?.country || located[0]?.country || '', country: '', cid: '' }, center: null, start: null, len: 0, ideas: places.map(p => p.idea), days: [], notes: '', feedback: { again: '', highlights: '', next: '', votes: {} } };
   const map = cfg?.mapsKey && !failed && !!located.length && (pick ? pick.lat != null : true)
-    && <GoogleMap t={t} places={places} routes={[]} viewKey={viewKey} hl={pick?.id ?? null} panTo={pan} onPin={onPin} mapsKey={cfg.mapsKey} mapId={cfg.mapId} />;
+    && <GoogleMap t={t} places={places} routes={[]} viewKey={viewKey} hl={pick?.id ?? null} panTo={pan} onPin={onPin} mapsKey={cfg.mapsKey} mapId={cfg.mapId}
+      onMove={(id, lat, lng) => { editMuhu(id, x => { x.lat = lat; x.lng = lng; }); toast('Pin moved.'); }} />;
   if (!pick) return <aside className="muhu-side">{map}<p className="faint small">Pick an idea to see its photo, where it is and everything you saved about it.{cfg?.places && located.length < list.length ? ` ${list.length - located.length} aren’t on the map yet: open one and use “Find it”.` : ''}</p></aside>;
   const cat = mainCat(pick);
   return (
     <aside className="muhu-side" style={vars({ '--cc': MUHU_CATS[cat].color })}>
       <MuhuPhoto key={pick.id} m={pick} cat={cat} big credit cls="mph side-photo" />
-      {map}
+      {map}{map && <span className="faint small">Drag the pin to move it.</span>}
       <div className="side-card">
         <div className="section-head"><h2>{pick.name}</h2><span className="sp" /><button type="button" className="icon-btn" onClick={() => onPin(pick.id)} aria-label="Close">×</button></div>
         <MuhuDetails S={S} m={pick} />
@@ -309,6 +315,7 @@ export function MuhuPage() {
   const [cat, setCat] = useState<MuhuCat | null>(null);
   const [open, setOpen] = useState<Pick | null>(null);
   const [panel, setPanel] = useState<'add' | 'import' | null>(null);
+  const [q, setQ] = useState(''), [fCat, setFCat] = useState<MuhuCat | ''>(''), [fWant, setFWant] = useState<Want | 'any'>('any');
   // ideas not yet looked up on Google get the app's best guess, once
   const google = !!cfg?.places, list = S?.muhu;
   useEffect(() => { if (google && list) guessPlaces(list); }, [google, list]);
@@ -320,15 +327,20 @@ export function MuhuPage() {
   const inCat = (k: MuhuCat) => S.muhu.filter(m => catsOf(m).includes(k));
   const cats = MUHU_KEYS.filter(k => inCat(k).length);
   const country = countries.find(c => c.cid === cid) || countries[0], category = cat && cats.includes(cat) ? cat : cats[0];
-  const shown = by === 'country' ? country?.list ?? [] : category ? inCat(category) : [];
+  // the search looks through every idea; the filters narrow whatever is shown
+  const searching = !!q.trim(), catFilter = by === 'country' || searching ? fCat : '';
+  const keep = (m: MuhuIdea) => matches(m, q) && (!catFilter || catsOf(m).includes(catFilter)) && (fWant === 'any' || m.want === fWant);
+  const filtered = !!(searching || catFilter || fWant !== 'any');
+  const found = searching ? S.muhu.filter(keep) : [];
+  const shown = (searching ? found : by === 'country' ? country?.list ?? [] : category ? inCat(category) : []).filter(keep);
   const pick = open && S.muhu.find(m => m.id === open.id) || null;
   const done = (c: string) => { setPanel(null); setBy('country'); setCid(c); };
   const choose = (id: string, group: string) => setOpen(o => o?.id === id && (side || o.group === group) ? null : { id, group });
-  const items = (list: MuhuIdea[], cat: MuhuCat, group: string) => {
+  const items = (list: MuhuIdea[], cat: MuhuCat | null, group: string) => {
     const Item = view.muhuTiles ? MuhuTile : MuhuRow;
     const all = [...list].sort(byWant).map(m => {
       const sel = !!open && open.id === m.id && (side || open.group === group);
-      return <Item key={m.id} S={S} m={m} cat={cat} sel={sel} open={sel && !side} toggle={() => choose(m.id, group)} photos={photos} />;
+      return <Item key={m.id} S={S} m={m} cat={cat ?? mainCat(m)} sel={sel} open={sel && !side} toggle={() => choose(m.id, group)} photos={photos} />;
     });
     return view.muhuTiles ? <div className="mideas">{all}</div> : <div className="group">{all}</div>;
   };
@@ -350,22 +362,33 @@ export function MuhuPage() {
           <span>Add the places, food and festivals you hear about, or bring in a list from Notion.</span>
         </div>
       ) : <>
-        <div className="seg muhu-by" role="group" aria-label="Show">
-          <button type="button" aria-pressed={by === 'country'} onClick={() => setBy('country')}>By country</button>
-          <button type="button" aria-pressed={by === 'cat'} onClick={() => setBy('cat')}>By category</button>
-        </div>
-        {by === 'country'
-          ? <div className="mtiles">{countries.map(c => (
-            <button key={c.cid} type="button" className="mtile" style={vars({ '--sc': 'var(--s-want)' })} aria-pressed={c.cid === country.cid} onClick={() => { setCid(c.cid); setOpen(null); }}>
-              <b>{c.name}</b><small className="num">{ideas(c.list.length)}</small><Mix list={c.list} />
-            </button>
-          ))}</div>
-          : <div className="mtiles">{cats.map(k => (
-            <button key={k} type="button" className="mtile with-ic" style={vars({ '--sc': MUHU_CATS[k].color })} aria-pressed={k === category} onClick={() => { setCat(k); setOpen(null); }}>
-              <MuhuIcon cat={k} /><b>{MUHU_CATS[k].label}</b><small className="num">{ideas(inCat(k).length)}</small>
-            </button>
-          ))}</div>}
+        <input type="search" className="input muhu-search" value={q} onChange={e => { setQ(e.target.value); setOpen(null); }} placeholder="Search every idea: names, places, notes, months…" aria-label="Search ideas" />
+        {!searching && <>
+          <div className="seg muhu-by" role="group" aria-label="Show">
+            <button type="button" aria-pressed={by === 'country'} onClick={() => setBy('country')}>By country</button>
+            <button type="button" aria-pressed={by === 'cat'} onClick={() => setBy('cat')}>By category</button>
+          </div>
+          {by === 'country'
+            ? <div className="mtiles">{countries.map(c => (
+              <button key={c.cid} type="button" className="mtile" style={vars({ '--sc': 'var(--s-want)' })} aria-pressed={c.cid === country.cid} onClick={() => { setCid(c.cid); setOpen(null); }}>
+                <b>{c.name}</b><small className="num">{ideas(c.list.length)}</small><Mix list={c.list} />
+              </button>
+            ))}</div>
+            : <div className="mtiles">{cats.map(k => (
+              <button key={k} type="button" className="mtile with-ic" style={vars({ '--sc': MUHU_CATS[k].color })} aria-pressed={k === category} onClick={() => { setCat(k); setOpen(null); }}>
+                <MuhuIcon cat={k} /><b>{MUHU_CATS[k].label}</b><small className="num">{ideas(inCat(k).length)}</small>
+              </button>
+            ))}</div>}
+        </>}
         <div className="toolbar muhu-tools">
+          {(by === 'country' || searching) && (
+            <select className="input filter" value={fCat} onChange={e => { setFCat(e.target.value as MuhuCat | ''); setOpen(null); }} aria-label="Category">
+              <option value="">All categories</option>{MUHU_KEYS.map(k => <option key={k} value={k}>{MUHU_CATS[k].label}</option>)}
+            </select>
+          )}
+          <select className="input filter" value={fWant} onChange={e => { setFWant(e.target.value as Want | 'any'); setOpen(null); }} aria-label="How much we want it">
+            <option value="any">Any wish</option>{(Object.entries(WANT) as [Exclude<Want, ''>, string][]).map(([k, l]) => <option key={k} value={k}>{l}</option>)}<option value="">Not set</option>
+          </select>
           <div className="seg" role="group" aria-label="Show ideas as">
             <button type="button" aria-pressed={view.muhuTiles} onClick={() => setView({ muhuTiles: true })}>Tiles</button>
             <button type="button" aria-pressed={!view.muhuTiles} onClick={() => setView({ muhuTiles: false })}><ListSegIcon />List</button>
@@ -376,24 +399,32 @@ export function MuhuPage() {
               <button type="button" aria-pressed={!view.muhuSide} onClick={() => setView({ muhuSide: false })}>Ideas only</button>
             </div>
           )}
+          {filtered && <span className="faint small">{shown.length ? ideas(shown.length) : 'Nothing matches'} · <button type="button" className="linkish" onClick={() => { setQ(''); setFCat(''); setFWant('any'); }}>Clear</button></span>}
         </div>
         <div className={side ? 'muhu-split' : ''}>
-          <div className="muhu-list">{by === 'country' ? MUHU_KEYS.map(k => {
-            const list = country.list.filter(m => catsOf(m).includes(k));
+          <div className="muhu-list">{searching ? countries.map(c => {
+            const list = found.filter(m => m.cid === c.cid);
+            return !!list.length && (
+              <Disc key={c.cid} k={`muhu-search-${c.cid}`} cls="tint" style={vars({ '--sc': 'var(--s-want)' })} head={<><b>{c.name}</b><span className="faint small">{list.length}</span></>}>
+                {items(list, null, `q-${c.cid}`)}
+              </Disc>
+            );
+          }) : by === 'country' ? MUHU_KEYS.map(k => {
+            const list = country.list.filter(m => catsOf(m).includes(k) && keep(m));
             return !!list.length && (
               <Disc key={k} k={`muhu-${country.cid}-${k}`} cls="tint" style={vars({ '--sc': MUHU_CATS[k].color })} head={<><MuhuIcon cat={k} /><b>{MUHU_CATS[k].label}</b><span className="faint small">{list.length}</span></>}>
                 {items(list, k, k)}
               </Disc>
             );
           }) : countries.map(c => {
-            const list = c.list.filter(m => catsOf(m).includes(category));
+            const list = c.list.filter(m => catsOf(m).includes(category) && keep(m));
             return !!list.length && (
               <Disc key={c.cid} k={`muhu-${category}-${c.cid}`} cls="tint" style={vars({ '--sc': MUHU_CATS[category].color })} head={<><b>{c.name}</b><span className="faint small">{list.length}</span></>}>
                 {items(list, category, c.cid)}
               </Disc>
             );
           })}</div>
-          {side && <SidePanel S={S} list={shown} pick={pick} viewKey={`muhu-${by}-${by === 'country' ? country.cid : category}`} onPin={id => choose(id, 'pin')} />}
+          {side && <SidePanel S={S} list={shown} pick={pick} viewKey={searching ? 'muhu-search' : `muhu-${by}-${by === 'country' ? country.cid : category}`} onPin={id => choose(id, 'pin')} />}
         </div>
       </>}
     </div>

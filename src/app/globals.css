@@ -707,3 +707,5 @@ a.src:hover { text-decoration: underline; }
 label.btn-sm { cursor: pointer; }
 label.btn-sm[aria-disabled="true"] { opacity: .6; cursor: progress; }
 @media (max-width: 480px) { .mideas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .mi-tile { padding: 6px 6px 8px; border-radius: 16px; } .mi-tile b { font-size: 14px; } .mi-tile .must { top: 12px; left: 12px; } }
+.muhu-search { margin-top: 22px; max-width: 760px; display: block; }
+.muhu-tools .filter { width: auto; padding: 7px 10px; font-size: 14px; border-radius: 10px; }
