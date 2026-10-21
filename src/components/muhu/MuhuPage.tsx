@@ -278,7 +278,7 @@ function MuhuRow({ S, m, cat, sel, open, toggle, photos }: ItemProps) {
 }
 
 // beside the ideas on wide screens: the picked idea's photo, its pin on the map, and its details; with nothing picked, every pin
-function SidePanel({ S, list, pick, onPin, viewKey }: { S: AppState; list: MuhuIdea[]; pick: MuhuIdea | null; onPin: (id: string) => void; viewKey: string }) {
+function SidePanel({ S, list, pick, onPin, viewKey, withMap }: { S: AppState; list: MuhuIdea[]; pick: MuhuIdea | null; onPin: (id: string) => void; viewKey: string; withMap: boolean }) {
   const cfg = useConfig(), failed = useMapsFailed();
   const [pan, setPan] = useState<PanRequest | null>(null);
   const [panFor, setPanFor] = useState<string | null>(null);
@@ -290,7 +290,7 @@ function SidePanel({ S, list, pick, onPin, viewKey }: { S: AppState; list: MuhuI
     color: MUHU_CATS[mainCat(m)].color, icon: MUHU_CATS[mainCat(m)].icon, dim: !!pick && pick.id !== m.id,
   }));
   const t: Trip = { id: 'muhu', name: 'Muhu', city: null, dest: { name: pick?.country || located[0]?.country || '', country: '', cid: '' }, center: null, start: null, len: 0, ideas: places.map(p => p.idea), days: [], notes: '', feedback: { again: '', highlights: '', next: '', votes: {} } };
-  const map = cfg?.mapsKey && !failed && !!located.length && (pick ? pick.lat != null : true)
+  const map = withMap && cfg?.mapsKey && !failed && !!located.length && (pick ? pick.lat != null : true)
     && <GoogleMap t={t} places={places} routes={[]} viewKey={viewKey} hl={pick?.id ?? null} panTo={pan} onPin={onPin} mapsKey={cfg.mapsKey} mapId={cfg.mapId}
       onMove={(id, lat, lng) => { editMuhu(id, x => { x.lat = lat; x.lng = lng; }); toast('Pin moved.'); }} />;
   if (!pick) return <aside className="muhu-side">{map}<p className="faint small">Pick an idea to see its photo, where it is and everything you saved about it.{cfg?.places && located.length < list.length ? ` ${list.length - located.length} aren’t on the map yet: open one and use “Find it”.` : ''}</p></aside>;
@@ -353,7 +353,7 @@ export function MuhuPage() {
   useEffect(() => { if (google && list) guessPlaces(list); }, [google, list]);
   if (!S) return null;
 
-  const side = wide && view.muhuSide, photos = S.prefs.photos !== false;
+  const photos = S.prefs.photos !== false;
   const countries = [...new Set(S.muhu.map(m => m.cid))].map(c => ({ cid: c, name: COUNTRY[c] || S.muhu.find(m => m.cid === c)!.country, list: S.muhu.filter(m => m.cid === c) }))
     .sort((a, b) => b.list.length - a.list.length || a.name.localeCompare(b.name));
   const inCat = (k: MuhuCat) => S.muhu.filter(m => catsOf(m).includes(k));
@@ -366,6 +366,8 @@ export function MuhuPage() {
   const found = searching ? S.muhu.filter(keep) : [];
   const shown = (searching ? found : by === 'country' ? country?.list ?? [] : category ? inCat(category) : []).filter(keep);
   const pick = open && S.muhu.find(m => m.id === open.id) || null;
+  // on wide screens the picked idea opens on the right; "Photo & map" keeps that column (with the map) even with nothing picked
+  const side = wide && (view.muhuSide || !!pick);
   const done = (c: string) => { setPanel(null); setBy('country'); setCid(c); };
   const choose = (id: string, group: string) => setOpen(o => o?.id === id && (side || o.group === group) ? null : { id, group });
   const items = (list: MuhuIdea[], cat: MuhuCat | null, group: string) => {
@@ -378,7 +380,7 @@ export function MuhuPage() {
   };
 
   return (
-    <div className="wrap full">
+    <div className="wrap">
       <div className="page-head">
         <div><h1>Muhu</h1><p className="muted">Seeds for future trips: what we’d love to see, country by country. No trip or dates needed.</p></div>
         <button type="button" className="btn" aria-expanded={panel === 'import'} onClick={() => setPanel(p => p === 'import' ? null : 'import')}>Import from Notion</button>
@@ -457,7 +459,7 @@ export function MuhuPage() {
               </Disc>
             );
           })}</div>
-          {side && <SidePanel S={S} list={shown} pick={pick} viewKey={searching ? 'muhu-search' : `muhu-${by}-${by === 'country' ? country.cid : category}`} onPin={id => choose(id, 'pin')} />}
+          {side && <SidePanel S={S} list={shown} pick={pick} viewKey={searching ? 'muhu-search' : `muhu-${by}-${by === 'country' ? country.cid : category}`} onPin={id => choose(id, 'pin')} withMap={view.muhuSide} />}
         </div>
       </>}
     </div>

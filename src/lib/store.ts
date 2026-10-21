@@ -90,7 +90,10 @@ function sync(prev: AppState, next: AppState) {
     }
   }
   if (prev.visits !== next.visits) {
-    for (const v of next.visits) if (!prev.visits.some(p => p.id === v.id)) run(() => call('POST', '/api/visits', v));
+    for (const v of next.visits) {
+      const was = prev.visits.find(p => p.id === v.id);
+      if (!was) run(() => call('POST', '/api/visits', v)); else if (was !== v) run(() => call('PUT', `/api/visits/${v.id}`, v));
+    }
     for (const v of prev.visits) if (!next.visits.some(n => n.id === v.id)) run(() => call('DELETE', `/api/visits/${v.id}`));
   }
   if (prev.muhu !== next.muhu) {

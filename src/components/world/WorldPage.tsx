@@ -67,6 +67,7 @@ export function WorldPage() {
   const svgRef = useRef<SVGSVGElement>(null), panelRef = useRef<HTMLDivElement>(null), api = useRef<PanZoom | null>(null);
   const [country, setCountry] = useState<string | null>(null);
   const [logOpen, setLogOpen] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null); // a visit logged by hand, being changed
   const [tip, setTip] = useState<{ cid: string; x: number; y: number } | null>(null);
   const ready = !!S;
 
@@ -111,6 +112,13 @@ export function WorldPage() {
     const f = new FormData(e.currentTarget), from = String(f.get('when'));
     update(st => { st.visits.push({ id: uid(), cid: String(f.get('country')), places: String(f.get('places')).trim(), from, to: from }); });
     setLogOpen(false); toast('Visit logged.');
+  }
+
+  function saveVisit(e: FormEvent<HTMLFormElement>, id: string) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget), from = String(f.get('when'));
+    update(st => { const v = st.visits.find(x => x.id === id); if (v) { v.cid = String(f.get('country')); v.places = String(f.get('places')).trim(); v.from = from; v.to = from; } });
+    setEditing(null); toast('Visit updated.');
   }
 
   const visits = visitList(S);
@@ -174,11 +182,21 @@ export function WorldPage() {
             return (
               <div key={v.trip || v.id} style={{ display: 'contents' }}>
                 {head && <div className="year num">{y}</div>}
-                <div className="visit"><span className="dotv" /><div><b>{COUNTRY[v.cid] || ''}</b><small>{v.places}</small></div>
-                  <div className="when num">{v.when}<br />{v.trip
-                    ? <Link className="linkish" href={`/trips/${v.trip}`}>Open trip</Link>
-                    : <button type="button" className="linkish" onClick={() => update(st => { st.visits = st.visits.filter(x => x.id !== v.id); })}>Remove</button>}</div>
-                </div>
+                {editing && editing === v.id ? (
+                  <form className="form-row visit-edit" style={{ alignItems: 'end' }} onSubmit={e => saveVisit(e, v.id!)}>
+                    <label className="field">Country<select name="country" defaultValue={v.cid}>{SORTED.map(([id, n]) => <option key={id} value={id}>{n}</option>)}</select></label>
+                    <label className="field">Places<input name="places" defaultValue={v.places} required /></label>
+                    <label className="field">When<input name="when" type="month" required defaultValue={v.from} /></label>
+                    <div className="acts"><button className="btn primary" type="submit">Save</button><button type="button" className="btn quiet" onClick={() => setEditing(null)}>Cancel</button></div>
+                  </form>
+                ) : (
+                  <div className="visit"><span className="dotv" /><div><b>{COUNTRY[v.cid] || ''}</b><small>{v.places}</small></div>
+                    <div className="when num">{v.when}<br />{v.trip
+                      // trips made in the app are changed on their own page (name, dates, place)
+                      ? <Link className="linkish" href={`/trips/${v.trip}`}>Open to edit</Link>
+                      : <><button type="button" className="linkish" onClick={() => setEditing(v.id!)}>Edit</button> · <button type="button" className="linkish" onClick={() => update(st => { st.visits = st.visits.filter(x => x.id !== v.id); })}>Remove</button></>}</div>
+                  </div>
+                )}
               </div>
             );
           })}</div>

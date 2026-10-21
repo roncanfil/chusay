@@ -77,8 +77,7 @@ h1 { font-size: clamp(28px, 4vw, 38px); line-height: 1.15; letter-spacing: -.02e
 h2 { font-size: 20px; line-height: 1.3; }
 h3 { font-size: 13px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
 p { margin: 0; }
-.wrap { max-width: 1180px; margin: 0 auto; }
-.wrap.wide { max-width: 1320px; }
+.wrap { margin: 0 auto; } /* every page uses the full width of the window */
 .muted { color: var(--ink-2); }
 .faint { color: var(--ink-3); }
 .small { font-size: 14px; }
@@ -147,6 +146,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
 /* trip page */
 .trip-head { padding-block: 24px 0; display: grid; gap: 8px; }
+.title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.title-in { font-size: clamp(22px, 3vw, 28px); font-weight: 600; max-width: 640px; }
 .trip-head .meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: var(--ink-2); }
 .tabs { margin-top: 18px; }
 .dates-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; padding: 16px 18px; }
@@ -245,7 +246,6 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .trip-head { grid-area: head; }
 .trip-body { grid-area: body; padding-top: 18px; min-width: 0; }
 .mapcol { grid-area: map; margin-top: 16px; }
-.trip-layout:not(.has-map) .trip-head, .trip-layout:not(.has-map) .trip-body { max-width: 760px; }
 .map-toggle { display: none; }
 @media (min-width: 640px) {
   .trip-layout.has-map { grid-template-columns: minmax(0, 560px) minmax(0, 1fr); grid-template-areas: "head map" "body map"; grid-template-rows: auto 1fr; }
@@ -373,7 +373,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .world-card { padding: 16px; display: grid; gap: 12px; margin-top: 18px; }
 .legend { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .legend .chip i { border-radius: 3px; width: 12px; height: 12px; }
-.world-box { position: relative; aspect-ratio: 1000 / 438; background: color-mix(in srgb, var(--water) 45%, var(--surface)); border-radius: 10px; overflow: hidden; }
+.world-box { position: relative; aspect-ratio: 1000 / 438; max-height: 72vh; width: 100%; background: color-mix(in srgb, var(--water) 45%, var(--surface)); border-radius: 10px; overflow: hidden; }
 .world-box svg { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; user-select: none; }
 .country { stroke: var(--country-line); stroke-width: .6; vector-effect: non-scaling-stroke; cursor: pointer; transition: fill 200ms ease, opacity 200ms ease; }
 .country:hover { filter: brightness(.93); }
@@ -432,7 +432,6 @@ h1 { font-weight: 700; letter-spacing: -.02em; }
   .trip-layout.has-map .mapcol { top: calc(env(safe-area-inset-top, 0px) + 64px); height: calc(100vh - 64px - env(safe-area-inset-top, 0px)); margin-top: 0; }
   .trip-layout.has-map .map-card { border-radius: 0; border: 0; border-left: 1px solid var(--line); }
 }
-.trip-layout:not(.has-map) .trip-head, .trip-layout:not(.has-map) .trip-body { max-width: 820px; margin-inline: auto; width: 100%; }
 .map-credit { background: none; border: 0; position: absolute; left: 0; bottom: 0; padding: 8px 12px; }
 .map-credit { font-size: 11.5px; }
 .scalebar { bottom: 34px; }
@@ -661,7 +660,6 @@ a.src:hover { text-decoration: underline; }
 .dest-results .row { width: 100%; border-width: 0; background: none; text-align: left; }
 .dest-results .row + .row { border-top: 1px solid var(--line); }
 /* Muhu: a slim row of tiles picks a country or a category (it scrolls sideways on phones); the ideas open in place below */
-.wrap.full { max-width: none; }
 .muhu-by { margin-top: 18px; }
 .mtiles { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 .mtile { display: grid; grid-template-columns: auto auto; column-gap: 10px; align-items: baseline; justify-content: start; text-align: left; min-width: 150px; padding: 10px 14px 11px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--sc) 30%, var(--line)); background: color-mix(in srgb, var(--sc) 7%, var(--surface)); color: var(--ink); transition: background-color 150ms ease, border-color 150ms ease; }

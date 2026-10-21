@@ -102,6 +102,23 @@ function TripView({ t }: { t: Trip }) {
     scrollTo(0, 0);
   }
 
+  // new dates for a trip that has them: added days start empty; dropped days put their places back in Ideas (nothing is deleted)
+  // and move their own plans (meeting friends, reservations) to the new last day
+  function changeDates(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget), start = String(f.get('start')), len = Math.max(1, Math.min(21, Number(f.get('len')) || t.len));
+    editTrip(t.id, tt => {
+      tt.start = start;
+      while (tt.days.length < len) tt.days.push({ id: uid(), title: '', stops: [] });
+      if (tt.days.length > len) tt.days[len - 1].stops.push(...tt.days.splice(len).flatMap(d => d.stops.filter(x => x.own)));
+      tt.len = len;
+    });
+    set({ datesOpen: false, day: Math.min(ui.day, len - 1) });
+    toast(len < t.len ? `Dates changed. Places from the days you dropped are back in Ideas.` : 'Dates changed.');
+  }
+  const [naming, setNaming] = useState(false);
+  function rename(v: string) { const name = v.trim(); if (name && name !== t.name) { editTrip(t.id, tt => { tt.name = name; }); toast('Renamed.'); } setNaming(false); }
+
   // moving the trip to another place keeps its ideas, days and name; the map and search follow the new center
   const where = useDestinationSearch(movePlace);
   function movePlace(d: DestinationResult) {
@@ -122,14 +139,25 @@ function TripView({ t }: { t: Trip }) {
     <div ref={layoutRef} className={`wrap wide trip-layout ${showMap ? 'has-map' : ''} tab-${tab}`} style={vars({ '--tc': TAB_COLORS[tab], '--list-w': view.listW ? view.listW + 'px' : undefined })}>
       <div className="trip-head">
         <div><Link className="linkish" href="/">‹ All trips</Link></div>
-        <h1>{t.name}</h1>
+        {naming
+          ? <input className="input title-in" defaultValue={t.name} autoFocus aria-label="Trip name" onBlur={e => rename(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setNaming(false); }} />
+          : <div className="title-row"><h1>{t.name}</h1><button type="button" className="btn-sm" onClick={() => setNaming(true)}>Rename</button></div>}
         <div className="meta num">
           <span>{t.dest.name}{t.dest.name !== t.dest.country ? ', ' + t.dest.country : ''}</span>
           <button type="button" className="btn-sm" aria-expanded={ui.placeOpen} onClick={() => { where.reset(); set({ placeOpen: !ui.placeOpen }); }}>{ui.placeOpen ? 'Cancel' : 'Change place'}</button>
           <span>·</span><span>{fmtRange(t)}</span>
           {someday ? <button type="button" className="btn-sm" aria-expanded={ui.datesOpen} onClick={() => set({ datesOpen: !ui.datesOpen })}>{ui.datesOpen ? 'Cancel' : 'Pick dates'}</button>
-            : past ? <span className="pill">Past trip</span> : relTime(t) ? <span className="pill go">{relTime(t)}</span> : null}
+            : <button type="button" className="btn-sm" aria-expanded={ui.datesOpen} onClick={() => set({ datesOpen: !ui.datesOpen })}>{ui.datesOpen ? 'Cancel' : 'Change dates'}</button>}
+          {!someday && (past ? <span className="pill">Past trip</span> : relTime(t) ? <span className="pill go">{relTime(t)}</span> : null)}
         </div>
+        {!someday && ui.datesOpen && (
+          <form className="group dates-form" onSubmit={changeDates}>
+            <label className="field">First day<input name="start" type="date" required defaultValue={t.start!} /></label>
+            <label className="field">Days<input name="len" type="number" min="1" max="21" defaultValue={t.len} required /></label>
+            <button className="btn primary" type="submit">Save dates</button>
+          </form>
+        )}
         {someday && ui.datesOpen && (
           <form className="group dates-form" onSubmit={pickDates}>
             <label className="field">First day<input name="start" type="date" required defaultValue={isoDate(today())} /></label>

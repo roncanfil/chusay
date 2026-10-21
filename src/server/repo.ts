@@ -125,6 +125,9 @@ export function removeSearch(db: Database, id: string) { db.prepare('DELETE FROM
 export function addVisit(db: Database, v: Visit) {
   db.prepare('INSERT INTO visits (id, country_code, places, month) VALUES (?, ?, ?, ?)').run(v.id, v.cid, v.places, v.from);
 }
+export function updateVisit(db: Database, v: Visit) {
+  db.prepare('UPDATE visits SET country_code = ?, places = ?, month = ? WHERE id = ?').run(v.cid, v.places, v.from, v.id);
+}
 export function removeVisit(db: Database, id: string) { db.prepare('DELETE FROM visits WHERE id = ?').run(id); }
 
 export function savePrefs(db: Database, p: Prefs) {
