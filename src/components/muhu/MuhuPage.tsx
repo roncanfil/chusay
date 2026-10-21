@@ -197,7 +197,7 @@ function GoogleField({ m }: { m: MuhuIdea }) {
 }
 
 // everything about an idea, all editable; opens in place, or in the side panel on wide screens
-function MuhuDetails({ S, m }: { S: AppState; m: MuhuIdea }) {
+function MuhuDetails({ S, m, onCompare }: { S: AppState; m: MuhuIdea; onCompare?: (id: string) => void }) {
   const google = !!useConfig()?.places;
   const ed = (fn: (x: MuhuIdea) => void) => editMuhu(m.id, fn);
   const trips = S.trips.filter(t => t.dest.cid === m.cid && !isPast(t));
@@ -236,6 +236,7 @@ function MuhuDetails({ S, m }: { S: AppState; m: MuhuIdea }) {
       return <button key={t.id} type="button" className="chip" aria-pressed={has} disabled={has} onClick={() => toTrip(t.id)}>{has ? `In ${t.name}` : t.name}</button>;
     })}</span></div>}
     <div className="acts">
+      {onCompare && <button type="button" className="btn-sm" onClick={() => onCompare(m.id)}>Compare with…</button>}
       <a className="btn-sm linkbtn" href={mapsUrl(m)} target="_blank" rel="noopener noreferrer"><PinSvg />Open in Google Maps</a>
       <button type="button" className="btn-sm" onClick={() => { update(s => { s.muhu = s.muhu.filter(x => x.id !== m.id); }); toast(`Removed ${m.name}.`); }}>Remove</button>
     </div>
@@ -243,7 +244,7 @@ function MuhuDetails({ S, m }: { S: AppState; m: MuhuIdea }) {
 }
 
 interface Pick { id: string; group: string }
-interface ItemProps { S: AppState; m: MuhuIdea; cat: MuhuCat; sel: boolean; open: boolean; toggle: () => void; photos: boolean }
+interface ItemProps { S: AppState; m: MuhuIdea; cat: MuhuCat; sel: boolean; open: boolean; toggle: () => void; photos: boolean; onCompare: (id: string) => void }
 const clickable = (toggle: () => void) => ({
   tabIndex: 0,
   onClick: (e: MouseEvent) => { if (!(e.target as Element).closest('button,a')) toggle(); },
@@ -251,7 +252,7 @@ const clickable = (toggle: () => void) => ({
 });
 
 // a tile: the photo, the name and where it is; opening it shows the details right below its row
-function MuhuTile({ S, m, cat, sel, open, toggle, photos }: ItemProps) {
+function MuhuTile({ S, m, cat, sel, open, toggle, photos, onCompare }: ItemProps) {
   return <>
     <div className={`mi-tile ${sel ? 'sel' : ''}`} style={vars({ '--cc': MUHU_CATS[cat].color })} aria-expanded={sel} {...clickable(toggle)}>
       <MuhuPhoto m={m} cat={cat} big google={photos} />
@@ -259,11 +260,11 @@ function MuhuTile({ S, m, cat, sel, open, toggle, photos }: ItemProps) {
       <b>{m.name}</b>
       {(m.area || m.when) && <small>{[m.area, m.when].filter(Boolean).join(' · ')}</small>}
     </div>
-    {open && <div className="tile-more" style={vars({ '--cc': MUHU_CATS[cat].color })}><MuhuPhoto m={m} cat={cat} big credit cls="mph hero" /><MuhuDetails S={S} m={m} /></div>}
+    {open && <div className="tile-more" style={vars({ '--cc': MUHU_CATS[cat].color })}><MuhuPhoto m={m} cat={cat} big credit cls="mph hero" /><MuhuDetails S={S} m={m} onCompare={onCompare} /></div>}
   </>;
 }
 
-function MuhuRow({ S, m, cat, sel, open, toggle, photos }: ItemProps) {
+function MuhuRow({ S, m, cat, sel, open, toggle, photos, onCompare }: ItemProps) {
   return <>
     <div className={`row link ${sel ? 'sel' : ''}`} style={vars({ '--cc': MUHU_CATS[cat].color })} aria-expanded={sel} {...clickable(toggle)}>
       <MuhuPhoto m={m} cat={cat} google={photos} cls="mph thumb-sm" />
@@ -274,16 +275,21 @@ function MuhuRow({ S, m, cat, sel, open, toggle, photos }: ItemProps) {
       </div>
       <span className="caret" aria-hidden="true">›</span>
     </div>
-    {open && <div className="more"><MuhuPhoto m={m} cat={cat} big credit cls="mph hero" /><MuhuDetails S={S} m={m} /></div>}
+    {open && <div className="more"><MuhuPhoto m={m} cat={cat} big credit cls="mph hero" /><MuhuDetails S={S} m={m} onCompare={onCompare} /></div>}
   </>;
 }
 
-// beside the ideas on wide screens: the picked idea's photo, its pin on the map, and its details; with nothing picked, every pin
-function SidePanel({ S, list, pick, onPin, viewKey, withMap }: { S: AppState; list: MuhuIdea[]; pick: MuhuIdea | null; onPin: (id: string) => void; viewKey: string; withMap: boolean }) {
-  const cfg = useConfig(), failed = useMapsFailed();
+// beside the ideas on wide screens: the picked idea's photo and its pin side by side, then its details; with nothing picked, every pin.
+// Comparing: two ideas side by side. A newly picked idea always opens at its top.
+function SidePanel({ S, list, pick, compare, onPin, onCompare, onStopCompare, viewKey, withMap }: {
+  S: AppState; list: MuhuIdea[]; pick: MuhuIdea | null; compare: MuhuIdea | null; onPin: (id: string) => void
+  onCompare: (id: string) => void; onStopCompare: () => void; viewKey: string; withMap: boolean
+}) {
+  const cfg = useConfig(), failed = useMapsFailed(), ref = useRef<HTMLElement>(null);
   const [pan, setPan] = useState<PanRequest | null>(null);
   const [panFor, setPanFor] = useState<string | null>(null);
   if ((pick?.id ?? null) !== panFor) { setPanFor(pick?.id ?? null); if (pick) setPan(p => ({ id: pick.id, seq: (p?.seq ?? 0) + 1 })); }
+  useEffect(() => { ref.current?.scrollTo({ top: 0 }); }, [pick?.id, compare?.id]);
   const located = list.filter(m => m.lat != null);
   // the map draws trip ideas; Muhu's colors and icons ride along
   const places: MapPlace[] = located.map(m => ({
@@ -294,18 +300,47 @@ function SidePanel({ S, list, pick, onPin, viewKey, withMap }: { S: AppState; li
   const map = withMap && cfg?.mapsKey && !failed && !!located.length && (pick ? pick.lat != null : true)
     && <GoogleMap t={t} places={places} routes={[]} viewKey={viewKey} hl={pick?.id ?? null} panTo={pan} onPin={onPin} mapsKey={cfg.mapsKey} mapId={cfg.mapId}
       onMove={(id, lat, lng) => { editMuhu(id, x => { x.lat = lat; x.lng = lng; }); toast('Pin moved.'); }} />;
-  if (!pick) return <aside className="muhu-side">{map}<p className="faint small">Pick an idea to see its photo, where it is and everything you saved about it.{cfg?.places && located.length < list.length ? ` ${list.length - located.length} aren’t on the map yet: open one and use “Find it”.` : ''}</p></aside>;
+  if (compare) return <aside ref={ref} className="muhu-side"><Compare a={compare} b={pick && pick.id !== compare.id ? pick : null} onEdit={id => { onStopCompare(); onPin(id); }} onStop={onStopCompare} /></aside>;
+  if (!pick) return <aside ref={ref} className="muhu-side">{map}<p className="faint small">Pick an idea to see its photo, where it is and everything you saved about it.{cfg?.places && located.length < list.length ? ` ${list.length - located.length} aren’t on the map yet: open one and use “Find it”.` : ''}</p></aside>;
   const cat = mainCat(pick);
   return (
-    <aside className="muhu-side" style={vars({ '--cc': MUHU_CATS[cat].color })}>
-      <MuhuPhoto key={pick.id} m={pick} cat={cat} big credit cls="mph side-photo" />
-      {map}{map && <span className="faint small">Drag the pin to move it.</span>}
-      <div className="side-card">
-        <div className="section-head"><h2>{pick.name}</h2><span className="sp" /><button type="button" className="icon-btn" onClick={() => onPin(pick.id)} aria-label="Close">×</button></div>
-        <MuhuDetails S={S} m={pick} />
+    <aside ref={ref} className="muhu-side" style={vars({ '--cc': MUHU_CATS[cat].color })}>
+      <div className="side-head">
+        <h2>{pick.name}{pick.want === 'high' && <span className="must">{WANT.high}</span>}</h2>
+        <button type="button" className="btn-sm" onClick={() => onCompare(pick.id)}>Compare with…</button>
+        <button type="button" className="icon-btn" onClick={() => onPin(pick.id)} aria-label="Close">×</button>
       </div>
+      <div className={`side-top ${map ? 'two' : ''}`}><MuhuPhoto key={pick.id} m={pick} cat={cat} big credit cls="mph side-photo" />{map}</div>
+      {map && <span className="faint small">Drag the pin to move it.</span>}
+      <div className="side-card"><MuhuDetails S={S} m={pick} /></div>
     </aside>
   );
+}
+
+// two ideas side by side, to choose between them; "Edit" opens one with everything editable
+function Compare({ a, b, onEdit, onStop }: { a: MuhuIdea; b: MuhuIdea | null; onEdit: (id: string) => void; onStop: () => void }) {
+  const col = (m: MuhuIdea) => {
+    const cat = mainCat(m);
+    const fact = (label: string, v: string | undefined) => v ? <div><span className="lbl">{label}</span>{v}</div> : null;
+    return (
+      <div className="cmp-col" style={vars({ '--cc': MUHU_CATS[cat].color })}>
+        <MuhuPhoto m={m} cat={cat} big cls="mph" />
+        <b className="cmp-name">{m.name}</b>
+        <span className="chips">{catsOf(m).map(k => <span key={k} className="chip dchip" style={vars({ '--dc': MUHU_CATS[k].color })} aria-pressed="true">{MUHU_CATS[k].label}</span>)}</span>
+        {fact('How much', m.want ? WANT[m.want] : '')}
+        {fact('Where', [m.area, m.country].filter(Boolean).join(', '))}
+        {fact('When to go', m.when)}
+        {fact('Getting there', m.far)}
+        {m.note && <div><span className="lbl">Our notes</span><span className="cmp-note">{m.note}</span></div>}
+        <SrcChip v={m.source} />
+        <div className="acts"><button type="button" className="btn-sm" onClick={() => onEdit(m.id)}>Edit</button><a className="btn-sm linkbtn" href={mapsUrl(m)} target="_blank" rel="noopener noreferrer"><PinSvg />Google Maps</a></div>
+      </div>
+    );
+  };
+  return <>
+    <div className="side-head"><h2>Comparing</h2><button type="button" className="btn-sm" onClick={onStop}>Stop comparing</button></div>
+    <div className="compare">{col(a)}{b ? col(b) : <div className="cmp-col cmp-empty"><p>Now pick another idea to put next to <b>{a.name}</b>.</p></div>}</div>
+  </>;
 }
 
 // saved searches as buttons under the search box; the one in use is pressed, and the search in use can be saved under a name
@@ -346,6 +381,7 @@ export function MuhuPage() {
   const [by, setBy] = useState<'country' | 'cat'>('country');
   const [cid, setCid] = useState<string | null>(null);
   const [open, setOpen] = useState<Pick | null>(null);
+  const [compareId, setCompareId] = useState<string | null>(null); // the first of two ideas side by side
   const [panel, setPanel] = useState<'add' | 'import' | null>(null);
   const [q, setQ] = useState(''), [fCats, setFCats] = useState<MuhuCat[]>([]), [catsOpen, setCatsOpen] = useState(false), [fWant, setFWant] = useState<Want | 'any'>('any');
   // ideas not yet looked up on Google get the app's best guess, once
@@ -371,14 +407,18 @@ export function MuhuPage() {
   const shown = searching ? found : (by === 'country' ? country?.list ?? [] : S.muhu).filter(keep);
   const pick = open && S.muhu.find(m => m.id === open.id) || null;
   // on wide screens the picked idea opens on the right; "Photo & map" keeps that column (with the map) even with nothing picked
-  const side = wide && (view.muhuSide || !!pick);
+  const compare = compareId && S.muhu.find(m => m.id === compareId) || null;
+  const side = wide && (view.muhuSide || !!pick || !!compare);
+  // which list an idea opens in, when it's opened from elsewhere (the comparison on phones)
+  const groupOf = (m: MuhuIdea) => searching ? `q-${m.cid}` : by === 'country' ? catsOf(m).find(k => !picked.length || picked.includes(k)) ?? mainCat(m) : m.cid;
+  const startCompare = (id: string) => { setCompareId(id); setOpen(null); toast('Now pick another idea to compare.'); };
   const done = (c: string) => { setPanel(null); setBy('country'); setCid(c); };
   const choose = (id: string, group: string) => setOpen(o => o?.id === id && (side || o.group === group) ? null : { id, group });
   const items = (list: MuhuIdea[], cat: MuhuCat | null, group: string) => {
     const Item = view.muhuTiles ? MuhuTile : MuhuRow;
     const all = [...list].sort(byWant).map(m => {
-      const sel = !!open && open.id === m.id && (side || open.group === group);
-      return <Item key={m.id} S={S} m={m} cat={cat ?? catsOf(m).find(c => picked.includes(c)) ?? mainCat(m)} sel={sel} open={sel && !side} toggle={() => choose(m.id, group)} photos={photos} />;
+      const sel = (!!open && open.id === m.id && (side || open.group === group)) || m.id === compareId;
+      return <Item key={m.id} S={S} m={m} onCompare={startCompare} cat={cat ?? catsOf(m).find(c => picked.includes(c)) ?? mainCat(m)} sel={sel} open={sel && !side && !compare} toggle={() => choose(m.id, group)} photos={photos} />;
     });
     return view.muhuTiles ? <div className="mideas">{all}</div> : <div className="group">{all}</div>;
   };
@@ -450,7 +490,10 @@ export function MuhuPage() {
           </div>
         )}
         <div className={side ? 'muhu-split' : ''}>
-          <div className="muhu-list">{searching ? countries.map(c => {
+          <div className="muhu-list">
+          {/* on phones the comparison sits above the ideas */}
+          {!side && compare && <div className="compare-inline"><Compare a={compare} b={pick && pick.id !== compare.id ? pick : null} onEdit={id => { setCompareId(null); setOpen({ id, group: groupOf(S.muhu.find(m => m.id === id)!) }); }} onStop={() => setCompareId(null)} /></div>}
+          {searching ? countries.map(c => {
             const list = found.filter(m => m.cid === c.cid);
             return !!list.length && (
               <Disc key={c.cid} k={`muhu-search-${c.cid}`} cls="tint" style={vars({ '--sc': 'var(--s-want)' })} head={<><b>{c.name}</b><span className="faint small">{list.length}</span></>}>
@@ -472,7 +515,7 @@ export function MuhuPage() {
               </Disc>
             );
           })}</div>
-          {side && <SidePanel S={S} list={shown} pick={pick} viewKey={searching ? 'muhu-search' : `muhu-${by}-${by === 'country' ? country.cid : picked.join('+')}`} onPin={id => choose(id, 'pin')} withMap={view.muhuSide} />}
+          {side && <SidePanel S={S} list={shown} pick={pick} compare={compare} onCompare={startCompare} onStopCompare={() => setCompareId(null)} viewKey={searching ? 'muhu-search' : `muhu-${by}-${by === 'country' ? country.cid : picked.join('+')}`} onPin={id => choose(id, 'pin')} withMap={view.muhuSide} />}
         </div>
       </>}
     </div>
