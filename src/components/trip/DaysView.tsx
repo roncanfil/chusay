@@ -9,7 +9,7 @@ import { kindLabel } from '@/lib/kinds';
 import { suggestDay } from '@/lib/picks';
 import { uid } from '@/lib/seed';
 import { discIsOpen, editTrip, openDisc, setView, toast, useSession, useView } from '@/lib/store';
-import { dayDate, fmtDay, ideaOf, scheduledDay, staysOn } from '@/lib/trips';
+import { dayDate, fmtDay, ideaOf, offMap, scheduledDay, staysOn } from '@/lib/trips';
 import type { OwnPlan, Stop, Trip } from '@/lib/types';
 import { IdeaCat, IdeaHero, IdeaNote, IdeaSource, MapsLink } from './fields';
 import { StayDays, StayFields } from './stays';
@@ -25,7 +25,8 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
   const [dragKey, setDragKey] = useState(0);
   const [stayOpen, setStayOpen] = useState<string | null>(null); // "day:idea" of an opened "Staying at" line
   const list = view.dayAll || !mapOk, compact = view.density === 'compact';
-  const unplanned = t.ideas.filter(i => scheduledDay(t, i.id) < 0);
+  // places left off the map still go on a day from here; they come last
+  const unplanned = t.ideas.filter(i => scheduledDay(t, i.id) < 0).sort((a, b) => Number(offMap(t, a)) - Number(offMap(t, b)));
   const canSuggest = unplanned.some(i => i.cat !== 'stay' && i.lat != null);
 
   // stops drag to reorder and between days; ideas drag in from "+ From ideas"
@@ -133,7 +134,7 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
             <div className="add-panel">{unplanned.length
               ? <div className="adder" data-day={k}>{unplanned.map(i => (
                 <div key={i.id} className="row" data-idea={i.id} style={vars({ '--cc': CATS[i.cat].color })}>
-                  <Pic p={i} /><div className="main"><span className="title">{i.name}</span><span className="meta">{kindLabel(i)}{i.hood ? ' · ' + i.hood : ''}</span></div>
+                  <Pic p={i} /><div className="main"><span className="title">{i.name}</span><span className="meta">{kindLabel(i)}{i.hood ? ' · ' + i.hood : ''}{offMap(t, i) ? ' · not on the map' : ''}</span></div>
                   <button type="button" className="btn-sm" onClick={() => addToDay(k, i.id)}>+ Add</button>
                 </div>))}</div>
               : <p className="faint small">Every idea is planned. Add more on the Ideas tab.</p>}

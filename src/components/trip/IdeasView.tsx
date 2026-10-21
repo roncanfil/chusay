@@ -10,7 +10,7 @@ import { searchCatalog, suggestions } from '@/lib/picks';
 import { uid } from '@/lib/seed';
 import { fromCatalog, findPlaces } from '@/lib/search';
 import { editTrip, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
-import { isSomeday, isUrl, scheduledDay, stayLabel } from '@/lib/trips';
+import { isSomeday, isUrl, planned, scheduledDay, stayLabel } from '@/lib/trips';
 import type { Cat, Idea, Pace, PlaceResult, Prefs, Trip } from '@/lib/types';
 import { IdeaCat, IdeaNote, IdeaSource, MapsLink } from './fields';
 import { StayDays, StayFields, StayForm } from './stays';
@@ -48,8 +48,9 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
     }));
     return () => made.forEach(s => s.destroy());
   });
-  const offMap = (k: string) => ui.mapOff.includes(k);
-  const toggleMap = (k: string) => set({ mapOff: offMap(k) ? ui.mapOff.filter(x => x !== k) : [...ui.mapOff, k] });
+  // what's left off the maps is kept with the trip: whole categories, or single places (a stay we didn't pick)
+  const catOff = (k: string) => !!t.mapOffCats?.includes(k);
+  const toggleCat = (k: string) => editTrip(t.id, tt => { const l = tt.mapOffCats ?? []; tt.mapOffCats = l.includes(k) ? l.filter(x => x !== k) : [...l, k]; });
 
   const counts: Record<string, number> = { all: t.ideas.length };
   t.ideas.forEach(i => { counts[i.cat] = (counts[i.cat] || 0) + 1; });
@@ -170,7 +171,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
     {picksBox}
     {mapOk && view.ideasMap && t.ideas.length > 0 && (
       <div className="inline-field map-pick">On the map <span className="chips">{CAT_KEYS.filter(k => counts[k]).map(k => (
-        <button key={k} type="button" className="chip dchip" style={vars({ '--dc': CATS[k].color })} aria-pressed={!offMap('cat:' + k)} onClick={() => toggleMap('cat:' + k)}>{CATS[k].label}</button>
+        <button key={k} type="button" className="chip dchip" style={vars({ '--dc': CATS[k].color })} aria-pressed={!catOff(k)} onClick={() => toggleCat(k)}>{CATS[k].label}</button>
       ))}</span></div>
     )}
     {!t.ideas.length
@@ -178,7 +179,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
       : <div ref={listRef} key={dragKey}>{groups.map(k => (
         <Disc key={k} k={`cat-${k}`} cls="tint" style={vars({ '--sc': CATS[k].color })} head={<><CatIcon cat={k} /><b>{CATS[k].label}</b><span className="faint small">{counts[k]}</span></>}>
           {k === 'stay' && counts[k] > 1 && <span className="faint small drag-hint">Drag to put them in order of preference, favorite first.</span>}
-          <div className="group" data-cat={k}>{t.ideas.filter(i => i.cat === k).map(i => <IdeaRow key={i.id} t={t} i={i} ui={ui} set={set} offMap={offMap(i.id)} catOff={offMap('cat:' + i.cat)} toggleMap={() => toggleMap(i.id)} />)}</div>
+          <div className="group" data-cat={k}>{t.ideas.filter(i => i.cat === k).map(i => <IdeaRow key={i.id} t={t} i={i} ui={ui} set={set} offMap={!!i.offMap} catOff={catOff(i.cat)} toggleMap={() => editTrip(t.id, tt => { const x = tt.ideas.find(y => y.id === i.id)!; if (x.offMap) delete x.offMap; else x.offMap = true; })} />)}</div>
         </Disc>
       ))}</div>}
   </>;
@@ -203,7 +204,7 @@ function IdeaRow({ t, i, ui, set, offMap, catOff, toggleMap }: { t: Trip; i: Ide
   return <>
     <div className={`row link ${open ? 'sel' : ''}`} data-row={i.id} style={vars({ '--cc': CATS[i.cat].color })} aria-expanded={open} tabIndex={0} onClick={click} onKeyDown={key}>
       <Pic p={i} />
-      <div className="main"><span className="title">{i.name}</span><span className="meta"><KindIcon p={i} />{[kindLabel(i), i.price, i.hood, i.note, (offMap || catOff) && i.lat != null && 'not on the map'].filter(Boolean).join(' · ')}</span><SrcChip v={i.source} /></div>
+      <div className="main"><span className="title">{i.name}</span><span className="meta"><KindIcon p={i} />{[kindLabel(i), i.price, i.hood, i.note, (offMap || catOff) && i.lat != null && !planned(t, i) && 'not on the map'].filter(Boolean).join(' · ')}</span><SrcChip v={i.source} /></div>
       {d >= 0 && <span className="tag-day" style={vars({ '--dc': dayColor(d) })}>Day {d + 1}</span>}
       {i.cat === 'stay' && !isSomeday(t) && stayLabel(t, i) && <span className="tag-day stay-tag" style={vars({ '--dc': CATS.stay.color })}>{stayLabel(t, i)}</span>}
       <span className="caret" aria-hidden="true">›</span>

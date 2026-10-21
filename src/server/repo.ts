@@ -23,12 +23,13 @@ export function loadState(db: Database): AppState {
         dest: { name: String(r.destination_name), country: String(r.country_name), cid: String(r.country_code) },
         center: r.center_lat != null && r.center_lng != null ? { lat: Number(r.center_lat), lng: Number(r.center_lng) } : null,
         start: (r.start_date as string) ?? null, len: Number(r.length_days), notes: String(r.notes),
+        ...(r.map_off && r.map_off !== '[]' ? { mapOffCats: json<string[]>(r.map_off, []) } : {}),
         ideas: ideas.filter(i => i.trip_id === r.id).map(i => ({
           id: String(i.id), ...(i.google_place_id ? { placeId: String(i.google_place_id) } : {}), name: String(i.name), cat: i.category as Cat, ...(i.kind ? { kind: String(i.kind) } : {}),
           hood: String(i.area), lat: i.lat as number | null, lng: i.lng as number | null,
           tags: json<string[]>(i.tags, []), note: String(i.note), ...(i.source ? { source: String(i.source) } : {}),
           ...(i.price ? { price: String(i.price) } : {}), ...(i.image ? { image: String(i.image) } : {}),
-          ...(i.stay_days && i.stay_days !== '[]' ? { stayDays: json<string[]>(i.stay_days, []) } : {}),
+          ...(i.stay_days && i.stay_days !== '[]' ? { stayDays: json<string[]>(i.stay_days, []) } : {}), ...(i.map_hidden ? { offMap: true } : {}),
         })),
         days: days.filter(d => d.trip_id === r.id).map(d => ({
           id: String(d.id), title: String(d.title),
@@ -62,22 +63,22 @@ export function loadState(db: Database): AppState {
 /* ---------- write: one trip at a time; saving a trip never touches another one ---------- */
 export function saveTrip(db: Database, t: Trip) {
   db.transaction(() => {
-    db.prepare(`INSERT INTO trips (id, name, destination_name, country_name, country_code, city_key, center_lat, center_lng, start_date, length_days, notes)
-      VALUES (@id, @name, @dn, @cn, @cc, @city, @lat, @lng, @start, @len, @notes)
+    db.prepare(`INSERT INTO trips (id, name, destination_name, country_name, country_code, city_key, center_lat, center_lng, start_date, length_days, notes, map_off)
+      VALUES (@id, @name, @dn, @cn, @cc, @city, @lat, @lng, @start, @len, @notes, @mapOff)
       ON CONFLICT(id) DO UPDATE SET name = excluded.name, destination_name = excluded.destination_name, country_name = excluded.country_name,
         country_code = excluded.country_code, city_key = excluded.city_key, center_lat = excluded.center_lat, center_lng = excluded.center_lng,
-        start_date = excluded.start_date, length_days = excluded.length_days, notes = excluded.notes`)
-      .run({ id: t.id, name: t.name, dn: t.dest.name, cn: t.dest.country, cc: t.dest.cid, city: t.city, lat: t.center?.lat ?? null, lng: t.center?.lng ?? null, start: t.start, len: t.len, notes: t.notes });
+        start_date = excluded.start_date, length_days = excluded.length_days, notes = excluded.notes, map_off = excluded.map_off`)
+      .run({ id: t.id, name: t.name, dn: t.dest.name, cn: t.dest.country, cc: t.dest.cid, city: t.city, lat: t.center?.lat ?? null, lng: t.center?.lng ?? null, start: t.start, len: t.len, notes: t.notes, mapOff: JSON.stringify(t.mapOffCats ?? []) });
     // days and stops are rewritten in their current order; ideas are upserted so created_at survives
     db.prepare('DELETE FROM days WHERE trip_id = ?').run(t.id);
     db.prepare('DELETE FROM stop_votes WHERE trip_id = ?').run(t.id);
     db.prepare('DELETE FROM ideas WHERE trip_id = ? AND id NOT IN (SELECT value FROM json_each(?))').run(t.id, JSON.stringify(t.ideas.map(i => i.id)));
-    const idea = db.prepare(`INSERT INTO ideas (id, trip_id, google_place_id, name, category, kind, area, lat, lng, tags, note, source, price, image, stay_days, position)
-      VALUES (@id, @trip, @place, @name, @cat, @kind, @area, @lat, @lng, @tags, @note, @source, @price, @image, @stayDays, @pos)
+    const idea = db.prepare(`INSERT INTO ideas (id, trip_id, google_place_id, name, category, kind, area, lat, lng, tags, note, source, price, image, stay_days, map_hidden, position)
+      VALUES (@id, @trip, @place, @name, @cat, @kind, @area, @lat, @lng, @tags, @note, @source, @price, @image, @stayDays, @hidden, @pos)
       ON CONFLICT(id) DO UPDATE SET google_place_id = excluded.google_place_id, name = excluded.name, category = excluded.category, kind = excluded.kind, area = excluded.area,
         lat = excluded.lat, lng = excluded.lng, tags = excluded.tags, note = excluded.note, source = excluded.source,
-        price = excluded.price, image = excluded.image, stay_days = excluded.stay_days, position = excluded.position`);
-    t.ideas.forEach((i, pos) => idea.run({ id: i.id, trip: t.id, place: i.placeId ?? null, name: i.name, cat: i.cat, kind: i.kind ?? null, area: i.hood, lat: i.lat, lng: i.lng, tags: JSON.stringify(i.tags), note: i.note, source: i.source ?? '', price: i.price ?? '', image: i.image ?? '', stayDays: JSON.stringify(i.stayDays ?? []), pos }));
+        price = excluded.price, image = excluded.image, stay_days = excluded.stay_days, map_hidden = excluded.map_hidden, position = excluded.position`);
+    t.ideas.forEach((i, pos) => idea.run({ id: i.id, trip: t.id, place: i.placeId ?? null, name: i.name, cat: i.cat, kind: i.kind ?? null, area: i.hood, lat: i.lat, lng: i.lng, tags: JSON.stringify(i.tags), note: i.note, source: i.source ?? '', price: i.price ?? '', image: i.image ?? '', stayDays: JSON.stringify(i.stayDays ?? []), hidden: i.offMap ? 1 : 0, pos }));
     const day = db.prepare('INSERT INTO days (id, trip_id, position, title) VALUES (?, ?, ?, ?)');
     const stop = db.prepare(`INSERT INTO stops (id, day_id, idea_id, position, time, own_title, own_where, own_note, own_link)
       VALUES (@id, @day, @idea, @pos, @time, @title, @where, @note, @link)`);

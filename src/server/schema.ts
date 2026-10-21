@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS trips (
   start_date       TEXT,                    -- YYYY-MM-DD; NULL = Someday
   length_days      INTEGER NOT NULL DEFAULT 0,
   notes            TEXT NOT NULL DEFAULT '',
+  map_off          TEXT NOT NULL DEFAULT '[]', -- JSON categories left off the maps
   created_at       TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -40,6 +41,7 @@ CREATE TABLE IF NOT EXISTS ideas (
   price           TEXT NOT NULL DEFAULT '',   -- stays: the price as typed or shown by the booking link
   image           TEXT NOT NULL DEFAULT '',   -- stays: the listing's preview picture URL
   stay_days       TEXT NOT NULL DEFAULT '[]', -- stays: JSON day ids we're staying there, or ["*"] for every day
+  map_hidden      INTEGER NOT NULL DEFAULT 0, -- left off the maps until it's on a day
   position        INTEGER NOT NULL DEFAULT 0, -- keeps the list in the order ideas were saved
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );

@@ -104,6 +104,9 @@ const MIGRATIONS: string[] = [
   CREATE INDEX IF NOT EXISTS ideas_trip ON ideas(trip_id, position);`,
   // 7: a stay can be where we sleep on several days, or every day of the trip
   `ALTER TABLE ideas ADD COLUMN stay_days TEXT NOT NULL DEFAULT '[]';`,
+  // 8: what's left off the maps is kept with the trip, for both of you and after a reload
+  `ALTER TABLE ideas ADD COLUMN map_hidden INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE trips ADD COLUMN map_off TEXT NOT NULL DEFAULT '[]';`,
 ];
 
 // foreign keys are off while migrating, so rebuilding a table (copy, drop, rename) doesn't cascade-delete

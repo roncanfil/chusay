@@ -41,6 +41,7 @@ export interface Idea extends PlaceLike {
   price?: string; // stays: what the listing asked, as the household typed or the link showed it
   image?: string; // stays: the listing's own preview picture, by URL (never stored as a file)
   stayDays?: string[]; // stays: the days we're staying there, by day id, or ['*'] for every day of the trip
+  offMap?: boolean; // left off the maps until it's on a day (a stay we didn't pick)
 }
 
 // What a booking-site link could tell about a stay; anything missing is filled in by hand.
@@ -126,6 +127,7 @@ export interface Trip {
   days: Day[];
   notes: string;
   feedback: Feedback;
+  mapOffCats?: string[]; // whole categories left off the maps
 }
 
 export interface Visit {

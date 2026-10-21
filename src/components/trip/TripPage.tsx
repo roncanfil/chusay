@@ -9,7 +9,7 @@ import { dayColor, TAB_COLORS, type Tab } from '@/lib/constants';
 import { CITY } from '@/lib/data/cities';
 import { uid } from '@/lib/seed';
 import { editTrip, openDisc, setView, toast, toggleMapHidden, useAppState, useConfig, useSession, useView } from '@/lib/store';
-import { canMap, fmtRange, ideaOf, isoDate, isPast, isSomeday, relTime, scheduledDay, staysOn, today } from '@/lib/trips';
+import { canMap, fmtRange, ideaOf, isoDate, isPast, isSomeday, offMap, planned, relTime, scheduledDay, staysOn, today } from '@/lib/trips';
 import type { CityKey, DestinationResult, Trip } from '@/lib/types';
 import { CultureView } from './CultureView';
 import { DaysView } from './DaysView';
@@ -33,9 +33,9 @@ function dayMapSpec(t: Trip, day: number, all: boolean): { places: MapPlace[]; r
     return { places: [...shown, ...stays].filter((i, n, a) => a.indexOf(i) === n).map(i => ({ idea: i })), routes, key: `days-all-${t.id}` };
   }
   const d = t.days[day];
-  // an empty day shows the unplanned ideas, dimmed
+  // an empty day shows the unplanned ideas, dimmed, except the ones left off the map
   const places = !d ? [] : d.stops.length ? d.stops.map(s => ideaOf(t, s.idea)).filter(i => !!i).map(i => ({ idea: i }))
-    : t.ideas.filter(i => scheduledDay(t, i.id) < 0).map(i => ({ idea: i, dim: true }));
+    : t.ideas.filter(i => scheduledDay(t, i.id) < 0 && !offMap(t, i)).map(i => ({ idea: i, dim: true }));
   const routes = d && d.stops.length ? [{ color: dayColor(day), ideas: places.map(p => p.idea) }] : [];
   // where we sleep that day is always on its map, outside the day's route
   const stays = staysOn(t, day).filter(i => !places.some(p => p.idea === i)).map(i => ({ idea: i }));
@@ -56,7 +56,7 @@ function TripView({ t }: { t: Trip }) {
   const mapOk = canMap(t, !!cfg?.mapsKey);
   const showMap = mapOk && ((tab === 'days' && view.dayMap) || (tab === 'ideas' && view.ideasMap));
   const mspec = tab === 'days' ? dayMapSpec(t, ui.day, view.dayAll)
-    : { places: t.ideas.filter(i => (ui.cat === 'all' || i.cat === ui.cat) && !ui.mapOff.includes(i.id) && !ui.mapOff.includes('cat:' + i.cat)).map(i => ({ idea: i })), routes: [], key: `ideas-${t.id}-${ui.cat}` };
+    : { places: t.ideas.filter(i => (ui.cat === 'all' || i.cat === ui.cat) && (!offMap(t, i) || planned(t, i))).map(i => ({ idea: i })), routes: [], key: `ideas-${t.id}-${ui.cat}` };
 
   // clicking a pin opens its row, and the row scrolls into view
   function onPin(id: string) {

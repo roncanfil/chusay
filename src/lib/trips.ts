@@ -24,6 +24,10 @@ export function tripCenter(t: Trip) {
 export const canMap = (t: Trip, google: boolean) => google ? !!tripCenter(t) || located(t).length > 0 : hasMap(t);
 export const ideaOf = (t: Trip, id?: string) => t.ideas.find(i => i.id === id);
 export const scheduledDay = (t: Trip, ideaId: string) => t.days.findIndex(d => d.stops.some(s => s.idea === ideaId));
+// left off the maps (by hand, or with its whole category) until it's planned on a day
+export const offMap = (t: Trip, i: Idea) => !!i.offMap || !!t.mapOffCats?.includes(i.cat);
+// on a day, or a stay we're sleeping at: shown on the maps whatever was hidden
+export const planned = (t: Trip, i: Idea) => scheduledDay(t, i.id) >= 0 || !!i.stayDays?.length;
 // the stays we're sleeping at on day k
 export const staysOn = (t: Trip, k: number) => t.ideas.filter(i => i.cat === 'stay' && i.stayDays?.some(d => d === '*' || d === t.days[k]?.id));
 // "All days", "Day 2" or "Days 1, 2, 4", for a stay's tag
