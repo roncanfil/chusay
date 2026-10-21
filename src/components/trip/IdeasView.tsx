@@ -267,7 +267,9 @@ function moveIdeas(t: Trip, ids: string[], to: string | 'muhu' | null) {
     for (const i of moving) {
       // a new id: an idea belongs to one trip, and the old one is deleted with this trip's next save
       const copy: Idea = { ...i, id: uid() }; delete copy.stayDays; delete copy.offMap; // its days and map choice belonged to this trip
-      if (to === 'muhu') s.muhu.push({ id: uid(), cid: t.dest.cid, country: t.dest.country, name: i.name, cats: [TRIP_TO_MUHU[i.cat] ?? 'other'], want: '', area: i.hood, when: '', far: '', note: i.note,
+      const waiting = i.muhuId && s.muhu.find(m => m.id === i.muhuId); // came from Muhu: the original comes back, no copy
+      if (to === 'muhu' && waiting) { delete waiting.onTrip; Object.assign(waiting, { note: i.note, area: i.hood, lat: i.lat, lng: i.lng }); }
+      else if (to === 'muhu') s.muhu.push({ id: uid(), cid: t.dest.cid, country: t.dest.country, name: i.name, cats: [TRIP_TO_MUHU[i.cat] ?? 'other'], want: '', area: i.hood, when: '', far: '', note: i.note,
         ...(i.source ? { source: i.source } : {}), ...(i.placeId ? { placeId: i.placeId, match: 'set' as const } : {}), lat: i.lat, lng: i.lng, ...(i.image ? { image: i.image } : {}) });
       else if (to) s.trips.find(x => x.id === to)!.ideas.push(copy);
     }

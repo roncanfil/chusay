@@ -60,6 +60,7 @@ export const MUHU_CATS: Record<MuhuCat, { label: string; color: string; icon: st
   culture: { label: 'Culture', color: 'var(--c-stay)', icon: 'M3 21h18M4 10h16M12 3l9 5H3zM6 10v8M10 10v8M14 10v8M18 10v8M4 18h16' },
   kids: { label: 'For the kids', color: '#2F86D6', icon: 'M12 3a5 5 0 0 0-5 5c0 3.5 3 6 5 6s5-2.5 5-6a5 5 0 0 0-5-5zM12 14l-1 2h2zM12 16c0 2-2 3-1 5' },
   shop: { label: 'Shopping', color: 'var(--c-shop)', icon: ICON.shop },
+  visited: { label: 'Been there', color: 'var(--s-visited)', icon: 'M5 21V4M5 4h11l-2 4 2 4H5M14 17l2 2 4-4' }, // back from a trip where we went
   other: { label: 'Other', color: 'var(--ink-3)', icon: 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z' },
 };
 export const MUHU_KEYS = Object.keys(MUHU_CATS) as MuhuCat[];
@@ -68,7 +69,7 @@ export const WANT: Record<Exclude<Want, ''>, string> = { high: 'Must do', med: '
 // a seed copied onto a trip lands in the closest trip category
 // and the other way, for an idea moved off a trip into Muhu
 export const TRIP_TO_MUHU: Record<string, MuhuCat> = { sight: 'built', food: 'food', act: 'fun', tour: 'fun', stay: 'other', shop: 'shop', car: 'other' };
-export const MUHU_TO_TRIP: Record<MuhuCat, Cat> = { outdoors: 'sight', food: 'food', built: 'sight', events: 'act', fun: 'act', culture: 'sight', kids: 'act', shop: 'shop', other: 'sight' };
+export const MUHU_TO_TRIP: Record<MuhuCat, Cat> = { outdoors: 'sight', food: 'food', built: 'sight', events: 'act', fun: 'act', culture: 'sight', kids: 'act', shop: 'shop', visited: 'sight', other: 'sight' };
 
 /* ---------- categories the household added: merged into the same lookups, so every list, chip, filter and map pin knows them ---------- */
 export const NEW_CAT_COLORS = ['#12A39F', '#D9488B', '#2F86D6', '#E07B2E', '#7A9E25', '#6A55D6', '#A8743F', '#C94F4F', '#3E7C8C', '#B58B00'];

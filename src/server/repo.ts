@@ -31,7 +31,7 @@ export function loadState(db: Database): AppState {
           tags: json<string[]>(i.tags, []), note: String(i.note), ...(i.source ? { source: String(i.source) } : {}),
           ...(i.price ? { price: String(i.price) } : {}), ...(i.image ? { image: String(i.image) } : {}),
           ...(i.stay_days && i.stay_days !== '[]' ? { stayDays: json<string[]>(i.stay_days, []) } : {}), ...(i.map_hidden ? { offMap: true } : {}),
-          ...(i.extra_cats && i.extra_cats !== '[]' ? { extraCats: json<Cat[]>(i.extra_cats, []) } : {}),
+          ...(i.extra_cats && i.extra_cats !== '[]' ? { extraCats: json<Cat[]>(i.extra_cats, []) } : {}), ...(i.muhu_id ? { muhuId: String(i.muhu_id) } : {}),
         })),
         days: days.filter(d => d.trip_id === r.id).map(d => ({
           id: String(d.id), title: String(d.title),
@@ -50,6 +50,7 @@ export function loadState(db: Database): AppState {
       want: r.want as Want, area: String(r.area), when: String(r.season), far: String(r.getting_there), note: String(r.note), ...(r.source ? { source: String(r.source) } : {}),
       ...(r.google_place_id ? { placeId: String(r.google_place_id) } : {}), lat: r.lat as number | null, lng: r.lng as number | null,
       ...(r.google_match ? { match: r.google_match as MuhuIdea['match'] } : {}), ...(r.image ? { image: String(r.image) } : {}),
+      ...(r.on_trip ? { onTrip: String(r.on_trip) } : {}),
     })),
     searches: all('SELECT * FROM muhu_searches ORDER BY created_at, rowid').map(r => ({ id: String(r.id), name: String(r.name), q: String(r.query), cats: String(r.category).split(',').filter(Boolean), want: r.want as SavedSearch['want'] })),
     categories: all('SELECT * FROM categories ORDER BY created_at, rowid').map(r => ({ id: String(r.id), scope: r.scope as CustomCat['scope'], label: String(r.label), color: String(r.color), icon: String(r.icon) })),
@@ -79,12 +80,12 @@ export function saveTrip(db: Database, t: Trip) {
     db.prepare('DELETE FROM days WHERE trip_id = ?').run(t.id);
     db.prepare('DELETE FROM stop_votes WHERE trip_id = ?').run(t.id);
     db.prepare('DELETE FROM ideas WHERE trip_id = ? AND id NOT IN (SELECT value FROM json_each(?))').run(t.id, JSON.stringify(t.ideas.map(i => i.id)));
-    const idea = db.prepare(`INSERT INTO ideas (id, trip_id, google_place_id, name, category, kind, area, lat, lng, tags, note, source, price, image, stay_days, map_hidden, extra_cats, position)
-      VALUES (@id, @trip, @place, @name, @cat, @kind, @area, @lat, @lng, @tags, @note, @source, @price, @image, @stayDays, @hidden, @extra, @pos)
+    const idea = db.prepare(`INSERT INTO ideas (id, trip_id, google_place_id, name, category, kind, area, lat, lng, tags, note, source, price, image, stay_days, map_hidden, extra_cats, muhu_id, position)
+      VALUES (@id, @trip, @place, @name, @cat, @kind, @area, @lat, @lng, @tags, @note, @source, @price, @image, @stayDays, @hidden, @extra, @muhuId, @pos)
       ON CONFLICT(id) DO UPDATE SET google_place_id = excluded.google_place_id, name = excluded.name, category = excluded.category, kind = excluded.kind, area = excluded.area,
         lat = excluded.lat, lng = excluded.lng, tags = excluded.tags, note = excluded.note, source = excluded.source,
-        price = excluded.price, image = excluded.image, stay_days = excluded.stay_days, map_hidden = excluded.map_hidden, extra_cats = excluded.extra_cats, position = excluded.position`);
-    t.ideas.forEach((i, pos) => idea.run({ id: i.id, trip: t.id, place: i.placeId ?? null, name: i.name, cat: i.cat, kind: i.kind ?? null, area: i.hood, lat: i.lat, lng: i.lng, tags: JSON.stringify(i.tags), note: i.note, source: i.source ?? '', price: i.price ?? '', image: i.image ?? '', stayDays: JSON.stringify(i.stayDays ?? []), hidden: i.offMap ? 1 : 0, extra: JSON.stringify(i.extraCats ?? []), pos }));
+        price = excluded.price, image = excluded.image, stay_days = excluded.stay_days, map_hidden = excluded.map_hidden, extra_cats = excluded.extra_cats, muhu_id = excluded.muhu_id, position = excluded.position`);
+    t.ideas.forEach((i, pos) => idea.run({ id: i.id, trip: t.id, place: i.placeId ?? null, name: i.name, cat: i.cat, kind: i.kind ?? null, area: i.hood, lat: i.lat, lng: i.lng, tags: JSON.stringify(i.tags), note: i.note, source: i.source ?? '', price: i.price ?? '', image: i.image ?? '', stayDays: JSON.stringify(i.stayDays ?? []), hidden: i.offMap ? 1 : 0, extra: JSON.stringify(i.extraCats ?? []), muhuId: i.muhuId ?? null, pos }));
     const day = db.prepare('INSERT INTO days (id, trip_id, position, title) VALUES (?, ?, ?, ?)');
     const stop = db.prepare(`INSERT INTO stops (id, day_id, idea_id, position, time, own_title, own_where, own_note, own_link)
       VALUES (@id, @day, @idea, @pos, @time, @title, @where, @note, @link)`);
@@ -112,13 +113,13 @@ export function setCountryStatus(db: Database, cid: string, statuses: Status[]) 
 
 // only the seeds that changed are sent; created_at stays from the first save
 export function saveMuhu(db: Database, list: MuhuIdea[]) {
-  const put = db.prepare(`INSERT INTO muhu (id, country_code, country_name, name, categories, want, area, season, getting_there, note, source, google_place_id, lat, lng, google_match, image)
-    VALUES (@id, @cid, @country, @name, @cats, @want, @area, @when, @far, @note, @source, @placeId, @lat, @lng, @match, @image)
+  const put = db.prepare(`INSERT INTO muhu (id, country_code, country_name, name, categories, want, area, season, getting_there, note, source, google_place_id, lat, lng, google_match, image, on_trip)
+    VALUES (@id, @cid, @country, @name, @cats, @want, @area, @when, @far, @note, @source, @placeId, @lat, @lng, @match, @image, @onTrip)
     ON CONFLICT(id) DO UPDATE SET country_code = excluded.country_code, country_name = excluded.country_name, name = excluded.name, categories = excluded.categories,
       want = excluded.want, area = excluded.area, season = excluded.season, getting_there = excluded.getting_there, note = excluded.note, source = excluded.source,
-      google_place_id = excluded.google_place_id, lat = excluded.lat, lng = excluded.lng, google_match = excluded.google_match, image = excluded.image`);
+      google_place_id = excluded.google_place_id, lat = excluded.lat, lng = excluded.lng, google_match = excluded.google_match, image = excluded.image, on_trip = excluded.on_trip`);
   db.transaction(() => {
-    list.forEach(m => put.run({ ...m, cats: JSON.stringify(m.cats), source: m.source ?? '', placeId: m.placeId ?? null, lat: m.lat ?? null, lng: m.lng ?? null, match: m.match ?? '', image: m.image ?? '' }));
+    list.forEach(m => put.run({ ...m, cats: JSON.stringify(m.cats), source: m.source ?? '', placeId: m.placeId ?? null, lat: m.lat ?? null, lng: m.lng ?? null, match: m.match ?? '', image: m.image ?? '', onTrip: m.onTrip ?? null }));
   })();
 }
 export function removeMuhu(db: Database, id: string) { db.prepare('DELETE FROM muhu WHERE id = ?').run(id); }

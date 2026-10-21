@@ -43,6 +43,7 @@ export interface Idea extends PlaceLike {
   stayDays?: string[]; // stays: the days we're staying there, by day id, or ['*'] for every day of the trip
   offMap?: boolean; // left off the maps until it's on a day (a stay we didn't pick)
   extraCats?: Cat[]; // more categories it's listed under; `cat` stays the main one (its color and map pin)
+  muhuId?: string; // came from this Muhu idea, which waits for it to come back after the trip
 }
 
 // What a booking-site link could tell about a stay; anything missing is filled in by hand.
@@ -149,7 +150,7 @@ export interface Prefs {
 }
 
 // Muhu ("seed" in Quechua): something we want to see in a country, saved without a trip or dates
-export type MuhuCat = 'outdoors' | 'food' | 'built' | 'events' | 'fun' | 'culture' | 'kids' | 'shop' | 'other' | (string & {});
+export type MuhuCat = 'outdoors' | 'food' | 'built' | 'events' | 'fun' | 'culture' | 'kids' | 'shop' | 'visited' | 'other' | (string & {});
 export type Want = 'high' | 'med' | 'low' | '';
 export interface MuhuIdea {
   id: string;
@@ -168,6 +169,7 @@ export interface MuhuIdea {
   lng?: number | null;
   match?: 'auto' | 'set' | 'none'; // guessed by the app, picked by us, or not on Google: guessed only once
   image?: string; // our own picture: a link, or one uploaded to the server (/api/muhu/photos/…)
+  onTrip?: string; // moved onto this trip: out of the Muhu lists until the trip is over (or it's taken off)
 }
 
 // a Muhu search with its filters, kept under a name for both of you

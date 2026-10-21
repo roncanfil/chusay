@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { clearViews } from '@/lib/map/panzoom';
-import { resetData, toast, useConfig, useToast } from '@/lib/store';
+import { needsSettling, settleMoved } from '@/lib/muhu';
+import { resetData, toast, update, useAppState, useConfig, useToast } from '@/lib/store';
 
 function Logo() {
   return (
@@ -85,5 +86,12 @@ export function InstantThemeSwitch() {
     mql.addEventListener('change', onChange);
     return () => mql.removeEventListener('change', onChange);
   }, []);
+  return null;
+}
+
+// Muhu ideas moved onto a trip come back once it's over (or when they're taken off it), whichever page is open
+export function MuhuReturns() {
+  const S = useAppState();
+  useEffect(() => { if (S && needsSettling(S)) update(settleMoved); }, [S]);
   return null;
 }

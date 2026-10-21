@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
-import { InstantThemeSwitch, PocNote, Toaster, TopBar } from '@/components/TopBar';
+import { InstantThemeSwitch, MuhuReturns, PocNote, Toaster, TopBar } from '@/components/TopBar';
 import './globals.css';
 
 const jakarta = Plus_Jakarta_Sans({ variable: '--font-jakarta', subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
@@ -21,6 +21,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         <main id="main">{children}</main>
         <Toaster />
         <InstantThemeSwitch />
+        <MuhuReturns />
       </body>
     </html>
   );

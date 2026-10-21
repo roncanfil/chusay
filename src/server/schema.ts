@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS ideas (
   stay_days       TEXT NOT NULL DEFAULT '[]', -- stays: JSON day ids we're staying there, or ["*"] for every day
   map_hidden      INTEGER NOT NULL DEFAULT 0, -- left off the maps until it's on a day
   extra_cats      TEXT NOT NULL DEFAULT '[]', -- JSON: more categories it's listed under
+  muhu_id         TEXT,                     -- the Muhu idea it was moved from
   position        INTEGER NOT NULL DEFAULT 0, -- keeps the list in the order ideas were saved
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -119,6 +120,7 @@ CREATE TABLE IF NOT EXISTS muhu (
   lng          REAL,
   google_match TEXT NOT NULL DEFAULT '' CHECK (google_match IN ('auto', 'set', 'none', '')),
   image        TEXT NOT NULL DEFAULT '',   -- our own picture: a link, or a file in the photos folder
+  on_trip      TEXT,                       -- moved onto this trip; back in Muhu once the trip is over
   created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

@@ -1,8 +1,9 @@
 import { MUHU_CATS, WANT } from './constants';
+import { fmtMonth, isPast, planned } from './trips';
 import { findAnywhere } from './search';
 import { editMuhu } from './store';
 import { uid } from './seed';
-import type { MuhuCat, MuhuIdea, Want } from './types';
+import type { AppState, MuhuCat, MuhuIdea, Want } from './types';
 
 // lowercase without accents, so "Áustria" finds Austria and "Piódão" matches "Piodão"
 export const plain = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -192,3 +193,24 @@ export async function uploadPhoto(file: File): Promise<string> {
   if (!r.ok) throw new Error(((await r.json().catch(() => null)) as { error?: string } | null)?.error || 'Upload failed');
   return ((await r.json()) as { url: string }).url;
 }
+
+/* ---------- moved onto a trip: back in Muhu once the trip is over, under Been there if we went ---------- */
+// what changed on the trip (notes, pin, link) comes back too. The same outcome on either screen, so both can run it.
+export function settleMoved(s: AppState) {
+  for (const m of s.muhu) {
+    if (!m.onTrip) continue;
+    const t = s.trips.find(x => x.id === m.onTrip), i = t?.ideas.find(x => x.muhuId === m.id);
+    if (!t || !i) { delete m.onTrip; continue; } // taken off the trip before going: back as it was
+    if (!isPast(t)) continue;
+    Object.assign(m, { note: i.note, area: i.hood, lat: i.lat, lng: i.lng, ...(i.source ? { source: i.source } : {}), ...(i.placeId ? { placeId: i.placeId } : {}) });
+    if (planned(t, i)) {
+      m.cats = ['visited', ...m.cats.filter(c => c !== 'visited')];
+      m.note = [`Been there on ${t.name} (${fmtMonth(t.start!.slice(0, 7))}).`, m.note].filter(Boolean).join('\n');
+    }
+    delete m.onTrip;
+  }
+}
+export const needsSettling = (s: AppState) => s.muhu.some(m => m.onTrip && (() => {
+  const t = s.trips.find(x => x.id === m.onTrip);
+  return !t || isPast(t) || !t.ideas.some(x => x.muhuId === m.id);
+})());

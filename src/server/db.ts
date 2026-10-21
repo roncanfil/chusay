@@ -112,6 +112,9 @@ const MIGRATIONS: string[] = [
   // 10: a trip idea can be under several categories, and the Ideas sections keep our order
   `ALTER TABLE ideas ADD COLUMN extra_cats TEXT NOT NULL DEFAULT '[]';
   ALTER TABLE trips ADD COLUMN cat_order TEXT NOT NULL DEFAULT '[]';`,
+  // 11: a Muhu idea moves onto a trip (not copied) and comes back after it
+  `ALTER TABLE muhu ADD COLUMN on_trip TEXT;
+  ALTER TABLE ideas ADD COLUMN muhu_id TEXT;`,
 ];
 
 // foreign keys are off while migrating, so rebuilding a table (copy, drop, rename) doesn't cascade-delete

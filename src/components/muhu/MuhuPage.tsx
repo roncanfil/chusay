@@ -12,7 +12,7 @@ import { byWant, catsOf, fromNotion, guessPlaces, mainCat, mapsUrl, matches, pla
 import { usePhoto } from '@/lib/photos';
 import { findAnywhere } from '@/lib/search';
 import { uid } from '@/lib/seed';
-import { editMuhu, editTrip, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
+import { editMuhu, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
 import { isPast } from '@/lib/trips';
 import type { AppState, MuhuCat, MuhuIdea, PlaceResult, SavedSearch, Trip, Want } from '@/lib/types';
 
@@ -201,9 +201,13 @@ function MuhuDetails({ S, m, onCompare }: { S: AppState; m: MuhuIdea; onCompare?
   const google = !!useConfig()?.places;
   const ed = (fn: (x: MuhuIdea) => void) => editMuhu(m.id, fn);
   const trips = S.trips.filter(t => t.dest.cid === m.cid && !isPast(t));
+  // moved, not copied: it leaves the Muhu lists while it's on the trip, and comes back once the trip is over
   function toTrip(id: string) {
-    editTrip(id, t => { t.ideas.push({ id: uid(), ...(m.placeId ? { placeId: m.placeId } : {}), name: m.name, cat: MUHU_TO_TRIP[mainCat(m)], hood: m.area, lat: m.lat ?? null, lng: m.lng ?? null, tags: [], note: m.note, ...(m.source ? { source: m.source } : {}) }); });
-    toast(`Added to ${S.trips.find(t => t.id === id)!.name}, under ${CATS[MUHU_TO_TRIP[mainCat(m)]].label}.`);
+    update(s => {
+      s.trips.find(t => t.id === id)!.ideas.push({ id: uid(), muhuId: m.id, ...(m.placeId ? { placeId: m.placeId } : {}), name: m.name, cat: MUHU_TO_TRIP[mainCat(m)], hood: m.area, lat: m.lat ?? null, lng: m.lng ?? null, tags: [], note: m.note, ...(m.source ? { source: m.source } : {}), ...(m.image ? { image: m.image } : {}) });
+      s.muhu.find(x => x.id === m.id)!.onTrip = id;
+    });
+    toast(`Moved to ${S.trips.find(t => t.id === id)!.name}, under ${CATS[MUHU_TO_TRIP[mainCat(m)]].label}. It comes back to Muhu after the trip.`);
   }
   return <>
     <TextField label="Name" value={m.name} set={v => ed(x => { x.name = v; })} ph="What it is" />
@@ -231,9 +235,9 @@ function MuhuDetails({ S, m, onCompare }: { S: AppState; m: MuhuIdea; onCompare?
         {SORTED.map(([id, n]) => <option key={id} value={id}>{n}</option>)}
       </select>
     </label>
-    {!!trips.length && <div className="inline-field">Add to a trip <span className="chips">{trips.map(t => {
+    {!!trips.length && <div className="inline-field">Move to a trip <span className="chips">{trips.map(t => {
       const has = t.ideas.some(i => plain(i.name) === plain(m.name));
-      return <button key={t.id} type="button" className="chip" aria-pressed={has} disabled={has} onClick={() => toTrip(t.id)}>{has ? `In ${t.name}` : t.name}</button>;
+      return <button key={t.id} type="button" className="chip" aria-pressed={has} disabled={has} onClick={() => toTrip(t.id)}>{has ? `Already in ${t.name}` : t.name}</button>;
     })}</span></div>}
     <div className="acts">
       {onCompare && <button type="button" className="btn-sm" onClick={() => onCompare(m.id)}>Compare with…</button>}
@@ -386,13 +390,15 @@ export function MuhuPage() {
   const [q, setQ] = useState(''), [fCats, setFCats] = useState<MuhuCat[]>([]), [catsOpen, setCatsOpen] = useState(false), [fWant, setFWant] = useState<Want | 'any'>('any');
   // ideas not yet looked up on Google get the app's best guess, once
   const google = !!cfg?.places, list = S?.muhu;
+  // ideas away on a trip are out of every list until they come back
+  const here = S?.muhu.filter(m => !m.onTrip) ?? [];
   useEffect(() => { if (google && list) guessPlaces(list); }, [google, list]);
   if (!S) return null;
 
   const photos = S.prefs.photos !== false;
-  const countries = [...new Set(S.muhu.map(m => m.cid))].map(c => ({ cid: c, name: COUNTRY[c] || S.muhu.find(m => m.cid === c)!.country, list: S.muhu.filter(m => m.cid === c) }))
+  const countries = [...new Set(here.map(m => m.cid))].map(c => ({ cid: c, name: COUNTRY[c] || here.find(m => m.cid === c)!.country, list: here.filter(m => m.cid === c) }))
     .sort((a, b) => b.list.length - a.list.length || a.name.localeCompare(b.name));
-  const inCat = (k: MuhuCat) => S.muhu.filter(m => catsOf(m).includes(k));
+  const inCat = (k: MuhuCat) => here.filter(m => catsOf(m).includes(k));
   const cats = MUHU_KEYS.filter(k => inCat(k).length);
   const country = countries.find(c => c.cid === cid) || countries[0];
   // one or more categories: the tiles when browsing by category, the filter otherwise; none picked = all of them
@@ -403,8 +409,8 @@ export function MuhuPage() {
   const searching = !!q.trim();
   const keep = (m: MuhuIdea) => matches(m, q) && inPicked(m) && (fWant === 'any' || m.want === fWant);
   const filtered = !!(searching || picked.length || fWant !== 'any');
-  const found = searching ? S.muhu.filter(keep) : [];
-  const shown = searching ? found : (by === 'country' ? country?.list ?? [] : S.muhu).filter(keep);
+  const found = searching ? here.filter(keep) : [];
+  const shown = searching ? found : (by === 'country' ? country?.list ?? [] : here).filter(keep);
   const pick = open && S.muhu.find(m => m.id === open.id) || null;
   // on wide screens the picked idea opens on the right; "Photo & map" keeps that column (with the map) even with nothing picked
   const compare = compareId && S.muhu.find(m => m.id === compareId) || null;
@@ -434,7 +440,7 @@ export function MuhuPage() {
         ? <AddForm cid={country?.cid || PORTUGAL} onDone={done} />
         : <ImportForm S={S} cid={country?.cid || PORTUGAL} onDone={done} />}</div>}
 
-      {!S.muhu.length ? (
+      {!here.length ? (
         <div className="group empty" style={{ marginTop: 28 }}>
           <b style={{ color: 'var(--ink)' }}>Nothing saved yet</b>
           <span>Add the places, food and festivals you hear about, or bring in a list from Notion.</span>
