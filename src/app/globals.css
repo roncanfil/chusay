@@ -680,15 +680,16 @@ a.src:hover { text-decoration: underline; }
 /* Muhu ideas as tiles: the photo itself (ours, Google's, or the category's icon on its color), then the name; no box around */
 .muhu-tools { margin-top: 18px; }
 .mideas { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 22px 18px; padding-top: 4px; }
-.mi-tile { position: relative; display: grid; gap: 2px; align-content: start; min-width: 0; cursor: pointer; border-radius: 16px; }
+.mi-tile { position: relative; display: grid; gap: 2px; align-content: start; min-width: 0; cursor: pointer; padding: 8px 8px 12px; border-radius: 18px; background: color-mix(in srgb, var(--cc) 9%, var(--surface)); border: 1px solid color-mix(in srgb, var(--cc) 20%, var(--line)); transition: background-color 150ms ease, border-color 150ms ease; }
+.mi-tile:hover { background: color-mix(in srgb, var(--cc) 14%, var(--surface)); }
+.mi-tile b, .mi-tile small { padding-inline: 4px; }
 .mi-tile .mph { margin-bottom: 8px; border-radius: 14px; transition: box-shadow 150ms var(--ease-out); }
 .mi-tile .mph img { transition: scale 300ms var(--ease-out); }
 @media (hover: hover) and (pointer: fine) { .mi-tile:hover .mph img { scale: 1.04; } .mi-tile:hover .mph { box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--cc) 90%, transparent); } }
-.mi-tile.sel .mph { box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--cc); }
+.mi-tile.sel { background: color-mix(in srgb, var(--cc) 18%, var(--surface)); border-color: var(--cc); box-shadow: inset 0 0 0 1px var(--cc); }
 .mi-tile b { font-size: 15.5px; font-weight: 650; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.mi-tile b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--cc); margin-right: 7px; vertical-align: 1px; }
 .mi-tile small { font-size: 13.5px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mi-tile .must { position: absolute; top: 10px; left: 10px; margin: 0; background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--accent-ink); box-shadow: 0 1px 4px rgba(0, 0, 0, .18); backdrop-filter: blur(4px); }
+.mi-tile .must { position: absolute; top: 18px; left: 18px; margin: 0; background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--accent-ink); box-shadow: 0 1px 4px rgba(0, 0, 0, .18); backdrop-filter: blur(4px); }
 .mph { display: block; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; background: color-mix(in srgb, var(--cc) 14%, var(--surface)); }
 .mph img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .mph.blank { display: grid; place-items: center; color: color-mix(in srgb, var(--cc) 75%, var(--ink)); background: linear-gradient(150deg, color-mix(in srgb, var(--cc) 20%, var(--surface)), color-mix(in srgb, var(--cc) 6%, var(--surface))); }
