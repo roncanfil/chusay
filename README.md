@@ -5,8 +5,8 @@ A trip planner for one household: plan the next trip, collect ideas for places y
 - **Trips**: tiles for trips coming up, Someday lists and trips you’ve been on.
 - **Itinerary**: each day is a colored line of stops you drag between days, with your own notes and optional times.
 - **Ideas**: places saved with Google search or typed in by hand, grouped by category, with a map.
-- **Muhu**: ideas of things to see in a country, kept without a trip or dates, as photo tiles or a list. Pick a country or a category; on wide screens the picked idea's photo, map pin and details sit on the right. Each idea is matched to Google once (fixable) for its photo and pin, or gets our own picture, uploaded or linked. A Notion export (.zip or CSV) can be imported, and any idea can be copied onto a trip in that country.
-- **World map**: countries colored by visited, planning and wish list.
+- **Muhu**: ideas of things to see in a country, kept without a trip or dates, as photo tiles or a list. Pick a country or a category, search every idea and filter by category or wish (searches can be saved for both of you); on wide screens the picked idea's photo, map pin and details sit on the right. Each idea is matched to Google once (fixable) for its photo and pin, or gets our own picture, uploaded or linked. A Notion export (.zip or CSV) can be imported, and any idea can be copied onto a trip in that country.
+- **World map**: countries colored by visited, planning and wish list; picking one zooms in on it.
 - Color coding everywhere and everything opens in place, no pop-ups.
 
 ## Run it locally

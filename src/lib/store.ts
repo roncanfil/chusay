@@ -103,6 +103,10 @@ function sync(prev: AppState, next: AppState) {
       return cur.length ? call('PUT', '/api/muhu', cur, k) : Promise.resolve();
     });
   }
+  if (prev.searches !== next.searches) {
+    for (const x of next.searches) if (!prev.searches.some(p => p.id === x.id)) run(() => call('POST', '/api/muhu/searches', x));
+    for (const x of prev.searches) if (!next.searches.some(n => n.id === x.id)) run(() => call('DELETE', `/api/muhu/searches/${x.id}`));
+  }
   if (prev.prefs !== next.prefs) later('prefs', k => call('PUT', '/api/preferences', getState()!.prefs, k));
   for (const place of next.dismissed) if (!prev.dismissed.includes(place)) run(() => call('POST', '/api/dismissed', { place }));
 }

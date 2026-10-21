@@ -163,9 +163,19 @@ export interface MuhuIdea {
   image?: string; // our own picture: a link, or one uploaded to the server (/api/muhu/photos/…)
 }
 
+// a Muhu search with its filters, kept under a name for both of you
+export interface SavedSearch {
+  id: string;
+  name: string;
+  q: string;
+  cat: MuhuCat | '';
+  want: Want | 'any';
+}
+
 export interface AppState {
   trips: Trip[];
   muhu: MuhuIdea[];
+  searches: SavedSearch[];
   world: Record<string, Status[]>;
   visits: Visit[];
   prefs: Prefs;

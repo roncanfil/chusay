@@ -116,6 +116,16 @@ CREATE TABLE IF NOT EXISTS muhu (
   created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Muhu searches kept under a name, with their filters
+CREATE TABLE IF NOT EXISTS muhu_searches (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  query      TEXT NOT NULL DEFAULT '',
+  category   TEXT NOT NULL DEFAULT '',    -- '' = all categories
+  want       TEXT NOT NULL DEFAULT 'any', -- 'any', or high / med / low / '' (not set)
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- manual overrides only; otherwise the status is derived from trips. A country can hold several.
 CREATE TABLE IF NOT EXISTS country_status (
   country_code TEXT NOT NULL,

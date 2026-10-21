@@ -13,7 +13,7 @@ import { findAnywhere } from '@/lib/search';
 import { uid } from '@/lib/seed';
 import { editMuhu, editTrip, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
 import { isPast } from '@/lib/trips';
-import type { AppState, MuhuCat, MuhuIdea, PlaceResult, Trip, Want } from '@/lib/types';
+import type { AppState, MuhuCat, MuhuIdea, PlaceResult, SavedSearch, Trip, Want } from '@/lib/types';
 
 const WORLD = worldData as { c: { id: string; n: string }[] };
 const SORTED = WORLD.c.map(c => [c.id, c.n] as const).sort((a, b) => a[1].localeCompare(b[1]));
@@ -307,6 +307,38 @@ function SidePanel({ S, list, pick, onPin, viewKey }: { S: AppState; list: MuhuI
   );
 }
 
+// saved searches as buttons under the search box; the one in use is pressed, and the search in use can be saved under a name
+function SavedSearches({ S, now, apply }: { S: AppState; now: Omit<SavedSearch, 'id' | 'name'>; apply: (x: SavedSearch) => void }) {
+  const [naming, setNaming] = useState<string | null>(null);
+  const same = (x: SavedSearch) => x.q.trim() === now.q.trim() && x.cat === now.cat && x.want === now.want;
+  const active = !!(now.q.trim() || now.cat || now.want !== 'any'), saved = S.searches.some(same);
+  const suggest = [now.q.trim(), now.cat && MUHU_CATS[now.cat].label, now.want !== 'any' && (now.want ? WANT[now.want] : 'Wish not set')].filter(Boolean).join(' · ');
+  function save(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const name = String(new FormData(e.currentTarget).get('name')).trim() || suggest;
+    update(s => { s.searches.push({ id: uid(), name, ...now, q: now.q.trim() }); });
+    setNaming(null); toast(`Saved “${name}”. It’s under the search box for both of you.`);
+  }
+  if (!S.searches.length && !active) return null;
+  return (
+    <div className="saved-searches">
+      {S.searches.map(x => (
+        <span key={x.id} className="chip saved" aria-pressed={same(x)}>
+          <button type="button" onClick={() => apply(x)}>{x.name}</button>
+          <button type="button" className="x" aria-label={`Forget ${x.name}`} onClick={() => { update(s => { s.searches = s.searches.filter(y => y.id !== x.id); }); toast(`Forgot “${x.name}”.`); }}>×</button>
+        </span>
+      ))}
+      {active && !saved && (naming === null
+        ? <button type="button" className="linkish small" onClick={() => setNaming(suggest)}>+ Save this search</button>
+        : <form className="save-search" onSubmit={save}>
+          <input className="input" name="name" defaultValue={naming} autoFocus aria-label="Name for this search" />
+          <button type="submit" className="btn-sm">Save</button>
+          <button type="button" className="linkish small" onClick={() => setNaming(null)}>Cancel</button>
+        </form>)}
+    </div>
+  );
+}
+
 // Muhu: seeds for future trips, by country or by category
 export function MuhuPage() {
   const S = useAppState(), cfg = useConfig(), view = useView(), wide = useWide();
@@ -346,7 +378,7 @@ export function MuhuPage() {
   };
 
   return (
-    <div className={`wrap ${side ? 'wide' : ''}`}>
+    <div className="wrap full">
       <div className="page-head">
         <div><h1>Muhu</h1><p className="muted">Seeds for future trips: what we’d love to see, country by country. No trip or dates needed.</p></div>
         <button type="button" className="btn" aria-expanded={panel === 'import'} onClick={() => setPanel(p => p === 'import' ? null : 'import')}>Import from Notion</button>
@@ -363,6 +395,7 @@ export function MuhuPage() {
         </div>
       ) : <>
         <input type="search" className="input muhu-search" value={q} onChange={e => { setQ(e.target.value); setOpen(null); }} placeholder="Search every idea: names, places, notes, months…" aria-label="Search ideas" />
+        <SavedSearches S={S} now={{ q, cat: fCat, want: fWant }} apply={x => { setQ(x.q); setFCat(x.cat); setFWant(x.want); if (x.cat) setBy('country'); setOpen(null); }} />
         {!searching && <>
           <div className="seg muhu-by" role="group" aria-label="Show">
             <button type="button" aria-pressed={by === 'country'} onClick={() => setBy('country')}>By country</button>

@@ -1,5 +1,5 @@
 import 'server-only';
-import type { MuhuIdea, Prefs, Status, Trip, Visit } from '@/lib/types';
+import type { MuhuIdea, Prefs, SavedSearch, Status, Trip, Visit } from '@/lib/types';
 
 // Light shape checks for what the browser sends; SQLite's constraints catch the rest.
 export class BadRequest extends Error {}
@@ -51,6 +51,12 @@ export function parseMuhu(v: unknown): MuhuIdea[] {
     if (m.image !== undefined && !/^(https?:\/\/|\/api\/muhu\/photos\/)/.test(str(m.image, 'image'))) throw new BadRequest('image must be a link');
     return m as unknown as MuhuIdea;
   });
+}
+
+export function parseSearch(v: unknown): SavedSearch {
+  if (!isObj(v)) throw new BadRequest('bad search');
+  for (const k of ['id', 'name', 'q', 'cat', 'want']) str(v[k], k);
+  return v as unknown as SavedSearch;
 }
 
 export function parsePrefs(v: unknown): Prefs {

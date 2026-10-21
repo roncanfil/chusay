@@ -115,6 +115,7 @@ export function seed(): AppState {
     prefs: { interests: ['markets', 'streetfood', 'views', 'music', 'crafts'], pace: 'balanced', budget: 2, diet: [] },
     dismissed: [],
     muhu: [],
+    searches: [],
   });
 }
 
