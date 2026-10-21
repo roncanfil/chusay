@@ -40,6 +40,7 @@ export interface Idea extends PlaceLike {
   source?: string;
   price?: string; // stays: what the listing asked, as the household typed or the link showed it
   image?: string; // stays: the listing's own preview picture, by URL (never stored as a file)
+  stayDays?: string[]; // stays: the days we're staying there, by day id, or ['*'] for every day of the trip
 }
 
 // What a booking-site link could tell about a stay; anything missing is filled in by hand.

@@ -10,7 +10,7 @@ import { searchCatalog, suggestions } from '@/lib/picks';
 import { uid } from '@/lib/seed';
 import { fromCatalog, findPlaces } from '@/lib/search';
 import { editTrip, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
-import { isSomeday, isUrl, scheduledDay } from '@/lib/trips';
+import { isSomeday, isUrl, scheduledDay, stayLabel } from '@/lib/trips';
 import type { Cat, Idea, Pace, PlaceResult, Prefs, Trip } from '@/lib/types';
 import { IdeaCat, IdeaNote, IdeaSource, MapsLink } from './fields';
 import { StayFields, StayForm } from './stays';
@@ -205,6 +205,7 @@ function IdeaRow({ t, i, ui, set, offMap, catOff, toggleMap }: { t: Trip; i: Ide
       <Pic p={i} />
       <div className="main"><span className="title">{i.name}</span><span className="meta"><KindIcon p={i} />{[kindLabel(i), i.price, i.hood, i.note, (offMap || catOff) && i.lat != null && 'not on the map'].filter(Boolean).join(' · ')}</span><SrcChip v={i.source} /></div>
       {d >= 0 && <span className="tag-day" style={vars({ '--dc': dayColor(d) })}>Day {d + 1}</span>}
+      {i.cat === 'stay' && !isSomeday(t) && stayLabel(t, i) && <span className="tag-day stay-tag" style={vars({ '--dc': CATS.stay.color })}>{stayLabel(t, i)}</span>}
       <span className="caret" aria-hidden="true">›</span>
     </div>
     {open && (
@@ -215,6 +216,7 @@ function IdeaRow({ t, i, ui, set, offMap, catOff, toggleMap }: { t: Trip; i: Ide
         <IdeaCat t={t} i={i} />
         <MapsLink t={t} i={i} />
         <PhotoCredit p={i} />
+        {i.cat === 'stay' && !isSomeday(t) && <StayDays t={t} i={i} />}
         {!isSomeday(t) && <div className="inline-field">{d >= 0 ? 'Planned for' : 'Add to'} <span className="chips">{t.days.map((x, k) => <button key={x.id} type="button" className="chip dchip" style={vars({ '--dc': dayColor(k) })} aria-pressed={d === k} onClick={() => setDay(k)}>Day {k + 1}</button>)}</span></div>}
         <div className="acts">
           {i.lat != null && !catOff && <button type="button" className="btn-sm" aria-pressed={!offMap} onClick={toggleMap}>{offMap ? 'Show on the map' : 'Hide from the map'}</button>}
@@ -223,4 +225,22 @@ function IdeaRow({ t, i, ui, set, offMap, catOff, toggleMap }: { t: Trip; i: Ide
       </div>
     )}
   </>;
+}
+
+// a stay: the days we sleep there, every day or only some (changing hotels halfway); it shows at the top of those days
+function StayDays({ t, i }: { t: Trip; i: Idea }) {
+  const ds = i.stayDays ?? [], all = ds.includes('*'), on = (id: string) => all || ds.includes(id);
+  function toggle(id: string) {
+    editTrip(t.id, tt => {
+      const x = tt.ideas.find(y => y.id === i.id)!;
+      const cur = tt.days.map(d => d.id).filter(on), next = cur.includes(id) ? cur.filter(y => y !== id) : [...cur, id];
+      x.stayDays = next.length === tt.days.length ? ['*'] : next;
+    });
+  }
+  return (
+    <div className="inline-field">Staying here <span className="chips">
+      <button type="button" className="chip dchip" style={vars({ '--dc': CATS.stay.color })} aria-pressed={all} onClick={() => editTrip(t.id, tt => { tt.ideas.find(y => y.id === i.id)!.stayDays = all ? [] : ['*']; })}>All days</button>
+      {t.days.map((d, k) => <button key={d.id} type="button" className="chip dchip" style={vars({ '--dc': dayColor(k) })} aria-pressed={on(d.id)} onClick={() => toggle(d.id)}>Day {k + 1}</button>)}
+    </span></div>
+  );
 }

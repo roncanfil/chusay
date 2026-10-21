@@ -737,3 +737,7 @@ label.btn-sm[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .map-pick { margin-top: 14px; }
 .drag-hint { display: block; padding: 0 4px 2px; }
 .group[data-cat] .row.link { touch-action: pan-y; }
+/* where we sleep that day, at the top of each day of the itinerary */
+.stay-base { display: flex; align-items: center; gap: 4px; width: fit-content; max-width: 100%; margin: 2px 0 6px 64px; padding: 5px 12px 5px 10px; border: 1px solid color-mix(in srgb, var(--cc) 30%, var(--line)); border-radius: 999px; background: color-mix(in srgb, var(--cc) 8%, var(--surface)); font-size: 14px; color: var(--ink-2); text-align: left; }
+.stay-base b { font-weight: 600; color: var(--ink); }
+@media (max-width: 640px) { .stay-base { margin-left: 4px; } }

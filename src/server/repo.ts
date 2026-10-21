@@ -28,6 +28,7 @@ export function loadState(db: Database): AppState {
           hood: String(i.area), lat: i.lat as number | null, lng: i.lng as number | null,
           tags: json<string[]>(i.tags, []), note: String(i.note), ...(i.source ? { source: String(i.source) } : {}),
           ...(i.price ? { price: String(i.price) } : {}), ...(i.image ? { image: String(i.image) } : {}),
+          ...(i.stay_days && i.stay_days !== '[]' ? { stayDays: json<string[]>(i.stay_days, []) } : {}),
         })),
         days: days.filter(d => d.trip_id === r.id).map(d => ({
           id: String(d.id), title: String(d.title),
@@ -71,12 +72,12 @@ export function saveTrip(db: Database, t: Trip) {
     db.prepare('DELETE FROM days WHERE trip_id = ?').run(t.id);
     db.prepare('DELETE FROM stop_votes WHERE trip_id = ?').run(t.id);
     db.prepare('DELETE FROM ideas WHERE trip_id = ? AND id NOT IN (SELECT value FROM json_each(?))').run(t.id, JSON.stringify(t.ideas.map(i => i.id)));
-    const idea = db.prepare(`INSERT INTO ideas (id, trip_id, google_place_id, name, category, kind, area, lat, lng, tags, note, source, price, image, position)
-      VALUES (@id, @trip, @place, @name, @cat, @kind, @area, @lat, @lng, @tags, @note, @source, @price, @image, @pos)
+    const idea = db.prepare(`INSERT INTO ideas (id, trip_id, google_place_id, name, category, kind, area, lat, lng, tags, note, source, price, image, stay_days, position)
+      VALUES (@id, @trip, @place, @name, @cat, @kind, @area, @lat, @lng, @tags, @note, @source, @price, @image, @stayDays, @pos)
       ON CONFLICT(id) DO UPDATE SET google_place_id = excluded.google_place_id, name = excluded.name, category = excluded.category, kind = excluded.kind, area = excluded.area,
         lat = excluded.lat, lng = excluded.lng, tags = excluded.tags, note = excluded.note, source = excluded.source,
-        price = excluded.price, image = excluded.image, position = excluded.position`);
-    t.ideas.forEach((i, pos) => idea.run({ id: i.id, trip: t.id, place: i.placeId ?? null, name: i.name, cat: i.cat, kind: i.kind ?? null, area: i.hood, lat: i.lat, lng: i.lng, tags: JSON.stringify(i.tags), note: i.note, source: i.source ?? '', price: i.price ?? '', image: i.image ?? '', pos }));
+        price = excluded.price, image = excluded.image, stay_days = excluded.stay_days, position = excluded.position`);
+    t.ideas.forEach((i, pos) => idea.run({ id: i.id, trip: t.id, place: i.placeId ?? null, name: i.name, cat: i.cat, kind: i.kind ?? null, area: i.hood, lat: i.lat, lng: i.lng, tags: JSON.stringify(i.tags), note: i.note, source: i.source ?? '', price: i.price ?? '', image: i.image ?? '', stayDays: JSON.stringify(i.stayDays ?? []), pos }));
     const day = db.prepare('INSERT INTO days (id, trip_id, position, title) VALUES (?, ?, ?, ?)');
     const stop = db.prepare(`INSERT INTO stops (id, day_id, idea_id, position, time, own_title, own_where, own_note, own_link)
       VALUES (@id, @day, @idea, @pos, @time, @title, @where, @note, @link)`);

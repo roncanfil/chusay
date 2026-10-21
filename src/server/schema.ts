@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS ideas (
   source          TEXT NOT NULL DEFAULT '',   -- a URL, or who recommended it
   price           TEXT NOT NULL DEFAULT '',   -- stays: the price as typed or shown by the booking link
   image           TEXT NOT NULL DEFAULT '',   -- stays: the listing's preview picture URL
+  stay_days       TEXT NOT NULL DEFAULT '[]', -- stays: JSON day ids we're staying there, or ["*"] for every day
   position        INTEGER NOT NULL DEFAULT 0, -- keeps the list in the order ideas were saved
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );

@@ -24,6 +24,16 @@ export function tripCenter(t: Trip) {
 export const canMap = (t: Trip, google: boolean) => google ? !!tripCenter(t) || located(t).length > 0 : hasMap(t);
 export const ideaOf = (t: Trip, id?: string) => t.ideas.find(i => i.id === id);
 export const scheduledDay = (t: Trip, ideaId: string) => t.days.findIndex(d => d.stops.some(s => s.idea === ideaId));
+// the stays we're sleeping at on day k
+export const staysOn = (t: Trip, k: number) => t.ideas.filter(i => i.cat === 'stay' && i.stayDays?.some(d => d === '*' || d === t.days[k]?.id));
+// "All days", "Day 2" or "Days 1, 2, 4", for a stay's tag
+export function stayLabel(t: Trip, i: Idea) {
+  const ds = i.stayDays ?? [];
+  if (!ds.length) return '';
+  if (ds.includes('*')) return 'All days';
+  const ks = t.days.map((d, k) => ds.includes(d.id) ? k + 1 : 0).filter(Boolean);
+  return ks.length === t.days.length ? 'All days' : ks.length === 1 ? `Day ${ks[0]}` : ks.length ? `Days ${ks.join(', ')}` : '';
+}
 
 export const fmtDay = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 export const fmtMonth = (ym: string) => new Date(ym + '-15T12:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });

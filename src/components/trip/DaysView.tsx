@@ -9,7 +9,7 @@ import { kindLabel } from '@/lib/kinds';
 import { suggestDay } from '@/lib/picks';
 import { uid } from '@/lib/seed';
 import { discIsOpen, editTrip, openDisc, setView, toast, useSession, useView } from '@/lib/store';
-import { dayDate, fmtDay, ideaOf, scheduledDay } from '@/lib/trips';
+import { dayDate, fmtDay, ideaOf, scheduledDay, staysOn } from '@/lib/trips';
 import type { OwnPlan, Stop, Trip } from '@/lib/types';
 import { IdeaCat, IdeaNote, IdeaSource, MapsLink } from './fields';
 import { pan, type SetUI, type TabProps, type TripUI } from './ui';
@@ -114,6 +114,11 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
             <input className="day-title" value={d.title} onChange={e => editTrip(t.id, tt => { tt.days[k].title = e.target.value; })} placeholder="Name this day" aria-label={`Day ${k + 1} name`} />
             <div className="day-add">{pill('ideas', <>+ From ideas <span className="n">{unplanned.length}</span></>)}{pill('own', '+ Your own')}</div>
           </div>
+          {staysOn(t, k).map(i => (
+            <button key={i.id} type="button" className="stay-base" style={vars({ '--cc': CATS[i.cat].color })} onClick={() => set({ day: k, hl: i.id, panTo: pan(i.id) })}>
+              <CatIcon cat={i.cat} cls="ic-sm" /><span>Staying at <b>{i.name}</b>{i.hood ? ` · ${i.hood}` : ''}</span>
+            </button>
+          ))}
           {ap === 'own' && <OwnForm onAdd={(title, time) => addOwn(k, title, time)} />}
           {ap === 'ideas' && (
             <div className="add-panel">{unplanned.length

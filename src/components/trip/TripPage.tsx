@@ -9,7 +9,7 @@ import { dayColor, TAB_COLORS, type Tab } from '@/lib/constants';
 import { CITY } from '@/lib/data/cities';
 import { uid } from '@/lib/seed';
 import { editTrip, openDisc, setView, toast, toggleMapHidden, useAppState, useConfig, useSession, useView } from '@/lib/store';
-import { canMap, fmtRange, ideaOf, isoDate, isPast, isSomeday, relTime, scheduledDay, today } from '@/lib/trips';
+import { canMap, fmtRange, ideaOf, isoDate, isPast, isSomeday, relTime, scheduledDay, staysOn, today } from '@/lib/trips';
 import type { CityKey, DestinationResult, Trip } from '@/lib/types';
 import { CultureView } from './CultureView';
 import { DaysView } from './DaysView';
@@ -29,13 +29,17 @@ export function TripPage({ id }: { id: string }) {
 function dayMapSpec(t: Trip, day: number, all: boolean): { places: MapPlace[]; routes: MapRoute[]; key: string } {
   if (all) {
     const routes = t.days.map((d, k) => ({ color: dayColor(k), ideas: d.stops.map(s => ideaOf(t, s.idea)).filter(i => !!i) }));
-    return { places: routes.flatMap(r => r.ideas.map(i => ({ idea: i }))), routes, key: `days-all-${t.id}` };
+    const shown = routes.flatMap(r => r.ideas), stays = t.days.flatMap((_, k) => staysOn(t, k)).filter((i, n, a) => a.indexOf(i) === n && !shown.includes(i));
+    return { places: [...shown, ...stays].filter((i, n, a) => a.indexOf(i) === n).map(i => ({ idea: i })), routes, key: `days-all-${t.id}` };
   }
   const d = t.days[day];
   // an empty day shows the unplanned ideas, dimmed
   const places = !d ? [] : d.stops.length ? d.stops.map(s => ideaOf(t, s.idea)).filter(i => !!i).map(i => ({ idea: i }))
     : t.ideas.filter(i => scheduledDay(t, i.id) < 0).map(i => ({ idea: i, dim: true }));
-  return { places, routes: d && d.stops.length ? [{ color: dayColor(day), ideas: places.map(p => p.idea) }] : [], key: `day-${t.id}-${day}` };
+  const routes = d && d.stops.length ? [{ color: dayColor(day), ideas: places.map(p => p.idea) }] : [];
+  // where we sleep that day is always on its map, outside the day's route
+  const stays = staysOn(t, day).filter(i => !places.some(p => p.idea === i)).map(i => ({ idea: i }));
+  return { places: [...places.filter(p => !stays.some(s => s.idea === p.idea)), ...stays], routes, key: `day-${t.id}-${day}` };
 }
 
 const clampListW = (lay: HTMLElement, px: number) => Math.round(Math.max(320, Math.min(lay.clientWidth - 280, px)));

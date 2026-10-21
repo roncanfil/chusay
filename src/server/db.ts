@@ -102,6 +102,8 @@ const MIGRATIONS: string[] = [
   DROP TABLE ideas;
   ALTER TABLE ideas_new RENAME TO ideas;
   CREATE INDEX IF NOT EXISTS ideas_trip ON ideas(trip_id, position);`,
+  // 7: a stay can be where we sleep on several days, or every day of the trip
+  `ALTER TABLE ideas ADD COLUMN stay_days TEXT NOT NULL DEFAULT '[]';`,
 ];
 
 // foreign keys are off while migrating, so rebuilding a table (copy, drop, rename) doesn't cascade-delete
