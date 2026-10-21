@@ -107,7 +107,7 @@ export function GoogleMap({ t, places, routes, viewKey, hl, panTo, onPin, mapsKe
   useEffect(() => {
     if (!map) return;
     const seen = new Set<string>();
-    for (const { idea: i, dim } of located) {
+    for (const { idea: i, dim, color, icon } of located) {
       seen.add(i.id);
       let p = pins.current.get(i.id);
       if (!p) {
@@ -120,8 +120,8 @@ export function GoogleMap({ t, places, routes, viewKey, hl, panTo, onPin, mapsKe
       p.marker.position = { lat: i.lat!, lng: i.lng! };
       p.marker.title = `${i.name} · ${kindLabel(i)}`;
       p.marker.zIndex = hl === i.id ? 10 : dim ? 0 : 1;
-      p.el.style.setProperty('--cc', CATS[i.cat].color);
-      p.el.querySelector('path')!.setAttribute('d', kindPath(i));
+      p.el.style.setProperty('--cc', color ?? CATS[i.cat].color);
+      p.el.querySelector('path')!.setAttribute('d', icon ?? kindPath(i));
       p.el.classList.toggle('dim', !!dim); p.el.classList.toggle('hl', hl === i.id);
       p.label.textContent = hl === i.id ? i.name : short(i.name);
     }

@@ -678,3 +678,32 @@ a.src:hover { text-decoration: underline; }
 .more .input { font-size: 15px; padding: 8px 10px; }
 .more .form-row { gap: 10px; }
 @media (max-width: 480px) { .mtiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .mtile { padding: 12px 14px; } .mtile.with-ic { column-gap: 10px; } .mtile.with-ic .ic { width: 30px; height: 30px; } .mtile b { font-size: 15px; } }
+/* Muhu ideas as tiles: a photo (ours, Google's, or the category's icon on its color), the name and where */
+.muhu-tools { margin-top: 18px; }
+.mideas { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+.mi-tile { position: relative; display: grid; gap: 6px; align-content: start; padding: 8px 8px 10px; border-radius: 18px; border: 1px solid color-mix(in srgb, var(--cc) 28%, var(--line)); background: color-mix(in srgb, var(--cc) 5%, var(--surface)); cursor: pointer; min-width: 0; transition: border-color 150ms ease, background-color 150ms ease; }
+.mi-tile:hover { background: color-mix(in srgb, var(--cc) 10%, var(--surface)); }
+.mi-tile.sel { border-color: var(--cc); box-shadow: inset 0 0 0 1px var(--cc); background: color-mix(in srgb, var(--cc) 12%, var(--surface)); }
+.mi-tile b { font-size: 15px; font-weight: 700; line-height: 1.3; padding: 2px 4px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.mi-tile small { font-size: 13px; color: var(--ink-3); padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mi-tile .must { position: absolute; top: 16px; left: 16px; margin: 0; background: var(--accent); color: var(--on-accent); box-shadow: 0 1px 3px rgba(0, 0, 0, .2); }
+.mph { display: block; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; background: color-mix(in srgb, var(--cc) 14%, var(--surface)); }
+.mph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mph.blank { display: grid; place-items: center; color: color-mix(in srgb, var(--cc) 80%, var(--ink)); }
+.mph.blank svg { width: 30%; height: 30%; opacity: .75; }
+.mph.thumb-sm { width: 52px; height: 52px; aspect-ratio: auto; border-radius: 10px; flex: none; }
+.mph.hero { max-width: 340px; width: 100%; border-radius: 14px; }
+.tile-more { grid-column: 1 / -1; display: grid; gap: 10px; padding: 14px 16px 16px; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--cc) 30%, var(--line)); background: var(--surface); font-size: 15px; color: var(--ink-2); }
+.tile-more .acts, .muhu-side .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.muhu-split { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); align-items: start; }
+.muhu-split .muhu-list { max-width: none; }
+.muhu-side { position: sticky; top: 76px; margin-top: 18px; max-height: calc(100vh - 92px); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 12px; scrollbar-width: thin; }
+.muhu-side > * { flex: none; }
+.muhu-side .map-box { aspect-ratio: 4 / 3; }
+.mph.side-photo { aspect-ratio: 4 / 3; border-radius: 16px; }
+.side-card { display: grid; gap: 10px; padding: 14px 16px 16px; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--cc) 30%, var(--line)); font-size: 15px; color: var(--ink-2); }
+.side-card h2 { color: var(--ink); font-size: 19px; }
+.side-card .form-row { grid-template-columns: minmax(0, 1fr); }
+label.btn-sm { cursor: pointer; }
+label.btn-sm[aria-disabled="true"] { opacity: .6; cursor: progress; }
+@media (max-width: 480px) { .mideas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .mi-tile { padding: 6px 6px 8px; border-radius: 16px; } .mi-tile b { font-size: 14px; } .mi-tile .must { top: 12px; left: 12px; } }

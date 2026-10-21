@@ -156,6 +156,11 @@ export interface MuhuIdea {
   far: string; // how to get there from home, as typed
   note: string;
   source?: string;
+  placeId?: string; // the Google place it was matched to; the name stays ours
+  lat?: number | null;
+  lng?: number | null;
+  match?: 'auto' | 'set' | 'none'; // guessed by the app, picked by us, or not on Google: guessed only once
+  image?: string; // our own picture: a link, or one uploaded to the server (/api/muhu/photos/…)
 }
 
 export interface AppState {

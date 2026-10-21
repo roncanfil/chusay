@@ -54,8 +54,8 @@ The SQLite file on their server holds their actual trips.
 - Color coding everywhere is a requirement, not decoration: each tab, day, category, trip status and section has its color.
 - The list sits beside the map (map pinned at the top on phones); nobody should scroll to reach the map.
 - Everything opens and closes in place. No pop-up windows or floating panels.
-- Avoid: anything spreadsheet-like, dense card or chip grids, numbered stops, times that stand out more than places, star ratings, money signs and stop counts, strong cream or gray backgrounds, Pinterest- or blog-style layouts, photo or memory uploads, packing lists.
-- Google only finds places and draws maps. It never fills in their notes, ratings, prices or hours. Save only the place id, name, kind, area and location; request only the fields shown (field masks).
+- Avoid: anything spreadsheet-like, dense card or chip grids, numbered stops, times that stand out more than places, star ratings, money signs and stop counts, strong cream or gray backgrounds, Pinterest- or blog-style layouts, memory uploads, packing lists. Photos: only one picture per Muhu idea (uploaded or linked), nowhere else.
+- Google only finds places and draws maps. It never fills in their notes, ratings, prices or hours. Save only the place id, name, kind, area and location; request only the fields shown (field masks). Muhu ideas are matched to Google automatically once, by name and area; the household fixes wrong matches.
 
 ## Conventions
 

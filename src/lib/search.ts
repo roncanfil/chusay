@@ -21,6 +21,9 @@ export async function findPlaces(t: Trip, q: string, google: boolean): Promise<P
   return (await getJSON<PlaceResult[]>(`/api/places/search?${params}`)).filter(p => !(p.placeId && ids.has(p.placeId)) && !names.has(p.name));
 }
 
+// a Muhu idea has no trip to search around: "name, area, country" is enough
+export const findAnywhere = (q: string) => getJSON<PlaceResult[]>(`/api/places/search?${new URLSearchParams({ q })}`);
+
 // a trip's destination: list matches while typing, then look up the picked one's center and country
 export const findDestinations = (q: string, session: string) => getJSON<DestinationHit[]>(`/api/places/destinations?${new URLSearchParams({ q, session })}`);
 export const destinationOf = (id: string, session: string) => getJSON<DestinationResult | null>(`/api/places/destinations?${new URLSearchParams({ id, session })}`);

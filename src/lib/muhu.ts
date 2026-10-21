@@ -1,4 +1,6 @@
 import { WANT } from './constants';
+import { findAnywhere } from './search';
+import { editMuhu } from './store';
 import { uid } from './seed';
 import type { MuhuCat, MuhuIdea, Want } from './types';
 
@@ -144,4 +146,41 @@ export async function readExport(file: File): Promise<string> {
   if (!csvs.length) throw new Error('No list in this zip');
   const width = (t: string) => parseCsv(t.slice(0, t.indexOf('\n') + 1 || undefined))[0]?.length ?? 0;
   return csvs.reduce((a, b) => width(b) > width(a) ? b : a);
+}
+
+/* ---------- Google: each idea is looked up once by its name and area; a wrong guess is fixed by hand ---------- */
+export const placeQuery = (m: MuhuIdea) => [m.name, m.area, m.country].filter(Boolean).join(', ');
+export const mapsUrl = (m: MuhuIdea) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeQuery(m))}${m.placeId ? '&query_place_id=' + encodeURIComponent(m.placeId) : ''}`;
+
+let guessing = false, stopped = false;
+export async function guessPlaces(list: MuhuIdea[]) {
+  if (guessing || stopped) return;
+  const todo = list.filter(m => !m.match && !m.placeId);
+  if (!todo.length) return;
+  guessing = true;
+  let n = 0;
+  const work = async () => {
+    while (n < todo.length && !stopped) {
+      const m = todo[n++], hit = (await findAnywhere(placeQuery(m)))[0];
+      editMuhu(m.id, x => {
+        if (x.match || x.placeId) return; // picked by hand meanwhile
+        if (hit?.placeId) { x.placeId = hit.placeId; x.lat = hit.lat; x.lng = hit.lng; x.match = 'auto'; } else x.match = 'none';
+      });
+    }
+  };
+  // a few at a time; if Google says no (key, quota), stop until the next visit
+  await Promise.all([work(), work(), work()]).catch(() => { stopped = true; });
+  guessing = false;
+}
+
+/* ---------- our own pictures: shrunk in the browser to a JPEG of at most 1600px, then kept on the server ---------- */
+export async function uploadPhoto(file: File): Promise<string> {
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height)), c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
+  const jpeg = await new Promise<Blob>((ok, no) => c.toBlob(b => b ? ok(b) : no(new Error('Couldn’t read that picture')), 'image/jpeg', 0.85));
+  const r = await fetch('/api/muhu/photos', { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: jpeg });
+  if (!r.ok) throw new Error(((await r.json().catch(() => null)) as { error?: string } | null)?.error || 'Upload failed');
+  return ((await r.json()) as { url: string }).url;
 }

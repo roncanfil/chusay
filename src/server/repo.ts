@@ -44,6 +44,8 @@ export function loadState(db: Database): AppState {
     muhu: all('SELECT * FROM muhu ORDER BY created_at, rowid').map(r => ({
       id: String(r.id), cid: String(r.country_code), country: String(r.country_name), name: String(r.name), cats: json<MuhuCat[]>(r.categories, []),
       want: r.want as Want, area: String(r.area), when: String(r.season), far: String(r.getting_there), note: String(r.note), ...(r.source ? { source: String(r.source) } : {}),
+      ...(r.google_place_id ? { placeId: String(r.google_place_id) } : {}), lat: r.lat as number | null, lng: r.lng as number | null,
+      ...(r.google_match ? { match: r.google_match as MuhuIdea['match'] } : {}), ...(r.image ? { image: String(r.image) } : {}),
     })),
     world: all('SELECT * FROM country_status ORDER BY rowid').reduce<Record<string, Status[]>>((w, r) => { (w[String(r.country_code)] ??= []).push(r.status as Status); return w; }, {}),
     visits: all('SELECT * FROM visits ORDER BY month DESC').map(r => ({ id: String(r.id), cid: String(r.country_code), places: String(r.places), from: String(r.month), to: String(r.month) })),
@@ -100,13 +102,19 @@ export function setCountryStatus(db: Database, cid: string, statuses: Status[]) 
 
 // only the seeds that changed are sent; created_at stays from the first save
 export function saveMuhu(db: Database, list: MuhuIdea[]) {
-  const put = db.prepare(`INSERT INTO muhu (id, country_code, country_name, name, categories, want, area, season, getting_there, note, source)
-    VALUES (@id, @cid, @country, @name, @cats, @want, @area, @when, @far, @note, @source)
+  const put = db.prepare(`INSERT INTO muhu (id, country_code, country_name, name, categories, want, area, season, getting_there, note, source, google_place_id, lat, lng, google_match, image)
+    VALUES (@id, @cid, @country, @name, @cats, @want, @area, @when, @far, @note, @source, @placeId, @lat, @lng, @match, @image)
     ON CONFLICT(id) DO UPDATE SET country_code = excluded.country_code, country_name = excluded.country_name, name = excluded.name, categories = excluded.categories,
-      want = excluded.want, area = excluded.area, season = excluded.season, getting_there = excluded.getting_there, note = excluded.note, source = excluded.source`);
-  db.transaction(() => { list.forEach(m => put.run({ ...m, cats: JSON.stringify(m.cats), source: m.source ?? '' })); })();
+      want = excluded.want, area = excluded.area, season = excluded.season, getting_there = excluded.getting_there, note = excluded.note, source = excluded.source,
+      google_place_id = excluded.google_place_id, lat = excluded.lat, lng = excluded.lng, google_match = excluded.google_match, image = excluded.image`);
+  db.transaction(() => {
+    list.forEach(m => put.run({ ...m, cats: JSON.stringify(m.cats), source: m.source ?? '', placeId: m.placeId ?? null, lat: m.lat ?? null, lng: m.lng ?? null, match: m.match ?? '', image: m.image ?? '' }));
+  })();
 }
 export function removeMuhu(db: Database, id: string) { db.prepare('DELETE FROM muhu WHERE id = ?').run(id); }
+// the pictures these ideas have now, so the route can delete uploaded files they no longer use
+export const muhuImages = (db: Database, ids: string[]) =>
+  new Map((db.prepare('SELECT id, image FROM muhu WHERE id IN (SELECT value FROM json_each(?))').all(JSON.stringify(ids)) as Row[]).map(r => [String(r.id), String(r.image)]));
 
 export function addVisit(db: Database, v: Visit) {
   db.prepare('INSERT INTO visits (id, country_code, places, month) VALUES (?, ?, ?, ?)').run(v.id, v.cid, v.places, v.from);

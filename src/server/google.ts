@@ -102,7 +102,7 @@ export interface Photo { uri: string; author: string; authorUri: string }
 const photoCache = new Map<string, { at: number; photo: Photo | null }>();
 const PHOTO_TTL = 10 * 60 * 1000;
 export async function photoFor(placeId: string, maxWidthPx = 240): Promise<Photo | null> {
-  const hit = photoCache.get(placeId);
+  const key = `${placeId}@${maxWidthPx}`, hit = photoCache.get(key);
   if (hit && Date.now() - hit.at < PHOTO_TTL) return hit.photo;
   const place = await google<GPlace>(`places/${encodeURIComponent(placeId)}`, 'photos');
   const first = place.photos?.[0];
@@ -114,7 +114,7 @@ export async function photoFor(placeId: string, maxWidthPx = 240): Promise<Photo
     const by = first.authorAttributions?.[0];
     photo = { uri: photoUri, author: by?.displayName || '', authorUri: by?.uri || '' };
   }
-  photoCache.set(placeId, { at: Date.now(), photo });
+  photoCache.set(key, { at: Date.now(), photo });
   return photo;
 }
 

@@ -1,9 +1,9 @@
 import type { NextRequest } from 'next/server';
 import { photoFor, respond } from '@/server/google';
 
-// GET /api/places/photo?id=<place id> → { uri, author, authorUri } or null; image files are never stored
+// GET /api/places/photo?id=<place id>[&w=640] → { uri, author, authorUri } or null; image files are never stored
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('id');
   if (!id) return Response.json({ error: 'id is required' }, { status: 400 });
-  return respond(() => photoFor(id), { 'Cache-Control': 'private, max-age=600' });
+  return respond(() => photoFor(id, req.nextUrl.searchParams.get('w') === '640' ? 640 : 240), { 'Cache-Control': 'private, max-age=600' });
 }

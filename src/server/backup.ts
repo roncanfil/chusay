@@ -18,6 +18,9 @@ export async function backupNow(dir: string) {
     try { await db.backup(target); } finally { db.close(); }
     console.log(`Backed up the database to ${target}`);
   }
+  // uploaded Muhu pictures: new ones are copied in, and kept even after they're replaced in the app
+  const photos = path.join(path.dirname(file), 'photos');
+  if (fs.existsSync(photos)) fs.cpSync(photos, path.join(dir, 'photos'), { recursive: true, force: false });
   const keep = Number(process.env.BACKUP_KEEP_DAYS) || 30;
   const cutoff = day(new Date(Date.now() - keep * 864e5));
   for (const f of fs.readdirSync(dir)) {

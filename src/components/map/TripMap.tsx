@@ -11,7 +11,7 @@ import type { Idea, Trip } from '@/lib/types';
 import { CityLayers, Fx } from './CityLayers';
 import { GoogleMap, useMapsFailed } from './GoogleMap';
 
-export interface MapPlace { idea: Idea; dim?: boolean }
+export interface MapPlace { idea: Idea; dim?: boolean; color?: string; icon?: string } // color and icon: Muhu's own categories
 export interface MapRoute { color: string; ideas: Idea[] }
 export interface PanRequest { id: string; seq: number }
 

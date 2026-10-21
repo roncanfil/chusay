@@ -5,7 +5,7 @@ A trip planner for one household: plan the next trip, collect ideas for places y
 - **Trips**: tiles for trips coming up, Someday lists and trips you’ve been on.
 - **Itinerary**: each day is a colored line of stops you drag between days, with your own notes and optional times.
 - **Ideas**: places saved with Google search or typed in by hand, grouped by category, with a map.
-- **Muhu**: ideas of things to see in a country, kept without a trip or dates. Tiles pick a country or a category; a Notion list exported as CSV can be imported, and any idea can be copied onto a trip in that country.
+- **Muhu**: ideas of things to see in a country, kept without a trip or dates, as photo tiles or a list. Pick a country or a category; on wide screens the picked idea's photo, map pin and details sit on the right. Each idea is matched to Google once (fixable) for its photo and pin, or gets our own picture, uploaded or linked. A Notion export (.zip or CSV) can be imported, and any idea can be copied onto a trip in that country.
 - **World map**: countries colored by visited, planning and wish list.
 - Color coding everywhere and everything opens in place, no pop-ups.
 
@@ -29,7 +29,7 @@ The repo’s CI publishes a Docker image to `ghcr.io/roncanfil/chusay` (amd64 an
 2. Change `APP_PASSWORD` (the shared login; the username is `APP_USER`, `us` by default) and add Google keys if you have them. Pick another host port than `3210` if it’s taken.
 3. Install, then open the app from the CasaOS dashboard.
 
-The data lives in `/DATA/AppData/chusay/data`, with a copy of the database every night in `/DATA/AppData/chusay/backups` (kept 30 days).
+The data lives in `/DATA/AppData/chusay/data` (the database, and pictures uploaded for Muhu ideas in `photos/`), with a copy of the database every night in `/DATA/AppData/chusay/backups` (kept 30 days) and of every uploaded picture in `backups/photos`.
 
 ### Deploy on every push
 

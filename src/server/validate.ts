@@ -47,6 +47,8 @@ export function parseMuhu(v: unknown): MuhuIdea[] {
     for (const k of ['id', 'cid', 'country', 'name', 'area', 'when', 'far', 'note']) str(m[k], k);
     arr(m.cats, 'cats');
     if (!WANTS.includes(m.want as string)) throw new BadRequest('want must be high, med, low or empty');
+    if (m.match !== undefined && !['auto', 'set', 'none'].includes(m.match as string)) throw new BadRequest('match must be auto, set or none');
+    if (m.image !== undefined && !/^(https?:\/\/|\/api\/muhu\/photos\/)/.test(str(m.image, 'image'))) throw new BadRequest('image must be a link');
     return m as unknown as MuhuIdea;
   });
 }

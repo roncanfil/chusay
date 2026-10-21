@@ -53,6 +53,31 @@ const MIGRATIONS: string[] = [
   DROP TABLE ideas;
   ALTER TABLE ideas_new RENAME TO ideas;
   CREATE INDEX IF NOT EXISTS ideas_trip ON ideas(trip_id, position);`,
+  // 5: Muhu ideas get a Google place, a map location and our own picture. Copied into a new table rather than
+  // altered, so it works whether muhu was created before (old columns) or just now by SCHEMA (already new)
+  `CREATE TABLE muhu_new (
+    id           TEXT PRIMARY KEY,
+    country_code TEXT NOT NULL,
+    country_name TEXT NOT NULL,
+    name         TEXT NOT NULL,
+    categories   TEXT NOT NULL DEFAULT '[]',
+    want         TEXT NOT NULL DEFAULT '' CHECK (want IN ('high', 'med', 'low', '')),
+    area         TEXT NOT NULL DEFAULT '',
+    season       TEXT NOT NULL DEFAULT '',
+    getting_there TEXT NOT NULL DEFAULT '',
+    note         TEXT NOT NULL DEFAULT '',
+    source       TEXT NOT NULL DEFAULT '',
+    google_place_id TEXT,
+    lat          REAL,
+    lng          REAL,
+    google_match TEXT NOT NULL DEFAULT '' CHECK (google_match IN ('auto', 'set', 'none', '')),
+    image        TEXT NOT NULL DEFAULT '',
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  INSERT INTO muhu_new (id, country_code, country_name, name, categories, want, area, season, getting_there, note, source, created_at)
+    SELECT id, country_code, country_name, name, categories, want, area, season, getting_there, note, source, created_at FROM muhu ORDER BY created_at, rowid;
+  DROP TABLE muhu;
+  ALTER TABLE muhu_new RENAME TO muhu;`,
 ];
 
 // foreign keys are off while migrating, so rebuilding a table (copy, drop, rename) doesn't cascade-delete
@@ -70,9 +95,11 @@ function migrate(d: Database.Database) {
   } finally { d.pragma('foreign_keys = ON'); }
 }
 
+export const dbFile = () => process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'chusay.db');
+
 export function getDb() {
   if (db) return db;
-  const file = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'chusay.db');
+  const file = dbFile();
   const fresh = !fs.existsSync(file);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   db = new Database(file);

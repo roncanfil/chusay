@@ -108,6 +108,11 @@ CREATE TABLE IF NOT EXISTS muhu (
   getting_there TEXT NOT NULL DEFAULT '',
   note         TEXT NOT NULL DEFAULT '',
   source       TEXT NOT NULL DEFAULT '',
+  google_place_id TEXT,                    -- guessed by the app or picked by hand
+  lat          REAL,
+  lng          REAL,
+  google_match TEXT NOT NULL DEFAULT '' CHECK (google_match IN ('auto', 'set', 'none', '')),
+  image        TEXT NOT NULL DEFAULT '',   -- our own picture: a link, or a file in the photos folder
   created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
