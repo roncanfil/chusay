@@ -22,21 +22,22 @@ export function KindIcon({ p, cls = 'ic-sm' }: { p: PlaceLike; cls?: string }) {
 
 type Photographed = PlaceLike & { placeId?: string; image?: string };
 
-// list thumbnail: a stay's listing picture, the Google place photo (a drawing for sample places), or the category icon if photos are off
-export function Pic({ p, onBroken }: { p: Photographed; onBroken?: () => void }) {
+// list thumbnail: a stay's listing picture, the Google place photo (a drawing for sample places), or the category icon if photos are off;
+// big: the wide picture at the top of an opened place
+export function Pic({ p, onBroken, big = false }: { p: Photographed; onBroken?: () => void; big?: boolean }) {
   const S = useAppState(), cfg = useConfig();
   const [broken, setBroken] = useState<string | null>(null); // a listing picture that failed to load falls back to the drawing
-  const on = S?.prefs.photos !== false, photo = usePhoto(p.placeId, on && !!cfg?.places && !p.image);
+  const on = S?.prefs.photos !== false, photo = usePhoto(p.placeId, on && !!cfg?.places && !p.image, big ? 640 : 240), ph = big ? 'ph big' : 'ph';
   if (!on) return <CatIcon cat={p.cat} />;
   // eslint-disable-next-line @next/next/no-img-element
-  if (p.image && broken !== p.image) return <span className="ph"><img src={p.image} alt={`Picture of ${p.name}`} loading="lazy" referrerPolicy="no-referrer" onError={() => { setBroken(p.image!); onBroken?.(); }} /></span>;
+  if (p.image && broken !== p.image) return <span className={ph}><img src={p.image} alt={`Picture of ${p.name}`} loading="lazy" referrerPolicy="no-referrer" onError={() => { setBroken(p.image!); onBroken?.(); }} /></span>;
   if (photo) {
     // a remote Google photo of unknown size; next/image would add nothing here
     // eslint-disable-next-line @next/next/no-img-element
-    return <span className="ph"><img src={photo.uri} alt={`Photo of ${p.name}`} title={photo.author ? `Photo: ${photo.author}` : undefined} loading="lazy" referrerPolicy="no-referrer" /></span>;
+    return <span className={ph}><img src={photo.uri} alt={`Photo of ${p.name}`} title={photo.author ? `Photo: ${photo.author}` : undefined} loading="lazy" referrerPolicy="no-referrer" /></span>;
   }
-  if (photo === undefined && p.placeId && cfg?.places) return <span className="ph" aria-hidden="true" />;
-  return <span className="ph" role="img" aria-label={`Photo of ${p.name}`}><svg viewBox="0 0 64 64" preserveAspectRatio="xMidYMid slice" aria-hidden="true" dangerouslySetInnerHTML={{ __html: artFor(p) }} /></span>;
+  if (photo === undefined && p.placeId && cfg?.places) return <span className={ph} aria-hidden="true" />;
+  return <span className={ph} role="img" aria-label={`Photo of ${p.name}`}><svg viewBox="0 0 64 64" preserveAspectRatio="xMidYMid slice" aria-hidden="true" dangerouslySetInnerHTML={{ __html: artFor(p) }} /></span>;
 }
 
 // Google requires the photographer's name wherever their photo is shown; opened rows show it in full

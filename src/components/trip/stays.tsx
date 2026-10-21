@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
-import { Pic } from '@/components/icons';
-import { CATS } from '@/lib/constants';
+import { Pic, vars } from '@/components/icons';
+import { CATS, dayColor } from '@/lib/constants';
 import { uid } from '@/lib/seed';
 import { findPlaces, previewStay } from '@/lib/search';
 import { editIdea, editTrip, toast, useConfig } from '@/lib/store';
@@ -113,4 +113,22 @@ export function StayFields({ t, i }: { t: Trip; i: Idea }) {
       ? <PinFinder t={t} label={i.lat == null ? 'Place it on the map' : 'Move the pin to'} onPick={pin} />
       : <span className="faint small">On the map{i.hood ? ` in ${i.hood}` : ''}. <button type="button" className="linkish" onClick={() => setMoving(true)}>Move the pin</button></span>}
   </>;
+}
+
+// a stay: the days we sleep there, every day or only some (changing hotels halfway); it shows at the top of those days
+export function StayDays({ t, i }: { t: Trip; i: Idea }) {
+  const ds = i.stayDays ?? [], all = ds.includes('*'), on = (id: string) => all || ds.includes(id);
+  function toggle(id: string) {
+    editTrip(t.id, tt => {
+      const x = tt.ideas.find(y => y.id === i.id)!;
+      const cur = tt.days.map(d => d.id).filter(on), next = cur.includes(id) ? cur.filter(y => y !== id) : [...cur, id];
+      x.stayDays = next.length === tt.days.length ? ['*'] : next;
+    });
+  }
+  return (
+    <div className="inline-field">Staying here <span className="chips">
+      <button type="button" className="chip dchip" style={vars({ '--dc': CATS.stay.color })} aria-pressed={all} onClick={() => editTrip(t.id, tt => { tt.ideas.find(y => y.id === i.id)!.stayDays = all ? [] : ['*']; })}>All days</button>
+      {t.days.map((d, k) => <button key={d.id} type="button" className="chip dchip" style={vars({ '--dc': dayColor(k) })} aria-pressed={on(d.id)} onClick={() => toggle(d.id)}>Day {k + 1}</button>)}
+    </span></div>
+  );
 }

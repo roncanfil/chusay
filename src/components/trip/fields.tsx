@@ -1,9 +1,16 @@
-import { PinSvg, vars } from '@/components/icons';
+import { Pic, PinSvg, vars } from '@/components/icons';
 import { NewCategory } from '@/components/NewCategory';
 import { CATS, CAT_KEYS } from '@/lib/constants';
 import { editIdea } from '@/lib/store';
-import { gmaps, isMaps } from '@/lib/trips';
+import { kindLabel } from '@/lib/kinds';
+import { gmaps, isMaps, stayLabel } from '@/lib/trips';
 import type { Idea, Trip } from '@/lib/types';
+
+// the top of an opened place in the itinerary: its picture large, and what, where, how much and which nights at a glance
+export function IdeaHero({ t, i }: { t: Trip; i: Idea }) {
+  const facts = [kindLabel(i), i.hood, i.price, i.cat === 'stay' && stayLabel(t, i) && `Staying: ${stayLabel(t, i)}`].filter(Boolean);
+  return <div className="idea-hero"><Pic p={i} big />{facts.length > 0 && <span className="facts">{facts.join(' · ')}</span>}</div>;
+}
 
 // the household's own note on a saved place; Google never fills this in
 export function IdeaNote({ t, i }: { t: Trip; i: Idea }) {

@@ -13,7 +13,7 @@ import { editTrip, setView, toast, update, useAppState, useConfig, useView } fro
 import { isSomeday, isUrl, scheduledDay, stayLabel } from '@/lib/trips';
 import type { Cat, Idea, Pace, PlaceResult, Prefs, Trip } from '@/lib/types';
 import { IdeaCat, IdeaNote, IdeaSource, MapsLink } from './fields';
-import { StayFields, StayForm } from './stays';
+import { StayDays, StayFields, StayForm } from './stays';
 import { pan, type SetUI, type TabProps, type TripUI } from './ui';
 
 const TRY = ['pastries', 'fado', 'museum', 'viewpoint', 'hotel', 'market', 'tacos', 'temple', 'riad', 'garden'];
@@ -227,20 +227,3 @@ function IdeaRow({ t, i, ui, set, offMap, catOff, toggleMap }: { t: Trip; i: Ide
   </>;
 }
 
-// a stay: the days we sleep there, every day or only some (changing hotels halfway); it shows at the top of those days
-function StayDays({ t, i }: { t: Trip; i: Idea }) {
-  const ds = i.stayDays ?? [], all = ds.includes('*'), on = (id: string) => all || ds.includes(id);
-  function toggle(id: string) {
-    editTrip(t.id, tt => {
-      const x = tt.ideas.find(y => y.id === i.id)!;
-      const cur = tt.days.map(d => d.id).filter(on), next = cur.includes(id) ? cur.filter(y => y !== id) : [...cur, id];
-      x.stayDays = next.length === tt.days.length ? ['*'] : next;
-    });
-  }
-  return (
-    <div className="inline-field">Staying here <span className="chips">
-      <button type="button" className="chip dchip" style={vars({ '--dc': CATS.stay.color })} aria-pressed={all} onClick={() => editTrip(t.id, tt => { tt.ideas.find(y => y.id === i.id)!.stayDays = all ? [] : ['*']; })}>All days</button>
-      {t.days.map((d, k) => <button key={d.id} type="button" className="chip dchip" style={vars({ '--dc': dayColor(k) })} aria-pressed={on(d.id)} onClick={() => toggle(d.id)}>Day {k + 1}</button>)}
-    </span></div>
-  );
-}

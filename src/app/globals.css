@@ -741,3 +741,13 @@ label.btn-sm[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .stay-base { display: flex; align-items: center; gap: 4px; width: fit-content; max-width: 100%; margin: 2px 0 6px 64px; padding: 5px 12px 5px 10px; border: 1px solid color-mix(in srgb, var(--cc) 30%, var(--line)); border-radius: 999px; background: color-mix(in srgb, var(--cc) 8%, var(--surface)); font-size: 14px; color: var(--ink-2); text-align: left; }
 .stay-base b { font-weight: 600; color: var(--ink); }
 @media (max-width: 640px) { .stay-base { margin-left: 4px; } }
+/* an opened place in the itinerary: its picture large, then everything about it */
+.ph.big { width: 100%; max-width: 440px; height: auto; aspect-ratio: 16 / 10; border-radius: 14px; }
+.idea-hero { display: grid; gap: 6px; }
+.idea-hero .facts { font-size: 14px; color: var(--ink-3); }
+.stay-wrap { margin: 2px 0 6px 64px; }
+.stay-wrap .stay-base { margin: 0; }
+.stay-base .caret { font-size: 16px; width: 10px; margin-left: 4px; }
+.stay-base[aria-expanded="true"] .caret { transform: rotate(90deg); }
+.stay-more { display: grid; gap: 12px; margin-top: 10px; padding: 14px 16px 16px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--cc) 30%, var(--line)); background: var(--surface); font-size: 15px; color: var(--ink-2); }
+@media (max-width: 640px) { .stay-wrap { margin-left: 4px; } }
