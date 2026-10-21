@@ -16,6 +16,7 @@ export interface TripUI {
   datesOpen: boolean;
   placeOpen: boolean;
   addPanel: { day: number; w: 'ideas' | 'own' } | null;
+  mapOff: string[]; // left off the Ideas map: idea ids, and whole categories as "cat:<key>"
 }
 export type SetUI = (patch: Partial<TripUI>) => void;
 // mapOk: this trip can show a map (Google, or a preview sketch)
@@ -23,7 +24,7 @@ export interface TabProps { t: Trip; ui: TripUI; set: SetUI; mapOk: boolean }
 
 export const initialUI = (t: Trip): TripUI => ({
   tab: t.start ? 'days' : 'ideas', day: 0, sel: null, open: null, hl: null, panTo: null,
-  cat: 'all', adding: false, search: null, datesOpen: false, placeOpen: false, addPanel: null,
+  cat: 'all', adding: false, search: null, datesOpen: false, placeOpen: false, addPanel: null, mapOff: [],
 });
 
 // ask the map to center on a place

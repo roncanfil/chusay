@@ -734,3 +734,6 @@ label.btn-sm[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .filter-btn .caret { font-size: 16px; width: 10px; }
 .filter-btn[aria-expanded="true"] .caret { transform: rotate(90deg); }
 .cat-filter { margin-top: 12px; }
+.map-pick { margin-top: 14px; }
+.drag-hint { display: block; padding: 0 4px 2px; }
+.group[data-cat] .row.link { touch-action: pan-y; }

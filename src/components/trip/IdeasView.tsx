@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent } from 'react';
+import Sortable from 'sortablejs';
 import { Disc } from '@/components/Disc';
 import { CatIcon, KindIcon, ListSegIcon, MapSegIcon, PhotoCredit, Pic, SrcChip, vars } from '@/components/icons';
 import { BUDGETS, CAT_KEYS, CATS, dayColor, DIETS, INTERESTS, PACE } from '@/lib/constants';
@@ -26,6 +27,29 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
   const [manual, setManual] = useState<string | null>(null); // the name typed so far, when adding by hand
   const [stayUrl, setStayUrl] = useState<string | null>(null); // a pasted booking-site link being saved as a stay
   const searchSeq = useRef(0);
+  const listRef = useRef<HTMLDivElement>(null);
+  // Sortable moves DOM nodes React owns; after a drop the groups are re-mounted from state
+  const [dragKey, setDragKey] = useState(0);
+
+  // drag ideas up and down inside their category, e.g. stays in order of preference; that order is the list's order
+  useEffect(() => {
+    const root = listRef.current; if (!root) return;
+    const made = [...root.querySelectorAll<HTMLElement>('.group[data-cat]')].map(el => Sortable.create(el, {
+      animation: 150, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', delay: 150, delayOnTouchOnly: true, preventOnFilter: false,
+      draggable: '.row.link', filter: 'button,input,textarea,select,a', ghostClass: 'sortable-ghost',
+      onUpdate() {
+        const order = [...el.querySelectorAll<HTMLElement>('[data-row]')].map(r => r.dataset.row!), cat = el.dataset.cat;
+        editTrip(t.id, tt => {
+          const mine = order.map(id => tt.ideas.find(i => i.id === id)!).filter(Boolean);
+          let n = 0; tt.ideas = tt.ideas.map(i => i.cat === cat ? mine[n++] ?? i : i);
+        });
+        setDragKey(k => k + 1);
+      },
+    }));
+    return () => made.forEach(s => s.destroy());
+  });
+  const offMap = (k: string) => ui.mapOff.includes(k);
+  const toggleMap = (k: string) => set({ mapOff: offMap(k) ? ui.mapOff.filter(x => x !== k) : [...ui.mapOff, k] });
 
   const counts: Record<string, number> = { all: t.ideas.length };
   t.ideas.forEach(i => { counts[i.cat] = (counts[i.cat] || 0) + 1; });
@@ -144,18 +168,25 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
     </div>
     {searchBox}
     {picksBox}
+    {mapOk && view.ideasMap && t.ideas.length > 0 && (
+      <div className="inline-field map-pick">On the map <span className="chips">{CAT_KEYS.filter(k => counts[k]).map(k => (
+        <button key={k} type="button" className="chip dchip" style={vars({ '--dc': CATS[k].color })} aria-pressed={!offMap('cat:' + k)} onClick={() => toggleMap('cat:' + k)}>{CATS[k].label}</button>
+      ))}</span></div>
+    )}
     {!t.ideas.length
       ? <div className="group empty"><b style={{ color: 'var(--ink)' }}>No ideas saved yet</b><span>Search for places, or open your picks.</span><button type="button" className="btn primary" onClick={openAdd}>+ Add a place</button></div>
-      : groups.map(k => (
+      : <div ref={listRef} key={dragKey}>{groups.map(k => (
         <Disc key={k} k={`cat-${k}`} cls="tint" style={vars({ '--sc': CATS[k].color })} head={<><CatIcon cat={k} /><b>{CATS[k].label}</b><span className="faint small">{counts[k]}</span></>}>
-          <div className="group">{t.ideas.filter(i => i.cat === k).map(i => <IdeaRow key={i.id} t={t} i={i} ui={ui} set={set} />)}</div>
+          {k === 'stay' && counts[k] > 1 && <span className="faint small drag-hint">Drag to put them in order of preference, favorite first.</span>}
+          <div className="group" data-cat={k}>{t.ideas.filter(i => i.cat === k).map(i => <IdeaRow key={i.id} t={t} i={i} ui={ui} set={set} offMap={offMap(i.id)} catOff={offMap('cat:' + i.cat)} toggleMap={() => toggleMap(i.id)} />)}</div>
         </Disc>
-      ))}
+      ))}</div>}
   </>;
 }
 
 // opening a row shows the note, the source, day chips to plan it, and Remove idea
-function IdeaRow({ t, i, ui, set }: { t: Trip; i: Idea; ui: TripUI; set: SetUI }) {
+// offMap: this idea left off the map; catOff: its whole category is
+function IdeaRow({ t, i, ui, set, offMap, catOff, toggleMap }: { t: Trip; i: Idea; ui: TripUI; set: SetUI; offMap: boolean; catOff: boolean; toggleMap: () => void }) {
   const d = isSomeday(t) ? -1 : scheduledDay(t, i.id), open = ui.open === i.id;
   const toggleOpen = () => { const o = open ? null : i.id; set({ open: o, hl: o, ...(o ? { panTo: pan(o) } : {}) }); };
   const click = (e: MouseEvent) => { if (!(e.target as Element).closest('button,a')) toggleOpen(); };
@@ -172,7 +203,7 @@ function IdeaRow({ t, i, ui, set }: { t: Trip; i: Idea; ui: TripUI; set: SetUI }
   return <>
     <div className={`row link ${open ? 'sel' : ''}`} data-row={i.id} style={vars({ '--cc': CATS[i.cat].color })} aria-expanded={open} tabIndex={0} onClick={click} onKeyDown={key}>
       <Pic p={i} />
-      <div className="main"><span className="title">{i.name}</span><span className="meta"><KindIcon p={i} />{[kindLabel(i), i.price, i.hood, i.note].filter(Boolean).join(' · ')}</span><SrcChip v={i.source} /></div>
+      <div className="main"><span className="title">{i.name}</span><span className="meta"><KindIcon p={i} />{[kindLabel(i), i.price, i.hood, i.note, (offMap || catOff) && i.lat != null && 'not on the map'].filter(Boolean).join(' · ')}</span><SrcChip v={i.source} /></div>
       {d >= 0 && <span className="tag-day" style={vars({ '--dc': dayColor(d) })}>Day {d + 1}</span>}
       <span className="caret" aria-hidden="true">›</span>
     </div>
@@ -185,7 +216,10 @@ function IdeaRow({ t, i, ui, set }: { t: Trip; i: Idea; ui: TripUI; set: SetUI }
         <MapsLink t={t} i={i} />
         <PhotoCredit p={i} />
         {!isSomeday(t) && <div className="inline-field">{d >= 0 ? 'Planned for' : 'Add to'} <span className="chips">{t.days.map((x, k) => <button key={x.id} type="button" className="chip dchip" style={vars({ '--dc': dayColor(k) })} aria-pressed={d === k} onClick={() => setDay(k)}>Day {k + 1}</button>)}</span></div>}
-        <div><button type="button" className="btn-sm" onClick={remove}>Remove idea</button></div>
+        <div className="acts">
+          {i.lat != null && !catOff && <button type="button" className="btn-sm" aria-pressed={!offMap} onClick={toggleMap}>{offMap ? 'Show on the map' : 'Hide from the map'}</button>}
+          <button type="button" className="btn-sm" onClick={remove}>Remove idea</button>
+        </div>
       </div>
     )}
   </>;

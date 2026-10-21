@@ -52,7 +52,7 @@ function TripView({ t }: { t: Trip }) {
   const mapOk = canMap(t, !!cfg?.mapsKey);
   const showMap = mapOk && ((tab === 'days' && view.dayMap) || (tab === 'ideas' && view.ideasMap));
   const mspec = tab === 'days' ? dayMapSpec(t, ui.day, view.dayAll)
-    : { places: t.ideas.filter(i => ui.cat === 'all' || i.cat === ui.cat).map(i => ({ idea: i })), routes: [], key: `ideas-${t.id}-${ui.cat}` };
+    : { places: t.ideas.filter(i => (ui.cat === 'all' || i.cat === ui.cat) && !ui.mapOff.includes(i.id) && !ui.mapOff.includes('cat:' + i.cat)).map(i => ({ idea: i })), routes: [], key: `ideas-${t.id}-${ui.cat}` };
 
   // clicking a pin opens its row, and the row scrolls into view
   function onPin(id: string) {
