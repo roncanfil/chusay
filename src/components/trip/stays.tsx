@@ -133,3 +133,28 @@ export function StayDays({ t, i }: { t: Trip; i: Idea }) {
     </span></div>
   );
 }
+
+// a rental car to compare: who, the price and the link, and optionally where to pick it up
+export function CarForm({ t, onDone }: { t: Trip; onDone: () => void }) {
+  const [pin, setPin] = useState<Pin | null>(null);
+  function save(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget), name = String(f.get('name')).trim(), price = String(f.get('price')).trim(), link = String(f.get('link')).trim();
+    if (!name) return;
+    editTrip(t.id, tt => { tt.ideas.push({ id: uid(), name, cat: 'car', hood: pin?.hood || '', lat: pin?.lat ?? null, lng: pin?.lng ?? null, tags: [], note: String(f.get('note')).trim(), ...(link ? { source: link } : {}), ...(price ? { price } : {}) }); });
+    toast(`Saved ${name} to ${CATS.car.label}.`); onDone();
+  }
+  return (
+    <form className="manual car-form" onSubmit={save}>
+      <div className="form-row">
+        <label className="field">Company and car<input name="name" autoFocus required placeholder="e.g. Hertz, small automatic" /></label>
+        <label className="field">Price<input name="price" placeholder="e.g. €35 a day, full insurance" /></label>
+        <label className="field">Link<input name="link" placeholder="The booking or quote page (optional)" /></label>
+      </div>
+      <label className="field">Notes<input name="note" placeholder="Pick-up times, deposit, mileage… (optional)" /></label>
+      {pin ? <span className="faint small">Picked up in {pin.hood}. <button type="button" className="linkish" onClick={() => setPin(null)}>Change</button></span>
+        : <PinFinder t={t} label="Where to pick it up (optional, for the map)" onPick={setPin} />}
+      <div className="section-head"><span className="sp" /><button type="button" className="btn quiet" onClick={onDone}>Cancel</button><button type="submit" className="btn primary">Save car</button></div>
+    </form>
+  );
+}

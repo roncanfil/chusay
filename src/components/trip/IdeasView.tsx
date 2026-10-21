@@ -13,7 +13,7 @@ import { editTrip, setView, toast, update, useAppState, useConfig, useView } fro
 import { catsOfIdea, inCat, isPast, isSomeday, isUrl, planned, scheduledDay, stayLabel } from '@/lib/trips';
 import type { Cat, Idea, Pace, PlaceResult, Prefs, Trip } from '@/lib/types';
 import { IdeaCat, IdeaNote, IdeaSource, MapsLink } from './fields';
-import { StayDays, StayFields, StayForm } from './stays';
+import { CarForm, StayDays, StayFields, StayForm } from './stays';
 import { pan, type SetUI, type TabProps, type TripUI } from './ui';
 
 const TRY = ['pastries', 'fado', 'museum', 'viewpoint', 'hotel', 'market', 'tacos', 'temple', 'riad', 'garden'];
@@ -166,7 +166,9 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
     </Disc>
   );
 
-  const groups = (ui.cat === 'all' ? ordered : [ui.cat]).filter(k => counts[k]);
+  // stays and rental cars always have their section, so there's a place to add the options to compare
+  const groups = (ui.cat === 'all' ? ordered : [ui.cat]).filter(k => counts[k] || (ui.cat === 'all' && (k === 'stay' || k === 'car')));
+  const [carForm, setCarForm] = useState(false);
   return <>
     <div className="toolbar">
       <button type="button" className="btn primary" onClick={openAdd}>+ Add a place</button>
@@ -192,13 +194,16 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
     {!t.ideas.length
       ? <div className="group empty"><b style={{ color: 'var(--ink)' }}>No ideas saved yet</b><span>Search for places, or open your picks.</span><button type="button" className="btn primary" onClick={openAdd}>+ Add a place</button></div>
       : <div ref={listRef} key={dragKey}>{groups.map(k => (
-        <div key={k} data-sec={k}><Disc k={`cat-${k}`} cls="tint" style={vars({ '--sc': CATS[k].color })} head={<><span className="grip" aria-label="Drag to reorder sections" title="Drag to reorder sections">⋮⋮</span><CatIcon cat={k} /><b>{CATS[k].label}</b><span className="faint small">{counts[k]}</span></>}>
+        <div key={k} data-sec={k}><Disc k={`cat-${k}`} cls="tint" style={vars({ '--sc': CATS[k].color })} head={<><span className="grip" aria-label="Drag to reorder sections" title="Drag to reorder sections">⋮⋮</span><CatIcon cat={k} /><b>{CATS[k].label}</b><span className="faint small">{counts[k] || ''}</span></>}>
+          {k === 'car' && (carForm ? <CarForm t={t} onDone={() => setCarForm(false)} />
+            : <div><button type="button" className="btn-sm" onClick={() => setCarForm(true)}>+ Add a rental car</button></div>)}
+          {k === 'stay' && !counts[k] && <div className="faint small drag-hint">Paste an Airbnb or Booking.com link, or search for a hotel, with <button type="button" className="linkish" onClick={openAdd}>+ Add a place</button>.</div>}
           {counts[k] > 1 && <span className="faint small drag-hint">
             {comparing === k ? 'Side by side, in your order.' : `Drag to put them in order of preference${k === 'stay' || k === 'car' ? ', favorite first' : ''}.`}
             {(k === 'stay' || k === 'car') && <> <button type="button" className="linkish" onClick={() => setComparing(comparing === k ? null : k)}>{comparing === k ? 'Back to the list' : 'Compare them'}</button></>}
           </span>}
           {comparing === k ? <Compare t={t} list={t.ideas.filter(i => inCat(i, k))} open={id => { setComparing(null); set({ open: id, hl: id, panTo: pan(id) }); }} />
-          : <div className="group" data-cat={k}>{t.ideas.filter(i => inCat(i, k)).map(i => <IdeaRow key={i.id} t={t} i={i} ui={ui} set={set} pick={picked ? { on: picked.includes(i.id), toggle: () => pickToggle(i.id) } : null} offMap={!!i.offMap} catOff={catOff(i.cat)} toggleMap={() => editTrip(t.id, tt => { const x = tt.ideas.find(y => y.id === i.id)!; if (x.offMap) delete x.offMap; else x.offMap = true; })} />)}</div>}
+          : !!counts[k] && <div className="group" data-cat={k}>{t.ideas.filter(i => inCat(i, k)).map(i => <IdeaRow key={i.id} t={t} i={i} ui={ui} set={set} pick={picked ? { on: picked.includes(i.id), toggle: () => pickToggle(i.id) } : null} offMap={!!i.offMap} catOff={catOff(i.cat)} toggleMap={() => editTrip(t.id, tt => { const x = tt.ideas.find(y => y.id === i.id)!; if (x.offMap) delete x.offMap; else x.offMap = true; })} />)}</div>}
         </Disc></div>
       ))}</div>}
   </>;
