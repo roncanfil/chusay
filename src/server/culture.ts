@@ -10,7 +10,7 @@ export const cultureKey = () => process.env.ANTHROPIC_API_KEY || '';
 
 type Row = Record<string, unknown>;
 // notes saved before the household's own phrase list, Portugal's regional words or American English are redone on next open
-const AMERICAN_SINCE = '2026-10-21T20:00:00Z';
+const AMERICAN_SINCE = '2026-10-21T23:00:00Z';
 const isStale = (cid: string, c: CultureEntry) => c.fetchedAt < AMERICAN_SINCE
   || (STYLE[cid]?.phrases !== false && !c.phrases.some(([en]) => /two beers/i.test(en))) || (!!STYLE[cid]?.regional && !c.regional?.length);
 
@@ -49,17 +49,17 @@ const wikivoyage = (title: string) => wikivoyagePage(title, SECTIONS);
 // the household asked for these in every country, first and in this order
 const MUST = ['Hello', 'Thank you', 'I want a beer', 'I want two beers', 'I want wine', 'I want some water', 'Where’s the bathroom?'];
 // countries they want shaped differently: they live in Portugal, so no basic phrases or customs, only regional words for beer and coffee
-const STYLE: Record<string, { customs: boolean; phrases?: false; regional?: string }> = {
-  '620': { customs: false, phrases: false, regional: 'how people ask for a beer (a small draught, a large one, a bottle) and for a coffee (an espresso, one with milk, a galão) differ between regions: Lisbon, Porto and the north, the Algarve, Madeira and the Azores. Give each region’s own words, and say where a word would puzzle people elsewhere' },
+const STYLE: Record<string, { customs: boolean; phrases?: false; note?: string; regional?: string }> = {
+  '620': { customs: false, phrases: false, note: 'Two or three sentences on how ordering a beer or a coffee changes around the country', regional: 'how people ask for a beer (a small draught, a large one, a bottle) and for a coffee (an espresso, one with milk, a galão) differ between regions: Lisbon, Porto and the north, the Algarve, Madeira and the Azores. Give each region’s own words, and say where a word would puzzle people elsewhere' },
 };
 
 const SAY = { type: 'string', description: 'How to say it, in simple English spelling with the stressed syllable in capitals' };
-const schema = (customs: boolean, regional: boolean, phrases: boolean) => ({
+const schema = (customs: boolean, regional: boolean, phrases: boolean, note = 'Two or three sentences on speaking with people there') => ({
   type: 'object', additionalProperties: false,
   required: ['variant', 'note', ...(phrases ? ['phrases'] : []), ...(customs ? ['dos', 'donts'] : []), ...(regional ? ['regional'] : [])],
   properties: {
     variant: { type: 'string', description: 'The language visitors meet, as a short label, e.g. "European Portuguese" or "Darija, with French widely spoken"' },
-    note: { type: 'string', description: 'Two or three sentences on speaking with people there' },
+    note: { type: 'string', description: note },
     ...(phrases ? { phrases: {
       type: 'array', description: `First exactly these, in this order, with "en" written as given: ${MUST.join('; ')}. Then up to five other everyday phrases`,
       items: { type: 'object', additionalProperties: false, required: ['en', 'local', 'say'], properties: { en: { type: 'string' }, local: { type: 'string' }, say: SAY } },
@@ -84,7 +84,8 @@ const SYSTEM = `You write the culture notes in a trip planner used by two travel
 Keep each custom to one plain sentence. Write a "best to avoid" item as the thing itself ("Eating the bread placed on the table unless you want it"), not as an order.
 Phrases are what a visitor would say: when a phrase changes with the speaker (as "thank you" does in Portuguese), give both forms in "local".
 Stick to what the text supports, plus phrases and pronunciations you are sure of. No prices, no opening hours, no restaurant or shop names.
-Write in American English spelling and wording (humor, favorite, neighbor, color), whatever the source uses.`;
+Write in American English spelling and wording (humor, favorite, neighbor, color), whatever the source uses.
+Write as advice to the travelers. Never mention the text you were given, Wikivoyage, or what the source does or doesn't cover.`;
 
 interface Out {
   variant: string; note: string; phrases?: { en: string; local: string; say: string }[]; dos?: string[]; donts?: string[];
@@ -98,7 +99,7 @@ async function summarize(cid: string, country: string, text: string): Promise<Ou
     model: 'claude-sonnet-5-5', max_tokens: 16000,
     // a declined request is retried server-side on Anthropic's recommended fallback model
     betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default',
-    output_config: { effort: 'medium', format: { type: 'json_schema', schema: schema(style.customs, !!style.regional, style.phrases !== false) } },
+    output_config: { effort: 'medium', format: { type: 'json_schema', schema: schema(style.customs, !!style.regional, style.phrases !== false, style.note) } },
     system: SYSTEM,
     messages: [{ role: 'user', content: `Wikivoyage on ${country}:\n\n${text}${style.regional ? `\n\nAlso list regional words: in ${country}, ${style.regional}.` : ''}` }],
   });
@@ -138,7 +139,8 @@ export function buildCulture(db: Database, cid: string, name: string): Promise<C
 const QUIRK_SECTIONS = new Set(['Understand', 'Talk', 'Eat', 'Drink', 'Do', 'Respect', 'Buy', 'Cope']);
 const QUIRK_SYSTEM = `You write the "local quirks" in a trip planner used by two travelers who live in Portugal. From a place's Wikivoyage text, pick the quirky, specific, surprising things about that place: local habits, food and drink oddities and what to order, festivals and when they happen, sayings, how people there do everyday things differently, small things locals would smile at a visitor knowing.
 Six to eight items. Each has a short title and one or two plain sentences. Skip the obvious sights, prices, opening hours, and restaurant or shop names. Stick to what the text supports.
-Write in American English spelling and wording (humor, favorite, neighbor, color), whatever the source uses.`;
+Write in American English spelling and wording (humor, favorite, neighbor, color), whatever the source uses.
+Never mention the text you were given, Wikivoyage, or what the source does or doesn't cover.`;
 const QUIRK_SCHEMA = {
   type: 'object', additionalProperties: false, required: ['quirks'],
   properties: { quirks: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['title', 'text'], properties: { title: { type: 'string' }, text: { type: 'string' } } } } },

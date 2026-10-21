@@ -21,7 +21,8 @@ function Tile({ t, kind }: { t: Trip; kind: Section }) {
   return (
     <Link className="tile" href={`/trips/${t.id}`} style={vars({ '--sc': `var(--s-${SECTIONS[kind][0]})` })}>
       <span className="tile-map"><Thumb t={t} /></span>
-      <span className="tile-txt"><b>{t.name}</b><small className="num">{t.dest.country}{isSomeday(t) ? '' : ' · ' + fmtRange(t)}</small></span>
+      {/* the city (or region) the trip goes to, and its dates on their own line */}
+      <span className="tile-txt"><b>{t.name}</b><small>{t.dest.name}</small>{!isSomeday(t) && <small className="num">{fmtRange(t)}</small>}</span>
       <span className="tile-tag">{tag}</span>
     </Link>
   );

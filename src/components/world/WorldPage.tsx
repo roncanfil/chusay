@@ -68,6 +68,7 @@ export function WorldPage() {
   const [country, setCountry] = useState<string | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [editing, setEditing] = useState<string | null>(null); // a visit logged by hand, being changed
+  const [making, setMaking] = useState<string | null>(null); // a visit logged by hand, becoming a full trip
   const [tip, setTip] = useState<{ cid: string; x: number; y: number } | null>(null);
   const ready = !!S;
 
@@ -119,6 +120,18 @@ export function WorldPage() {
     const f = new FormData(e.currentTarget), from = String(f.get('when'));
     update(st => { const v = st.visits.find(x => x.id === id); if (v) { v.cid = String(f.get('country')); v.places = String(f.get('places')).trim(); v.from = from; v.to = from; } });
     setEditing(null); toast('Visit updated.');
+  }
+
+  // a visit logged by hand becomes a past trip with days, ideas and How it went, to fill in what we did
+  function makeTrip(e: FormEvent<HTMLFormElement>, id: string) {
+    e.preventDefault();
+    const v = S!.visits.find(x => x.id === id); if (!v) return;
+    const f = new FormData(e.currentTarget), len = Math.max(1, Math.min(60, Number(f.get('len')) || 3));
+    const where = v.places.trim() || COUNTRY[v.cid];
+    const t = mkTrip({ name: String(f.get('name')).trim() || `${where} trip`, city: null, dest: { name: where, country: COUNTRY[v.cid], cid: v.cid }, start: String(f.get('start')), len });
+    update(st => { st.trips.push(t); st.visits = st.visits.filter(x => x.id !== id); });
+    setMaking(null); toast(`${t.name} is now a trip. Add the places you went and how it went.`);
+    router.push(`/trips/${t.id}`);
   }
 
   const visits = visitList(S);
@@ -182,7 +195,14 @@ export function WorldPage() {
             return (
               <div key={v.trip || v.id} style={{ display: 'contents' }}>
                 {head && <div className="year num">{y}</div>}
-                {editing && editing === v.id ? (
+                {making && making === v.id ? (
+                  <form className="form-row visit-edit" style={{ alignItems: 'end' }} onSubmit={e => makeTrip(e, v.id!)}>
+                    <label className="field">Trip name<input name="name" defaultValue={`${v.places || COUNTRY[v.cid]}`} required /></label>
+                    <label className="field">First day<input name="start" type="date" required defaultValue={`${v.from}-01`} /></label>
+                    <label className="field">Days<input name="len" type="number" min="1" max="60" defaultValue="5" required /></label>
+                    <div className="acts"><button className="btn primary" type="submit">Make it a trip</button><button type="button" className="btn quiet" onClick={() => setMaking(null)}>Cancel</button></div>
+                  </form>
+                ) : editing && editing === v.id ? (
                   <form className="form-row visit-edit" style={{ alignItems: 'end' }} onSubmit={e => saveVisit(e, v.id!)}>
                     <label className="field">Country<select name="country" defaultValue={v.cid}>{SORTED.map(([id, n]) => <option key={id} value={id}>{n}</option>)}</select></label>
                     <label className="field">Places<input name="places" defaultValue={v.places} required /></label>
@@ -194,7 +214,7 @@ export function WorldPage() {
                     <div className="when num">{v.when}<br />{v.trip
                       // trips made in the app are changed on their own page (name, dates, place)
                       ? <Link className="linkish" href={`/trips/${v.trip}`}>Open to edit</Link>
-                      : <><button type="button" className="linkish" onClick={() => setEditing(v.id!)}>Edit</button> · <button type="button" className="linkish" onClick={() => update(st => { st.visits = st.visits.filter(x => x.id !== v.id); })}>Remove</button></>}</div>
+                      : <><button type="button" className="linkish" onClick={() => setMaking(v.id!)}>Make it a trip</button> · <button type="button" className="linkish" onClick={() => setEditing(v.id!)}>Edit</button> · <button type="button" className="linkish" onClick={() => update(st => { st.visits = st.visits.filter(x => x.id !== v.id); })}>Remove</button></>}</div>
                   </div>
                 )}
               </div>

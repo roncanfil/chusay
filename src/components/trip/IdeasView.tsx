@@ -4,13 +4,13 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type M
 import Sortable from 'sortablejs';
 import { Disc } from '@/components/Disc';
 import { CatIcon, KindIcon, ListSegIcon, MapSegIcon, PhotoCredit, Pic, SrcChip, vars } from '@/components/icons';
-import { BUDGETS, CAT_KEYS, CATS, dayColor, DIETS, INTERESTS, PACE } from '@/lib/constants';
+import { BUDGETS, CAT_KEYS, CATS, dayColor, DIETS, INTERESTS, PACE, TRIP_TO_MUHU } from '@/lib/constants';
 import { kindLabel } from '@/lib/kinds';
 import { searchCatalog, suggestions } from '@/lib/picks';
 import { uid } from '@/lib/seed';
 import { fromCatalog, findPlaces } from '@/lib/search';
 import { editTrip, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
-import { isSomeday, isUrl, planned, scheduledDay, stayLabel } from '@/lib/trips';
+import { isPast, isSomeday, isUrl, planned, scheduledDay, stayLabel } from '@/lib/trips';
 import type { Cat, Idea, Pace, PlaceResult, Prefs, Trip } from '@/lib/types';
 import { IdeaCat, IdeaNote, IdeaSource, MapsLink } from './fields';
 import { StayDays, StayFields, StayForm } from './stays';
@@ -219,6 +219,7 @@ function IdeaRow({ t, i, ui, set, offMap, catOff, toggleMap }: { t: Trip; i: Ide
         <PhotoCredit p={i} />
         {i.cat === 'stay' && !isSomeday(t) && <StayDays t={t} i={i} />}
         {!isSomeday(t) && <div className="inline-field">{d >= 0 ? 'Planned for' : 'Add to'} <span className="chips">{t.days.map((x, k) => <button key={x.id} type="button" className="chip dchip" style={vars({ '--dc': dayColor(k) })} aria-pressed={d === k} onClick={() => setDay(k)}>Day {k + 1}</button>)}</span></div>}
+        <MoveIdea t={t} i={i} done={() => set({ open: null, hl: null })} />
         <div className="acts">
           {i.lat != null && !catOff && <button type="button" className="btn-sm" aria-pressed={!offMap} onClick={toggleMap}>{offMap ? 'Show on the map' : 'Hide from the map'}</button>}
           <button type="button" className="btn-sm" onClick={remove}>Remove idea</button>
@@ -228,3 +229,29 @@ function IdeaRow({ t, i, ui, set, offMap, catOff, toggleMap }: { t: Trip; i: Ide
   </>;
 }
 
+
+// take an idea off this trip and keep it elsewhere: another trip, or Muhu for some later trip (it leaves this trip's days too)
+function MoveIdea({ t, i, done }: { t: Trip; i: Idea; done: () => void }) {
+  const S = useAppState()!;
+  const others = S.trips.filter(x => x.id !== t.id && !isPast(x)).sort((a, b) => Number(b.dest.cid === t.dest.cid) - Number(a.dest.cid === t.dest.cid));
+  function move(to: string | 'muhu') {
+    update(s => {
+      const from = s.trips.find(x => x.id === t.id)!;
+      from.ideas = from.ideas.filter(x => x.id !== i.id);
+      from.days.forEach(d => { d.stops = d.stops.filter(x => x.idea !== i.id); });
+      delete from.feedback.votes[i.id];
+      // a new id: an idea belongs to one trip, and the old one is deleted with this trip's next save
+      const copy: Idea = { ...i, id: uid() }; delete copy.stayDays; delete copy.offMap; // its days and map choice belonged to this trip
+      if (to === 'muhu') s.muhu.push({ id: uid(), cid: t.dest.cid, country: t.dest.country, name: i.name, cats: [TRIP_TO_MUHU[i.cat] ?? 'other'], want: '', area: i.hood, when: '', far: '', note: i.note,
+        ...(i.source ? { source: i.source } : {}), ...(i.placeId ? { placeId: i.placeId, match: 'set' as const } : {}), lat: i.lat, lng: i.lng, ...(i.image ? { image: i.image } : {}) });
+      else s.trips.find(x => x.id === to)!.ideas.push(copy);
+    });
+    done(); toast(`Moved ${i.name} to ${to === 'muhu' ? `Muhu, under ${t.dest.country}` : S.trips.find(x => x.id === to)!.name}.`);
+  }
+  return (
+    <div className="inline-field">Move to <span className="chips">
+      <button type="button" className="chip" onClick={() => move('muhu')}>Muhu, for later</button>
+      {others.map(x => <button key={x.id} type="button" className="chip" onClick={() => move(x.id)}>{x.name}</button>)}
+    </span></div>
+  );
+}

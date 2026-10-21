@@ -64,6 +64,8 @@ export const MUHU_KEYS = Object.keys(MUHU_CATS) as MuhuCat[];
 // how much we want to go, in words; the most wanted come first
 export const WANT: Record<Exclude<Want, ''>, string> = { high: 'Must do', med: 'Would like to', low: 'If we’re nearby' };
 // a seed copied onto a trip lands in the closest trip category
+// and the other way, for an idea moved off a trip into Muhu
+export const TRIP_TO_MUHU: Record<string, MuhuCat> = { sight: 'built', food: 'food', act: 'fun', tour: 'fun', stay: 'other', shop: 'shop' };
 export const MUHU_TO_TRIP: Record<MuhuCat, Cat> = { outdoors: 'sight', food: 'food', built: 'sight', events: 'act', fun: 'act', culture: 'sight', kids: 'act', shop: 'shop', other: 'sight' };
 
 /* ---------- categories the household added: merged into the same lookups, so every list, chip, filter and map pin knows them ---------- */

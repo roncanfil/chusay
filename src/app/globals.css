@@ -328,7 +328,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .country-panel { margin-top: 4px; }
 .country.picked { stroke: var(--ink); stroke-width: 1.6; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.culture-note { max-width: 66ch; margin-bottom: 6px; }
+.culture-note { margin-bottom: 6px; }
 .toolbar { margin-top: 4px; }
 .toolbar .seg { flex-wrap: wrap; border-radius: 18px; overflow: visible; }
 .searchbox, .picks { margin-top: 14px; }
