@@ -766,3 +766,6 @@ label.btn-sm[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .cmp-empty { min-height: 200px; place-items: center; text-align: center; border-style: dashed; color: var(--ink-3); }
 .compare-inline { display: grid; gap: 12px; margin-bottom: 18px; }
 .side-top:not(.two) .mph.side-photo { aspect-ratio: 16 / 9; }
+.bul.quirks li { grid-template-columns: 22px minmax(0, 1fr); }
+.bul.quirks li::before { content: "✦"; color: #E07B2E; }
+.bul.quirks b { color: var(--ink); font-weight: 600; }

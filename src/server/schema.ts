@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS culture (
   dos              TEXT NOT NULL DEFAULT '[]', -- JSON
   donts            TEXT NOT NULL DEFAULT '[]', -- JSON
   regional         TEXT NOT NULL DEFAULT '[]', -- JSON: regional words, e.g. Portugal's beers and coffees
+  quirks           TEXT NOT NULL DEFAULT '[]', -- JSON: per trip, quirky things about its place (intro holds the place)
   source_url       TEXT,
   fetched_at       TEXT
 );

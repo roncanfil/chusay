@@ -5,7 +5,7 @@ import { Disc } from '@/components/Disc';
 import { vars } from '@/components/icons';
 import { CULTURE } from '@/lib/data/culture';
 import { editTrip, setView, toast, useConfig, useView } from '@/lib/store';
-import type { Culture, CultureEntry, Trip } from '@/lib/types';
+import type { Culture, CultureEntry, Quirks, Trip } from '@/lib/types';
 
 // Useful phrases, Regional words or Good to do / Best to avoid, and Our notes (never overwritten by a refresh)
 export function CultureView({ t }: { t: Trip }) {
@@ -14,6 +14,7 @@ export function CultureView({ t }: { t: Trip }) {
   // with a Claude key every trip gets its country's Wikivoyage summary; without one, the preview's samples
   const sample = CULTURE[t.city || ''];
   return <>
+    {cfg.culture && <TripQuirks key={t.id + t.dest.name} t={t} />}
     {cfg.culture ? <CountryCulture key={t.dest.cid} t={t} />
       : sample ? <><CultureSections c={sample} /><p className="faint small" style={{ marginTop: 18 }}>Sample notes for the preview.</p></>
       : <div className="group empty"><b style={{ color: 'var(--ink)' }}>Phrases and customs for {t.dest.country}</b><span>These fill in from Wikivoyage once the Claude key is set up on the server.</span></div>}
@@ -29,12 +30,14 @@ function CultureSections({ c }: { c: Culture }) {
   const toggle = <button type="button" className="btn-sm" style={{ justifySelf: 'start' }} aria-pressed={sayIt} onClick={() => setView({ sayIt: !sayIt })}>{sayIt ? 'Hide pronunciation' : 'Show pronunciation'}</button>;
   return <>
     <p className="muted culture-note">{c.note}</p>
-    <Disc k="phrases" cls="tint" style={vars({ '--sc': '#2F86D6' })} head={<><i className="sec-dot" /><b>Useful phrases</b><span className="faint small">{c.variant}</span></>}>
-      <div className="group">
-        {c.phrases.map(([en, loc, say]) => <div key={en} className="row"><div className="main phr"><span className="en">{en}</span><span className="loc">{loc}</span>{sayIt && <span className="say">{say}</span>}</div></div>)}
-        <div className="more">{toggle}</div>
-      </div>
-    </Disc>
+    {!!c.phrases.length && (
+      <Disc k="phrases" cls="tint" style={vars({ '--sc': '#2F86D6' })} head={<><i className="sec-dot" /><b>Useful phrases</b><span className="faint small">{c.variant}</span></>}>
+        <div className="group">
+          {c.phrases.map(([en, loc, say]) => <div key={en} className="row"><div className="main phr"><span className="en">{en}</span><span className="loc">{loc}</span>{sayIt && <span className="say">{say}</span>}</div></div>)}
+          <div className="more">{toggle}</div>
+        </div>
+      </Disc>
+    )}
     {!!c.regional?.length && (
       <Disc k="regional" cls="tint" style={vars({ '--sc': '#8E5BD0' })} head={<><i className="sec-dot" /><b>Regional words</b><span className="faint small">they change across the country</span></>}>
         <div className="group">
@@ -107,4 +110,45 @@ function CountryCulture({ t }: { t: Trip }) {
       <button type="button" className="linkish" disabled={status === 'building'} onClick={build}>{status === 'building' ? 'Refreshing…' : 'Refresh'}</button>
     </p>
   </>;
+}
+
+// quirky things about this trip's own place, first in the tab; written once per trip, and again when the trip moves
+const quirksSeen = new Map<string, Quirks>();
+function TripQuirks({ t }: { t: Trip }) {
+  const [q, setQ] = useState<Quirks | null>(() => quirksSeen.get(t.id) ?? null);
+  const [status, setStatus] = useState<Status>(q ? 'ready' : 'loading');
+  const url = `/api/culture/trip/${encodeURIComponent(t.id)}`;
+  async function build() {
+    setStatus('building');
+    try {
+      const r = await fetch(`${url}?${new URLSearchParams({ place: t.dest.name, country: t.dest.country, cid: t.dest.cid })}`, { method: 'POST' });
+      if (!r.ok) throw new Error(String(r.status));
+      const n = await r.json() as Quirks | null;
+      if (n) { quirksSeen.set(t.id, n); setQ(n); }
+      setStatus(n || q ? 'ready' : 'none');
+    } catch { setStatus(q ? 'ready' : 'error'); }
+  }
+  useEffect(() => {
+    if (quirksSeen.get(t.id)?.place === t.dest.name) return;
+    let live = true;
+    fetch(url).then(r => r.json() as Promise<Quirks | null>).then(saved => {
+      if (!live) return;
+      if (saved?.place === t.dest.name) { quirksSeen.set(t.id, saved); setQ(saved); setStatus('ready'); } else build();
+    }, () => { if (live) setStatus('error'); });
+    return () => { live = false; };
+  // once per trip and place; the component is keyed by them
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const where = t.dest.name;
+  return (
+    <Disc k="quirks" cls="tint" style={vars({ '--sc': '#E07B2E' })} head={<><i className="sec-dot" /><b>Local quirks</b><span className="faint small">{where}</span></>}>
+      {q ? <>
+        <ul className="group bul quirks">{q.items.map(([title, text]) => <li key={title}><span><b>{title}.</b> {text}</span></li>)}</ul>
+        <p className="faint small">About {q.place}, from <a className="linkish" href={q.source} target="_blank" rel="noopener noreferrer">Wikivoyage</a> (CC BY-SA), picked by Claude.{' '}
+          <button type="button" className="linkish" disabled={status === 'building'} onClick={build}>{status === 'building' ? 'Refreshing…' : 'Refresh'}</button></p>
+      </> : <div className="group empty">{status === 'none' ? <span>Wikivoyage has nothing on {where} yet. Add what you find under Our notes.</span>
+        : status === 'error' ? <><span>Couldn’t gather quirks for {where}.</span><button type="button" className="btn" onClick={build}>Try again</button></>
+        : <span>Gathering quirky things about {where} from Wikivoyage. The first time takes up to a minute.</span>}</div>}
+    </Disc>
+  );
 }

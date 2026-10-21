@@ -107,6 +107,8 @@ const MIGRATIONS: string[] = [
   // 8: what's left off the maps is kept with the trip, for both of you and after a reload
   `ALTER TABLE ideas ADD COLUMN map_hidden INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE trips ADD COLUMN map_off TEXT NOT NULL DEFAULT '[]';`,
+  // 9: each trip's Culture tab gets quirky things about its own place
+  `ALTER TABLE culture ADD COLUMN quirks TEXT NOT NULL DEFAULT '[]';`,
 ];
 
 // foreign keys are off while migrating, so rebuilding a table (copy, drop, rename) doesn't cascade-delete

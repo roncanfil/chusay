@@ -222,6 +222,13 @@ export interface Culture {
   regional?: [string, string, string, string][]; // [what, region, local, say]: Portugal's beers and coffees
 }
 // Culture built from Wikivoyage by Claude and saved per country
+// the trip's own place: quirky local things, from its Wikivoyage page
+export interface Quirks {
+  place: string; // the destination they were written for; a moved trip gets new ones
+  items: [string, string][]; // [short title, one or two sentences]
+  source: string;
+  fetchedAt: string;
+}
 export interface CultureEntry extends Culture {
   source: string; // the Wikivoyage page, credited under CC BY-SA
   fetchedAt: string;
