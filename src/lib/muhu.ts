@@ -58,19 +58,26 @@ const split = (v: string) => v.split(/,\s*/).map(x => x.trim()).filter(Boolean);
 const isLink = (v: string) => /^https?:\/\//i.test(v) || /^[\w-]+\.[a-z]{2,}(\/|$)/i.test(v);
 const useful = (v: string) => !!v && !/^n\/?a$/i.test(v);
 
-export interface ImportResult { ideas: MuhuIdea[]; skipped: number; moved: number }
+// what an import would do: new ideas, saved ones whose blanks it fills in, and whether the file had more than names
+export interface ImportResult { ideas: MuhuIdea[]; filled: MuhuIdea[]; skipped: number; moved: number; namesOnly: boolean }
+
+// fills only what's still empty in a saved idea, so nothing typed in the app is overwritten
+function fillBlanks(m: MuhuIdea, x: MuhuIdea): MuhuIdea | null {
+  const out = { ...m, cats: m.cats.length ? m.cats : x.cats, want: m.want || x.want, area: m.area || x.area, when: m.when || x.when, far: m.far || x.far, note: m.note || x.note, ...(m.source || x.source ? { source: m.source || x.source } : {}) };
+  return (Object.keys(out) as (keyof MuhuIdea)[]).some(k => out[k] !== m[k]) ? out : null;
+}
 
 // countries: [cid, name] from the world map; names found in a row's name or location move it to that country
 export function fromNotion(text: string, home: { cid: string; country: string }, have: MuhuIdea[], countries: (readonly [string, string])[]): ImportResult {
   const [head, ...rows] = parseCsv(text);
-  if (!head) return { ideas: [], skipped: 0, moved: 0 };
+  if (!head) return { ideas: [], filled: [], skipped: 0, moved: 0, namesOnly: true };
   const col = Object.fromEntries(COLS.map(([k]) => [k, [] as number[]])) as Cols;
   head.forEach((h, n) => { const hit = COLS.find(([, re]) => re.test(plain(h))); if (hit) col[hit[0]].push(n); });
   if (!col.name.length) col.name.push(0);
-  const seen = new Set(have.map(m => `${m.cid}|${plain(m.name)}`));
+  const saved = new Map(have.map(m => [`${m.cid}|${plain(m.name)}`, m])), seen = new Set<string>();
   // accents count here, so "Mação" doesn't read as Macao
   const named = countries.map(([cid, n]) => [cid, n, new RegExp(`\\b${n.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`)] as const);
-  const out: MuhuIdea[] = []; let skipped = 0, moved = 0;
+  const out: MuhuIdea[] = [], filled: MuhuIdea[] = []; let skipped = 0, moved = 0;
   for (const r of rows) {
     const get = (k: keyof Cols) => col[k].map(n => (r[n] || '').trim()).filter(useful);
     const name = get('name')[0];
@@ -99,8 +106,42 @@ export function fromNotion(text: string, home: { cid: string; country: string },
     const cid = other ? other[0] : home.cid, country = other ? other[1] : home.country;
     const key = `${cid}|${plain(name)}`;
     if (seen.has(key)) { skipped++; continue; }
-    seen.add(key); if (other) moved++;
-    out.push({ id: uid(), cid, country, name, cats, want: wantOf(get('want')[0] || ''), area, when, far, note, ...(source ? { source } : {}) });
+    seen.add(key);
+    const idea: MuhuIdea = { id: uid(), cid, country, name, cats, want: wantOf(get('want')[0] || ''), area, when, far, note, ...(source ? { source } : {}) };
+    const was = saved.get(key);
+    if (was) { const f = fillBlanks(was, idea); if (f) filled.push(f); else skipped++; continue; }
+    if (other) moved++;
+    out.push(idea);
   }
-  return { ideas: out, skipped, moved };
+  const namesOnly = (Object.keys(col) as (keyof Cols)[]).every(k => k === 'name' || !col[k].length);
+  return { ideas: out, filled, skipped, moved, namesOnly };
+}
+
+/* ---------- a Notion export arrives as a .zip (sometimes one inside another); its CSVs are read without a library ---------- */
+async function csvsInZip(buf: ArrayBuffer): Promise<string[]> {
+  const v = new DataView(buf), u8 = new Uint8Array(buf), out: string[] = [];
+  let end = buf.byteLength - 22;
+  while (end >= 0 && v.getUint32(end, true) !== 0x06054b50) end--;
+  if (end < 0) throw new Error('Not a zip file');
+  let p = v.getUint32(end + 16, true);
+  for (let n = v.getUint16(end + 10, true); n > 0; n--) {
+    const method = v.getUint16(p + 10, true), size = v.getUint32(p + 20, true), nl = v.getUint16(p + 28, true), local = v.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(u8.subarray(p + 46, p + 46 + nl));
+    p += 46 + nl + v.getUint16(p + 30, true) + v.getUint16(p + 32, true);
+    if (!/\.(csv|zip)$/i.test(name) || (method !== 0 && method !== 8)) continue;
+    const start = local + 30 + v.getUint16(local + 26, true) + v.getUint16(local + 28, true);
+    const raw = u8.slice(start, start + size);
+    const data = method === 8 ? await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer() : raw.buffer;
+    if (/\.zip$/i.test(name)) out.push(...await csvsInZip(data)); else out.push(new TextDecoder().decode(data));
+  }
+  return out;
+}
+
+// Notion exports the visible columns and, in a file ending in _all, every column: the widest CSV wins
+export async function readExport(file: File): Promise<string> {
+  if (!/\.zip$/i.test(file.name) && file.type !== 'application/zip') return file.text();
+  const csvs = await csvsInZip(await file.arrayBuffer());
+  if (!csvs.length) throw new Error('No list in this zip');
+  const width = (t: string) => parseCsv(t.slice(0, t.indexOf('\n') + 1 || undefined))[0]?.length ?? 0;
+  return csvs.reduce((a, b) => width(b) > width(a) ? b : a);
 }

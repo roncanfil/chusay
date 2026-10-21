@@ -5,7 +5,7 @@ import { Disc } from '@/components/Disc';
 import { PinSvg, SrcChip, vars } from '@/components/icons';
 import { CATS, MUHU_CATS, MUHU_KEYS, MUHU_TO_TRIP, WANT } from '@/lib/constants';
 import worldData from '@/lib/data/world.json';
-import { byWant, catsOf, fromNotion, mainCat, plain, type ImportResult } from '@/lib/muhu';
+import { byWant, catsOf, fromNotion, mainCat, plain, readExport, type ImportResult } from '@/lib/muhu';
 import { uid } from '@/lib/seed';
 import { editMuhu, editTrip, toast, update, useAppState } from '@/lib/store';
 import { isMaps, isPast } from '@/lib/trips';
@@ -60,27 +60,32 @@ function ImportForm({ S, cid, onDone }: { S: AppState; cid: string; onDone: (cid
   const found: ImportResult | null = text === null ? null : fromNotion(text, { cid: home, country: COUNTRY[home] }, S.muhu, SORTED);
   function pick(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return;
-    file.text().then(setText, () => toast('Couldn’t read that file.'));
+    readExport(file).then(setText, () => toast('Couldn’t read that file. Choose the .zip from Notion or the .csv inside it.'));
   }
+  const count = (found?.ideas.length ?? 0) + (found?.filled.length ?? 0);
   function add() {
-    if (!found?.ideas.length) return;
-    update(s => { s.muhu.push(...found.ideas); });
-    toast(`Added ${ideas(found.ideas.length)}.`); onDone(home);
+    if (!count) return;
+    const fill = new Map(found!.filled.map(m => [m.id, m]));
+    update(s => { s.muhu = s.muhu.map(m => fill.get(m.id) ?? m); s.muhu.push(...found!.ideas); });
+    toast([found!.ideas.length && `Added ${ideas(found!.ideas.length)}`, found!.filled.length && `filled in ${found!.filled.length} already saved`].filter(Boolean).join(', ') + '.'); onDone(home);
   }
   return (
     <div className="group form">
-      <p className="small muted">In Notion, open the list, choose <b>⋯ → Export</b>, pick <b>Markdown &amp; CSV</b>, unzip it and choose the <b>.csv</b> file here. Pictures stay in Notion.</p>
+      <p className="small muted">In Notion, open the list, choose <b>⋯ → Export</b>, pick <b>Markdown &amp; CSV</b>, and choose the <b>.zip</b> it downloads here (or the <b>.csv</b> ending in <b>_all</b> inside it). Pictures stay in Notion.</p>
       <div className="form-row">
         <label className="field">Whose list is it<select value={home} onChange={e => setHome(e.target.value)}>{SORTED.map(([id, n]) => <option key={id} value={id}>{n}</option>)}</select></label>
-        <label className="field">CSV file<input type="file" accept=".csv,text/csv" onChange={pick} /></label>
+        <label className="field">CSV file<input type="file" accept=".zip,.csv,application/zip,text/csv" onChange={pick} /></label>
       </div>
       <div className="section-head">
         <span className="faint small">{!found ? 'Categories, how much you want it, when to go, notes and links come along.'
-          : !found.ideas.length ? 'Nothing new in this file.'
-          : `${ideas(found.ideas.length)} to add${found.moved ? `, ${found.moved} of them in another country` : ''}${found.skipped ? `. ${found.skipped} already saved or repeated, skipped` : ''}.`}</span>
+          : found.namesOnly ? 'This file only has the names. Choose the .zip from Notion, or the .csv ending in _all, to bring the details too.'
+          : !count ? 'Nothing new in this file.'
+          : [found.ideas.length && `${ideas(found.ideas.length)} to add${found.moved ? `, ${found.moved} of them in another country` : ''}`,
+            found.filled.length && `${found.filled.length} already saved to fill in`,
+            found.skipped && `${found.skipped} already saved or repeated, skipped`].filter(Boolean).join('. ') + '.'}</span>
         <span className="sp" />
         <button type="button" className="btn quiet" onClick={() => onDone(home)}>Cancel</button>
-        <button type="button" className="btn primary" disabled={!found?.ideas.length} onClick={add}>Add {found?.ideas.length ? ideas(found.ideas.length) : ''}</button>
+        <button type="button" className="btn primary" disabled={!count || found?.namesOnly} onClick={add}>{found?.filled.length && !found.ideas.length ? 'Fill in' : `Add ${found?.ideas.length ? ideas(found.ideas.length) : ''}`}</button>
       </div>
     </div>
   );
