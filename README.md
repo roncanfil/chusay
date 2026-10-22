@@ -26,7 +26,7 @@ The repo’s CI publishes a Docker image to `ghcr.io/roncanfil/chusay` (amd64 an
 ### CasaOS
 
 1. In CasaOS: **App Store → Custom Install → Import**, and paste [`casaos/docker-compose.yml`](casaos/docker-compose.yml).
-2. Change `APP_PASSWORD` (the shared password; the app asks for it once per browser) and add Google keys if you have them. Pick another host port than `3210` if it’s taken.
+2. Change `APP_PASSWORD` (the shared login; the username is `APP_USER`, `us` by default; the app asks once per browser) and add Google keys if you have them. Pick another host port than `3210` if it’s taken.
 3. Install, then open the app from the CasaOS dashboard.
 
 The data lives in `/DATA/AppData/chusay/data` (the database, and pictures uploaded for Muhu ideas in `photos/`), with a copy of the database every night in `/DATA/AppData/chusay/backups` (kept 30 days) and of every uploaded picture in `backups/photos`.
@@ -62,7 +62,7 @@ docker run -d --name chusay -p 3210:3000 -v chusay-data:/data -e APP_PASSWORD=ch
 
 | Variable | What it does |
 | --- | --- |
-| `APP_PASSWORD` | Shared password for the whole site, built into the app (off when empty). |
+| `APP_PASSWORD`, `APP_USER` | Shared login for the whole site, built into the app (off when empty). |
 | `BACKUP_DIR`, `BACKUP_KEEP_DAYS` | Copy the database into this folder every day and keep this many days. |
 | `DEMO_MODE` | `true` starts a new database with sample trips and shows **Reset sample data**. |
 | `DATABASE_PATH` | Where the SQLite file lives (`/data/chusay.db` in the image). |

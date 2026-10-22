@@ -2,8 +2,8 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
 
 // Optional shared password for the whole site, for setups with nothing in front that adds one (CasaOS, plain Docker).
-// Set APP_PASSWORD to turn it on; the app has no accounts of its own.
-// A plain page with one password field (password managers fill it, unlike the browser's Basic-auth prompt),
+// Set APP_PASSWORD (and APP_USER, default "us") to turn it on; the app has no accounts of its own.
+// A plain sign-in page (password managers fill it, unlike the browser's Basic-auth prompt),
 // then a cookie remembers it for a year. Use HTTPS when it's reachable from outside your home network.
 const COOKIE = 'chusay-login';
 
@@ -17,7 +17,8 @@ export async function proxy(req: NextRequest) {
   if (path === '/api/login' && req.method === 'POST') {
     const form = await req.formData();
     const next = safeNext(String(form.get('next') || '/'));
-    if (!same(String(form.get('password') || ''), password)) return loginPage(next, true);
+    const userOk = same(String(form.get('username') || '').trim(), process.env.APP_USER || 'us');
+    if (!(same(String(form.get('password') || ''), password) && userOk)) return loginPage(next, true);
     const res = NextResponse.redirect(new URL(next, req.url), 303);
     const secure = (req.headers.get('x-forwarded-proto') || req.nextUrl.protocol).startsWith('https');
     res.cookies.set(COOKIE, token, { httpOnly: true, sameSite: 'lax', secure, path: '/', maxAge: 60 * 60 * 24 * 365 });
@@ -66,8 +67,9 @@ p { margin: 0; color: var(--warn); font-size: 14px; font-weight: 500; }
 <body><form method="post" action="/api/login">
 <h1><img src="/icon.svg" alt="">Ch’usay</h1>
 <input type="hidden" name="next" value="${attr}">
-<label>Password<input type="password" name="password" autocomplete="current-password" required autofocus></label>
-${wrong ? '<p>That’s not the password. Try again.</p>' : ''}
+<label>Username<input type="text" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus></label>
+<label>Password<input type="password" name="password" autocomplete="current-password" required></label>
+${wrong ? '<p>That username and password don’t match. Try again.</p>' : ''}
 <button type="submit">Sign in</button>
 </form></body></html>`, { status: 401, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
 }
