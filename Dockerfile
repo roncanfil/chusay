@@ -34,6 +34,6 @@ EXPOSE 3000
 # the commit this image was built from, shown at /api/version (CI passes it in)
 ARG GIT_SHA=dev
 ENV CHUSAY_COMMIT=$GIT_SHA
-# logs in with APP_USER/APP_PASSWORD when the built-in password is on
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD ["node", "-e", "const p = process.env.APP_PASSWORD, h = p ? { authorization: 'Basic ' + btoa((process.env.APP_USER || 'us') + ':' + p) } : {}; fetch('http://127.0.0.1:3000/api/config', { headers: h }).then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+# signs in with APP_PASSWORD's cookie when the built-in password is on
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD ["node", "-e", "const p = process.env.APP_PASSWORD, h = p ? { cookie: 'chusay-login=' + require('crypto').createHash('sha256').update('chusay:' + p).digest('hex') } : {}; fetch('http://127.0.0.1:3000/api/config', { headers: h }).then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
 CMD ["node", "server.js"]

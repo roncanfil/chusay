@@ -12,7 +12,6 @@ services:
         published: "3210"
         protocol: tcp
     environment:
-      APP_USER: us
       APP_PASSWORD: change-me
       DEMO_MODE: "false"
       BACKUP_DIR: /backups
