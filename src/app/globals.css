@@ -760,7 +760,9 @@ label.btn-sm[aria-disabled="true"] { opacity: .6; cursor: progress; }
 /* the picked idea on the right: name and actions, then its photo and pin side by side, then its details */
 .side-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .side-head h2 { flex: 1; min-width: 0; font-size: 21px; color: var(--ink); }
-.side-top.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+/* with a pin, the map gets the room and the photo shrinks to a small square beside the name */
+.side-top.big-map .map-box { aspect-ratio: 5 / 4; }
+.mph.side-thumb { width: 64px; height: 64px; aspect-ratio: auto; border-radius: 12px; flex: none; }
 .side-top .map-card { border-radius: 16px; }
 /* two ideas side by side */
 .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
@@ -772,7 +774,7 @@ label.btn-sm[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .cmp-col .acts { display: flex; gap: 8px; flex-wrap: wrap; }
 .cmp-empty { min-height: 200px; place-items: center; text-align: center; border-style: dashed; color: var(--ink-3); }
 .compare-inline { display: grid; gap: 12px; margin-bottom: 18px; }
-.side-top:not(.two) .mph.side-photo { aspect-ratio: 16 / 9; }
+.side-top:not(.big-map) .mph.side-photo { aspect-ratio: 16 / 9; }
 .bul.quirks li { grid-template-columns: 22px minmax(0, 1fr); }
 .bul.quirks li::before { content: "✦"; color: #E07B2E; }
 .bul.quirks b { color: var(--ink); font-weight: 600; }

@@ -286,7 +286,8 @@ function MuhuRow({ S, m, cat, sel, open, toggle, photos, onCompare, many }: Item
   </>;
 }
 
-// beside the ideas on wide screens: the picked idea's photo and its pin side by side, then its details; with nothing picked, every pin.
+// beside the ideas on wide screens: the picked idea's name with a small photo, its pin on a big map, then its details; with nothing picked, every pin.
+// Without a pin, the photo shows larger instead.
 // Comparing: two ideas side by side. A newly picked idea always opens at its top.
 function SidePanel({ S, list, pick, compare, onPin, onCompare, onStopCompare, viewKey, withMap }: {
   S: AppState; list: MuhuIdea[]; pick: MuhuIdea | null; compare: MuhuIdea | null; onPin: (id: string) => void
@@ -313,11 +314,12 @@ function SidePanel({ S, list, pick, compare, onPin, onCompare, onStopCompare, vi
   return (
     <aside ref={ref} className="muhu-side" style={vars({ '--cc': MUHU_CATS[cat].color })}>
       <div className="side-head">
+        {map && <MuhuPhoto key={pick.id} m={pick} cat={cat} cls="mph side-thumb" />}
         <h2>{pick.name}{pick.want === 'high' && <span className="must">{WANT.high}</span>}</h2>
         <button type="button" className="btn-sm" onClick={() => onCompare(pick.id)}>Compare with…</button>
         <button type="button" className="icon-btn" onClick={() => onPin(pick.id)} aria-label="Close">×</button>
       </div>
-      <div className={`side-top ${map ? 'two' : ''}`}><MuhuPhoto key={pick.id} m={pick} cat={cat} big credit cls="mph side-photo" />{map}</div>
+      <div className={`side-top ${map ? 'big-map' : ''}`}>{map || <MuhuPhoto key={pick.id} m={pick} cat={cat} big credit cls="mph side-photo" />}</div>
       {map && <span className="faint small">Drag the pin to move it.</span>}
       <div className="side-card"><MuhuDetails S={S} m={pick} /></div>
     </aside>
