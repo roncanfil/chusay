@@ -7,9 +7,10 @@ import { CATS, dayColor, ICON } from '@/lib/constants';
 import { kindLabel, kindPath } from '@/lib/kinds';
 import { suggestDay } from '@/lib/picks';
 import { uid } from '@/lib/seed';
-import { editTrip, setView, toast, useView } from '@/lib/store';
+import { findPlaces } from '@/lib/search';
+import { editTrip, setView, toast, useConfig, useView } from '@/lib/store';
 import { dayDate, fmtDay, fmtRange, ideaOf, isOption, offMap, scheduledDay, staysOn } from '@/lib/trips';
-import type { OwnPlan, Stop, Trip } from '@/lib/types';
+import type { OwnPlan, PlaceResult, Stop, Trip } from '@/lib/types';
 import { IdeaCat, IdeaHero, IdeaNote, IdeaSource, MapsLink } from './fields';
 import { StayDays, StayFields } from './stays';
 import { pan, type SetUI, type TabProps, type TripUI } from './ui';
@@ -79,6 +80,15 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
     set({ day: k, sel: s.id, addPanel: null }); toast(`Added to Day ${k + 1}. You can add where and notes now.`);
   }
   function addToDay(k: number, ideaId: string) { editTrip(t.id, tt => { tt.days[k].stops.push({ id: uid(), idea: ideaId, time: '' }); }); set({ day: k }); }
+  // a place that isn't in Ideas yet: saved to Ideas (only what identifies it) and put on the day in one go
+  function addNew(k: number, p: PlaceResult) {
+    const id = uid();
+    editTrip(t.id, tt => {
+      tt.ideas.push({ id, ...(p.placeId ? { placeId: p.placeId } : {}), name: p.name, cat: p.cat, kind: p.kind, hood: p.hood, lat: p.lat, lng: p.lng, tags: [], note: '' });
+      tt.days[k].stops.push({ id: uid(), idea: id, time: '' });
+    });
+    set({ day: k }); toast(`Added ${p.name} to Day ${k + 1}, and to Ideas under ${CATS[p.cat].label}.`);
+  }
 
   // a quiet bar: how long the trip is, a day to add, and how much to show
   const bar = (
@@ -117,7 +127,7 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
             <div className="agbody">
               <div className="aghead">
                 <input className="day-title" value={d.title} onChange={e => editTrip(t.id, tt => { tt.days[k].title = e.target.value; })} placeholder={fmtDay(dt)} aria-label={`Day ${k + 1} name`} />
-                <div className="day-add">{pill('ideas', <>+ From ideas <span className="n">{unplanned.length}</span></>)}{pill('own', '+ Your own')}</div>
+                <div className="day-add">{pill('ideas', <>+ From ideas <span className="n">{unplanned.length}</span></>)}{pill('own', '+ Custom')}</div>
               </div>
               {staysOn(t, k).map(i => {
                 const key = `${k}:${i.id}`, isOpen = stayOpen === key;
@@ -133,13 +143,13 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
               })}
               {ap === 'own' && <OwnForm onAdd={(title, time) => addOwn(k, title, time)} />}
               {ap === 'ideas' && (
-                <div className="add-panel">{unplanned.length
-                  ? <div className="adder" data-day={k}>{unplanned.map(i => (
+                <div className="add-panel"><NewPlace t={t} k={k} onAdd={p => addNew(k, p)} onCustom={title => addOwn(k, title, '')} />{unplanned.length
+                  ? <><p className="faint small adder-label">Or pick one you saved:</p><div className="adder" data-day={k}>{unplanned.map(i => (
                     <div key={i.id} className="row" data-idea={i.id} style={vars({ '--cc': CATS[i.cat].color })}>
                       <Pic p={i} /><div className="main"><span className="title">{i.name}</span><span className="meta">{kindLabel(i)}{i.hood ? ' · ' + i.hood : ''}{offMap(t, i) ? ' · not on the map' : ''}</span></div>
                       <button type="button" className="btn-sm" onClick={() => addToDay(k, i.id)}>+ Add</button>
-                    </div>))}</div>
-                  : <p className="faint small">Every idea is planned. Add more on the Ideas tab.</p>}
+                    </div>))}</div></>
+                  : <p className="faint small">Every saved idea is planned. Find a new place above.</p>}
                 </div>
               )}
               {!d.stops.length && <div className="open-day"><p>Nothing planned yet.</p>{canSuggest && <button type="button" className="btn-sm" onClick={() => suggest(k)}>Suggest a plan</button>}</div>}
@@ -152,7 +162,39 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
   </>;
 }
 
-// + Your own: a title and an optional time, with quick chips for common ones
+// in "+ From ideas": find a place that isn't saved yet, on Google (or the preview's samples), and put it straight on the day.
+// Nothing found: it can go on the day as a custom plan with that name
+function NewPlace({ t, k, onAdd, onCustom }: { t: Trip; k: number; onAdd: (p: PlaceResult) => void; onCustom: (title: string) => void }) {
+  const google = !!useConfig()?.places;
+  const [q, setQ] = useState(''), [res, setRes] = useState<{ q: string; list: PlaceResult[] | null; error?: string } | null>(null);
+  const seq = useRef(0);
+  async function search(e: FormEvent) {
+    e.preventDefault();
+    const term = q.trim(); if (!term) return;
+    const n = ++seq.current; setRes({ q: term, list: null });
+    try { const list = await findPlaces(t, term, google); if (n === seq.current) setRes({ q: term, list }); }
+    catch { if (n === seq.current) setRes({ q: term, list: [], error: 'Search isn’t working right now.' }); }
+  }
+  const custom = (title: string) => <button type="button" className="linkish" onClick={() => onCustom(title)}>add “{title}” as a custom plan</button>;
+  return (
+    <div className="new-place">
+      <form className="search" role="search" onSubmit={search}>
+        <input className="input" value={q} onChange={e => setQ(e.target.value)} placeholder={`A new place in ${t.dest.name}`} aria-label={`Find a new place for Day ${k + 1}`} autoComplete="off" />
+        <button className="btn-sm" type="submit">Find</button>
+      </form>
+      {res && (res.list === null ? <div className="shimmer" />
+        : res.list.length ? <div className="group">{res.list.slice(0, 5).map(p => (
+          <div key={p.placeId || p.name} className="row" style={vars({ '--cc': CATS[p.cat].color })}>
+            <Pic p={p} /><div className="main"><span className="title">{p.name}</span><span className="meta">{kindLabel(p)}{p.hood ? ' · ' + p.hood : ''}</span></div>
+            <button type="button" className="btn-sm" onClick={() => { onAdd(p); setRes(r => r && r.list ? { ...r, list: r.list.filter(x => x !== p) } : r); }}>+ Add</button>
+          </div>))}
+          <div className="more" style={{ paddingLeft: 18 }}><span className="faint small">Not the one? You can {custom(res.q)}.</span></div></div>
+        : <p className="faint small">{res.error || `Nothing found for “${res.q}”.`} You can {custom(res.q)}.</p>)}
+    </div>
+  );
+}
+
+// + Custom: a title and an optional time, with quick chips for common ones
 function OwnForm({ onAdd }: { onAdd: (title: string, time: string) => void }) {
   const [title, setTitle] = useState('');
   const ref = useRef<HTMLInputElement>(null);
@@ -192,7 +234,7 @@ function StopItem({ t, k, s, ui, set }: { t: Trip; k: number; s: Stop; ui: TripU
     return (
       <li className={`stn own ${sel ? 'sel' : ''}`} data-day={k} data-stop={s.id} style={vars({ '--cc': 'var(--c-own)' })} onClick={pick}>
         <span className="agtime num">{s.time}</span><Badge path={ICON.own} />
-        <span className="nm"><span className="tx"><b>{o.title || 'Our plan'}</b><small>Our own plan{o.where ? ' · ' + o.where : ''}</small>{o.note && !compact && <span className="note">{o.note}</span>}</span></span>
+        <span className="nm"><span className="tx"><b>{o.title || 'Our plan'}</b><small>Custom{o.where ? ' · ' + o.where : ''}</small>{o.note && !compact && <span className="note">{o.note}</span>}</span></span>
         {sel && <div className="stn-more" data-nodrag>
           <OwnField t={t} k={k} s={s} f="title" label="What" ph="Meet friends, a reservation, free time…" />
           <OwnField t={t} k={k} s={s} f="where" label="Where" ph="An address, their place, a café… (optional)" />
@@ -222,7 +264,7 @@ function StopItem({ t, k, s, ui, set }: { t: Trip; k: number; s: Stop; ui: TripU
   );
 }
 
-// "your own" entries: what, where, notes and a link (tickets, an event page)
+// custom entries: what, where, notes and a link (tickets, an event page)
 function OwnField({ t, k, s, f, label, ph, multiline }: { t: Trip; k: number; s: Stop; f: keyof OwnPlan; label: string; ph: string; multiline?: boolean }) {
   const change = (v: string) => editTrip(t.id, tt => { tt.days[k].stops.find(x => x.id === s.id)!.own![f] = v; });
   return (

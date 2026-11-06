@@ -13,7 +13,7 @@ export const CAT_KEYS = Object.keys(CATS) as Cat[];
 
 // categories plus "our own plan" entries on the itinerary
 export type IconKey = Cat | 'own';
-export const KINDS: Record<IconKey, { label: string; color: string }> = { ...CATS, own: { label: 'Our own plan', color: 'var(--c-own)' } };
+export const KINDS: Record<IconKey, { label: string; color: string }> = { ...CATS, own: { label: 'Custom', color: 'var(--c-own)' } };
 
 export const ICON: Record<IconKey, string> = {
   sight: 'M3 21h18M5 21v-10M9.5 21v-10M14.5 21v-10M19 21v-10M3 10l9-6 9 6z',

@@ -624,6 +624,9 @@ a.src:hover { text-decoration: underline; }
 .add-pill[aria-expanded="true"] { background: var(--dc, var(--accent)); border-color: var(--dc, var(--accent)); color: #fff; }
 .add-pill.own[aria-expanded="true"] { background: var(--c-own); border-color: var(--c-own); color: #fff; }
 .add-panel { margin: 0 0 10px 32px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.new-place { display: grid; gap: 8px; margin-bottom: 10px; }
+.new-place .search .input { flex: 1; min-width: 0; }
+.adder-label { margin: 2px 0 6px; }
 .add-panel.own { border-color: color-mix(in srgb, var(--c-own) 35%, var(--line)); }
 .as-list .add-panel { margin-left: 0; }
 .add-panel .own-form, .add-panel .chips.quick, .as-list .add-panel .own-form, .as-list .add-panel .chips.quick { padding-left: 0; }
