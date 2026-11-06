@@ -383,6 +383,14 @@ function SavedSearches({ S, now, apply }: { S: AppState; now: Omit<SavedSearch, 
 // Muhu: seeds for future trips, by country or by category
 export function MuhuPage() {
   const S = useAppState(), cfg = useConfig(), view = useView(), wide = useWide(), listRef = useRef<HTMLDivElement>(null);
+  // the round + at the bottom shows once "+ Add an idea" has scrolled away, so adding never needs a scroll back up
+  const headRef = useRef<HTMLDivElement>(null), formRef = useRef<HTMLDivElement>(null), [headGone, setHeadGone] = useState(false);
+  const ready = !!S;
+  useEffect(() => {
+    const el = headRef.current; if (!el) return;
+    const io = new IntersectionObserver(([e]) => setHeadGone(!e.isIntersecting));
+    io.observe(el); return () => io.disconnect();
+  }, [ready]);
   const [by, setBy] = useState<'country' | 'cat'>('country');
   const [cid, setCid] = useState<string | null>(null);
   const [open, setOpen] = useState<Pick | null>(null);
@@ -443,12 +451,12 @@ export function MuhuPage() {
 
   return (
     <div className="wrap">
-      <div className="page-head">
+      <div className="page-head" ref={headRef}>
         <div><h1>Muhu</h1><p className="muted">Seeds for future trips: what we’d love to see, country by country. No trip or dates needed.</p></div>
         <button type="button" className="btn" aria-expanded={panel === 'import'} onClick={() => setPanel(p => p === 'import' ? null : 'import')}>Import from Notion</button>
         <button type="button" className="btn primary" aria-expanded={panel === 'add'} onClick={() => setPanel(p => p === 'add' ? null : 'add')}>{panel === 'add' ? 'Cancel' : '+ Add an idea'}</button>
       </div>
-      {panel && <div style={{ marginTop: 18 }}>{panel === 'add'
+      {panel && <div ref={formRef} style={{ marginTop: 18, scrollMarginTop: 90 }}>{panel === 'add'
         ? <AddForm cid={country?.cid || PORTUGAL} onDone={done} />
         : <ImportForm S={S} cid={country?.cid || PORTUGAL} onDone={done} />}</div>}
 
@@ -547,6 +555,12 @@ export function MuhuPage() {
           {side && <SidePanel S={S} list={shown} pick={pick} compare={compare} onCompare={startCompare} onStopCompare={() => setCompareId(null)} viewKey={searching ? 'muhu-search' : `muhu-${by}-${by === 'country' ? country.cid : picked.join('+')}`} onPin={id => choose(id, 'pin')} withMap={view.muhuSide} />}
         </div>
       </>}
+      {headGone && panel !== 'add' && (
+        <button type="button" className="fab" aria-label="Add an idea" title="Add an idea"
+          onClick={() => { setPanel('add'); requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        </button>
+      )}
     </div>
   );
 }

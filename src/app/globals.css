@@ -679,6 +679,11 @@ a.src:hover { text-decoration: underline; }
 @media (max-width: 640px) { .mtiles { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; } .mtile { flex: none; min-width: 0; } }
 /* Muhu ideas as tiles: the photo itself (ours, Google's, or the category's icon on its color), then the name; no box around */
 .muhu-tools { margin-top: 18px; }
+/* Muhu's round + : the one floating thing, asked for so adding an idea never needs a scroll back up */
+.fab { position: fixed; right: calc(22px + env(safe-area-inset-right, 0px)); bottom: calc(22px + env(safe-area-inset-bottom, 0px)); z-index: 45; width: 58px; height: 58px; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); box-shadow: 0 10px 26px -8px color-mix(in srgb, var(--accent) 70%, transparent), 0 2px 6px rgba(0, 0, 0, .12); transition: scale 150ms var(--ease-out); }
+.fab svg { width: 26px; height: 26px; }
+.fab:active { scale: .94; }
+@media (max-width: 640px) { .fab { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 54px; height: 54px; } }
 .mideas { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 22px 18px; padding-top: 4px; }
 .mi-tile { position: relative; display: grid; gap: 2px; align-content: start; min-width: 0; cursor: pointer; padding: 8px 8px 12px; border-radius: 18px; background: color-mix(in srgb, var(--cc) 9%, var(--surface)); border: 1px solid color-mix(in srgb, var(--cc) 20%, var(--line)); transition: background-color 150ms ease, border-color 150ms ease; }
 .mi-tile:hover { background: color-mix(in srgb, var(--cc) 14%, var(--surface)); }
