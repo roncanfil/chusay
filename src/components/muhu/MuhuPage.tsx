@@ -12,7 +12,7 @@ import { byWant, catsOf, fromNotion, guessPlaces, mainCat, mapsUrl, matches, pla
 import { usePhoto } from '@/lib/photos';
 import { findAnywhere } from '@/lib/search';
 import { uid } from '@/lib/seed';
-import { editMuhu, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
+import { editMuhu, getState, openDisc, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
 import { isPast } from '@/lib/trips';
 import type { AppState, MuhuCat, MuhuIdea, PlaceResult, SavedSearch, Trip, Want } from '@/lib/types';
 
@@ -37,13 +37,14 @@ const CountrySelect = ({ name, value }: { name: string; value: string }) => (
   <select name={name} defaultValue={value}>{SORTED.map(([id, n]) => <option key={id} value={id}>{n}</option>)}</select>
 );
 
-function AddForm({ cid, onDone }: { cid: string; onDone: (cid: string) => void }) {
+function AddForm({ cid, onDone }: { cid: string; onDone: (cid: string, id?: string) => void }) {
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget), name = String(f.get('name')).trim(), c = String(f.get('country')), cat = f.get('cat') as MuhuCat;
     if (!name) return;
-    update(s => { s.muhu.push({ id: uid(), cid: c, country: COUNTRY[c], name, cats: [cat], want: '', area: String(f.get('area') || '').trim(), when: '', far: '', note: '' }); });
-    toast(`Saved ${name} to ${COUNTRY[c]}.`); onDone(c);
+    const id = uid();
+    update(s => { s.muhu.push({ id, cid: c, country: COUNTRY[c], name, cats: [cat], want: '', area: String(f.get('area') || '').trim(), when: '', far: '', note: '' }); });
+    toast(`Saved ${name} to ${COUNTRY[c]}.`); onDone(c, id);
   }
   return (
     <form className="group form" onSubmit={submit}>
@@ -258,7 +259,7 @@ const clickable = (toggle: () => void) => ({
 // a tile: the photo, the name and where it is; opening it shows the details right below its row
 function MuhuTile({ S, m, cat, sel, open, toggle, photos, onCompare }: ItemProps) {
   return <>
-    <div className={`mi-tile ${sel ? 'sel' : ''}`} style={vars({ '--cc': MUHU_CATS[cat].color })} aria-expanded={sel} {...clickable(toggle)}>
+    <div data-id={m.id} className={`mi-tile ${sel ? 'sel' : ''}`} style={vars({ '--cc': MUHU_CATS[cat].color })} aria-expanded={sel} {...clickable(toggle)}>
       <MuhuPhoto m={m} cat={cat} big google={photos} />
       {m.want === 'high' && <span className="must">{WANT.high}</span>}
       <b>{m.name}</b>
@@ -270,7 +271,7 @@ function MuhuTile({ S, m, cat, sel, open, toggle, photos, onCompare }: ItemProps
 
 function MuhuRow({ S, m, cat, sel, open, toggle, photos, onCompare }: ItemProps) {
   return <>
-    <div className={`row link ${sel ? 'sel' : ''}`} style={vars({ '--cc': MUHU_CATS[cat].color })} aria-expanded={sel} {...clickable(toggle)}>
+    <div data-id={m.id} className={`row link ${sel ? 'sel' : ''}`} style={vars({ '--cc': MUHU_CATS[cat].color })} aria-expanded={sel} {...clickable(toggle)}>
       <MuhuPhoto m={m} cat={cat} google={photos} cls="mph thumb-sm" />
       <div className="main">
         <span className="title">{m.name}{m.want === 'high' && <span className="must">{WANT.high}</span>}</span>
@@ -381,7 +382,7 @@ function SavedSearches({ S, now, apply }: { S: AppState; now: Omit<SavedSearch, 
 
 // Muhu: seeds for future trips, by country or by category
 export function MuhuPage() {
-  const S = useAppState(), cfg = useConfig(), view = useView(), wide = useWide();
+  const S = useAppState(), cfg = useConfig(), view = useView(), wide = useWide(), listRef = useRef<HTMLDivElement>(null);
   const [by, setBy] = useState<'country' | 'cat'>('country');
   const [cid, setCid] = useState<string | null>(null);
   const [open, setOpen] = useState<Pick | null>(null);
@@ -396,6 +397,9 @@ export function MuhuPage() {
   if (!S) return null;
 
   const photos = S.prefs.photos !== false;
+  // the server sends ideas in the order they were saved, so the later in the list, the newer
+  const age = new Map(S.muhu.map((m, n) => [m.id, n]));
+  const newest = view.muhuNewest, order = newest ? (a: MuhuIdea, b: MuhuIdea) => age.get(b.id)! - age.get(a.id)! : byWant;
   const countries = [...new Set(here.map(m => m.cid))].map(c => ({ cid: c, name: COUNTRY[c] || here.find(m => m.cid === c)!.country, list: here.filter(m => m.cid === c) }))
     .sort((a, b) => b.list.length - a.list.length || a.name.localeCompare(b.name));
   const inCat = (k: MuhuCat) => here.filter(m => catsOf(m).includes(k));
@@ -416,13 +420,21 @@ export function MuhuPage() {
   const compare = compareId && S.muhu.find(m => m.id === compareId) || null;
   const side = wide && (view.muhuSide || !!pick || !!compare);
   // which list an idea opens in, when it's opened from elsewhere (the comparison on phones)
-  const groupOf = (m: MuhuIdea) => searching ? `q-${m.cid}` : by === 'country' ? catsOf(m).find(k => !picked.length || picked.includes(k)) ?? mainCat(m) : m.cid;
+  const groupOf = (m: MuhuIdea) => searching ? `q-${m.cid}` : by === 'country' ? newest ? 'new' : catsOf(m).find(k => !picked.length || picked.includes(k)) ?? mainCat(m) : m.cid;
   const startCompare = (id: string) => { setCompareId(id); setOpen(null); toast('Now pick another idea to compare.'); };
-  const done = (c: string) => { setPanel(null); setBy('country'); setCid(c); };
+  // after saving, the new idea is opened and scrolled to, with the search and filters cleared so nothing hides it
+  const done = (c: string, id?: string) => {
+    setPanel(null); setBy('country'); setCid(c);
+    if (!id) return;
+    setQ(''); setFCats([]); setFWant('any'); setCompareId(null);
+    const m = getState()?.muhu.find(x => x.id === id);
+    if (m) { setOpen({ id, group: newest ? 'new' : mainCat(m) }); openDisc(newest ? `muhu-${c}-new` : `muhu-${c}-${mainCat(m)}`); }
+    requestAnimationFrame(() => requestAnimationFrame(() => listRef.current?.querySelector(`[data-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })));
+  };
   const choose = (id: string, group: string) => setOpen(o => o?.id === id && (side || o.group === group) ? null : { id, group });
   const items = (list: MuhuIdea[], cat: MuhuCat | null, group: string) => {
     const Item = view.muhuTiles ? MuhuTile : MuhuRow;
-    const all = [...list].sort(byWant).map(m => {
+    const all = [...list].sort(order).map(m => {
       const sel = (!!open && open.id === m.id && (side || open.group === group)) || m.id === compareId;
       return <Item key={m.id} S={S} m={m} onCompare={startCompare} cat={cat ?? catsOf(m).find(c => picked.includes(c)) ?? mainCat(m)} sel={sel} open={sel && !side && !compare} toggle={() => choose(m.id, group)} photos={photos} />;
     });
@@ -475,6 +487,10 @@ export function MuhuPage() {
           <select className="input filter" value={fWant} onChange={e => { setFWant(e.target.value as Want | 'any'); setOpen(null); }} aria-label="How much we want it">
             <option value="any">Any wish</option>{(Object.entries(WANT) as [Exclude<Want, ''>, string][]).map(([k, l]) => <option key={k} value={k}>{l}</option>)}<option value="">Not set</option>
           </select>
+          <div className="seg" role="group" aria-label="Order">
+            <button type="button" aria-pressed={!newest} onClick={() => setView({ muhuNewest: false })}>Most wanted</button>
+            <button type="button" aria-pressed={newest} onClick={() => setView({ muhuNewest: true })}>Newest first</button>
+          </div>
           <div className="seg" role="group" aria-label="Show ideas as">
             <button type="button" aria-pressed={view.muhuTiles} onClick={() => setView({ muhuTiles: true })}>Tiles</button>
             <button type="button" aria-pressed={!view.muhuTiles} onClick={() => setView({ muhuTiles: false })}><ListSegIcon />List</button>
@@ -496,7 +512,7 @@ export function MuhuPage() {
           </div>
         )}
         <div className={side ? 'muhu-split' : ''}>
-          <div className="muhu-list">
+          <div className="muhu-list" ref={listRef}>
           {/* on phones the comparison sits above the ideas */}
           {!side && compare && <div className="compare-inline"><Compare a={compare} b={pick && pick.id !== compare.id ? pick : null} onEdit={id => { setCompareId(null); setOpen({ id, group: groupOf(S.muhu.find(m => m.id === id)!) }); }} onStop={() => setCompareId(null)} /></div>}
           {searching ? countries.map(c => {
@@ -506,7 +522,14 @@ export function MuhuPage() {
                 {items(list, null, `q-${c.cid}`)}
               </Disc>
             );
-          }) : by === 'country' ? MUHU_KEYS.filter(k => !picked.length || picked.includes(k)).map(k => {
+          }) : by === 'country' && newest ? (() => {
+            const list = country.list.filter(keep);
+            return !!list.length && (
+              <Disc k={`muhu-${country.cid}-new`} cls="tint" style={vars({ '--sc': 'var(--s-want)' })} head={<><b>Newest first</b><span className="faint small">{list.length}</span></>}>
+                {items(list, null, 'new')}
+              </Disc>
+            );
+          })() : by === 'country' ? MUHU_KEYS.filter(k => !picked.length || picked.includes(k)).map(k => {
             const list = country.list.filter(m => catsOf(m).includes(k) && keep(m));
             return !!list.length && (
               <Disc key={k} k={`muhu-${country.cid}-${k}`} cls="tint" style={vars({ '--sc': MUHU_CATS[k].color })} head={<><MuhuIcon cat={k} /><b>{MUHU_CATS[k].label}</b><span className="faint small">{list.length}</span></>}>

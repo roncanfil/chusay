@@ -149,9 +149,10 @@ export function useConfig() {
 }
 
 /* ---------- view settings: per screen, remembered in this browser ---------- */
-// muhuTiles: Muhu ideas as tiles (or a list); muhuSide: on wide screens, the picked idea's photo and map beside them
-export interface ViewPrefs { dayMap: boolean; dayAll: boolean; density: 'full' | 'compact'; ideasMap: boolean; listW: number | null; sayIt: boolean; muhuTiles: boolean; muhuSide: boolean }
-const VIEW_DEFAULTS: ViewPrefs = { dayMap: true, dayAll: false, density: 'full', ideasMap: true, listW: null, sayIt: false, muhuTiles: true, muhuSide: true };
+// muhuTiles: Muhu ideas as tiles (or a list); muhuSide: on wide screens, the picked idea's photo and map beside them;
+// muhuNewest: the most recently added ideas first, in one list per country instead of by category
+export interface ViewPrefs { dayMap: boolean; dayAll: boolean; density: 'full' | 'compact'; ideasMap: boolean; listW: number | null; sayIt: boolean; muhuTiles: boolean; muhuSide: boolean; muhuNewest: boolean }
+const VIEW_DEFAULTS: ViewPrefs = { dayMap: true, dayAll: false, density: 'full', ideasMap: true, listW: null, sayIt: false, muhuTiles: true, muhuSide: true, muhuNewest: false };
 const view = createStore<ViewPrefs>(() => ({ ...VIEW_DEFAULTS, ...read<Partial<ViewPrefs>>('chusay-view') }), VIEW_DEFAULTS, v => write('chusay-view', v));
 export const useView = view.use;
 export const setView = (patch: Partial<ViewPrefs>) => view.set({ ...view.get(), ...patch });
