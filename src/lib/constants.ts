@@ -1,4 +1,4 @@
-import type { Cat, CustomCat, MuhuCat, Pace, Status, Want } from './types';
+import type { Cat, CustomCat, Meal, MuhuCat, Pace, Status, Want } from './types';
 
 export const CATS: Record<Cat, { label: string; color: string }> = {
   sight: { label: 'Sights', color: 'var(--c-sight)' },
@@ -68,6 +68,8 @@ export const MUHU_KEYS = Object.keys(MUHU_CATS) as MuhuCat[];
 export const WANT: Record<Exclude<Want, ''>, string> = { high: 'Must do', med: 'Would like to', low: 'If we’re nearby' };
 // a seed copied onto a trip lands in the closest trip category
 // and the other way, for an idea moved off a trip into Muhu
+// food & drink by meal, each with its own color so the groups stand apart
+export const MEALS: [Meal, string, string][] = [['breakfast', 'Breakfast', '#E3A23C'], ['lunch', 'Lunch', '#5BA05A'], ['dinner', 'Dinner', '#6C63B5'], ['other', 'Other', '#8C8A80']];
 export const TRIP_TO_MUHU: Record<string, MuhuCat> = { sight: 'built', food: 'food', act: 'fun', tour: 'fun', stay: 'other', shop: 'shop', car: 'other' };
 export const MUHU_TO_TRIP: Record<MuhuCat, Cat> = { outdoors: 'sight', food: 'food', built: 'sight', events: 'act', fun: 'act', culture: 'sight', kids: 'act', shop: 'shop', visited: 'sight', other: 'sight' };
 

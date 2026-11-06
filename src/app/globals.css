@@ -627,6 +627,10 @@ a.src:hover { text-decoration: underline; }
 .new-place { display: grid; gap: 8px; margin-bottom: 10px; }
 .new-place .search .input { flex: 1; min-width: 0; }
 .adder-label { margin: 2px 0 6px; }
+/* Food & drink by meal: a small colored heading over each list */
+.meal-sec + .meal-sec { margin-top: 12px; }
+.meal-head { display: flex; align-items: center; gap: 8px; margin: 4px 0 6px 4px; font-size: 14px; font-weight: 700; color: color-mix(in srgb, var(--mc) 75%, var(--ink)); }
+.meal-head .sc-dot { --sc: var(--mc); margin-right: 0; }
 .add-panel.own { border-color: color-mix(in srgb, var(--c-own) 35%, var(--line)); }
 .as-list .add-panel { margin-left: 0; }
 .add-panel .own-form, .add-panel .chips.quick, .as-list .add-panel .own-form, .as-list .add-panel .chips.quick { padding-left: 0; }

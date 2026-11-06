@@ -117,6 +117,8 @@ const MIGRATIONS: string[] = [
   ALTER TABLE ideas ADD COLUMN muhu_id TEXT;`,
   // 12: a trip can be called off and kept, plans and all
   `ALTER TABLE trips ADD COLUMN called_off INTEGER NOT NULL DEFAULT 0;`,
+  // 13: food & drink places sorted by meal: breakfast, lunch, dinner or other
+  `ALTER TABLE ideas ADD COLUMN meals TEXT NOT NULL DEFAULT '[]';`,
 ];
 
 // foreign keys are off while migrating, so rebuilding a table (copy, drop, rename) doesn't cascade-delete

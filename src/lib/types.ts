@@ -44,7 +44,9 @@ export interface Idea extends PlaceLike {
   offMap?: boolean; // left off the maps until it's on a day (a stay we didn't pick)
   extraCats?: Cat[]; // more categories it's listed under; `cat` stays the main one (its color and map pin)
   muhuId?: string; // came from this Muhu idea, which waits for it to come back after the trip
+  meals?: Meal[]; // food & drink: which meals it's good for; it's listed under each of them
 }
+export type Meal = 'breakfast' | 'lunch' | 'dinner' | 'other';
 
 // What a booking-site link could tell about a stay; anything missing is filled in by hand.
 export interface StayPreview {

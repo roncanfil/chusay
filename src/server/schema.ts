@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS ideas (
   map_hidden      INTEGER NOT NULL DEFAULT 0, -- left off the maps until it's on a day
   extra_cats      TEXT NOT NULL DEFAULT '[]', -- JSON: more categories it's listed under
   muhu_id         TEXT,                     -- the Muhu idea it was moved from
+  meals           TEXT NOT NULL DEFAULT '[]', -- food & drink: JSON meals it's good for (breakfast, lunch, dinner, other)
   position        INTEGER NOT NULL DEFAULT 0, -- keeps the list in the order ideas were saved
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );

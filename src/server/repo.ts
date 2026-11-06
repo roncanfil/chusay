@@ -1,6 +1,6 @@
 import 'server-only';
 import type { Database } from 'better-sqlite3';
-import type { AppState, Cat, CityKey, CustomCat, MuhuCat, MuhuIdea, Pace, Prefs, SavedSearch, Status, Trip, Visit, Vote, Want } from '@/lib/types';
+import type { AppState, Cat, CityKey, Meal, CustomCat, MuhuCat, MuhuIdea, Pace, Prefs, SavedSearch, Status, Trip, Visit, Vote, Want } from '@/lib/types';
 
 type Row = Record<string, unknown>;
 const json = <T,>(v: unknown, fallback: T): T => { try { return v == null ? fallback : JSON.parse(String(v)) as T; } catch { return fallback; } };
@@ -32,6 +32,7 @@ export function loadState(db: Database): AppState {
           ...(i.price ? { price: String(i.price) } : {}), ...(i.image ? { image: String(i.image) } : {}),
           ...(i.stay_days && i.stay_days !== '[]' ? { stayDays: json<string[]>(i.stay_days, []) } : {}), ...(i.map_hidden ? { offMap: true } : {}),
           ...(i.extra_cats && i.extra_cats !== '[]' ? { extraCats: json<Cat[]>(i.extra_cats, []) } : {}), ...(i.muhu_id ? { muhuId: String(i.muhu_id) } : {}),
+          ...(i.meals && i.meals !== '[]' ? { meals: json<Meal[]>(i.meals, []) } : {}),
         })),
         days: days.filter(d => d.trip_id === r.id).map(d => ({
           id: String(d.id), title: String(d.title),
@@ -80,12 +81,12 @@ export function saveTrip(db: Database, t: Trip) {
     db.prepare('DELETE FROM days WHERE trip_id = ?').run(t.id);
     db.prepare('DELETE FROM stop_votes WHERE trip_id = ?').run(t.id);
     db.prepare('DELETE FROM ideas WHERE trip_id = ? AND id NOT IN (SELECT value FROM json_each(?))').run(t.id, JSON.stringify(t.ideas.map(i => i.id)));
-    const idea = db.prepare(`INSERT INTO ideas (id, trip_id, google_place_id, name, category, kind, area, lat, lng, tags, note, source, price, image, stay_days, map_hidden, extra_cats, muhu_id, position)
-      VALUES (@id, @trip, @place, @name, @cat, @kind, @area, @lat, @lng, @tags, @note, @source, @price, @image, @stayDays, @hidden, @extra, @muhuId, @pos)
+    const idea = db.prepare(`INSERT INTO ideas (id, trip_id, google_place_id, name, category, kind, area, lat, lng, tags, note, source, price, image, stay_days, map_hidden, extra_cats, muhu_id, meals, position)
+      VALUES (@id, @trip, @place, @name, @cat, @kind, @area, @lat, @lng, @tags, @note, @source, @price, @image, @stayDays, @hidden, @extra, @muhuId, @meals, @pos)
       ON CONFLICT(id) DO UPDATE SET google_place_id = excluded.google_place_id, name = excluded.name, category = excluded.category, kind = excluded.kind, area = excluded.area,
         lat = excluded.lat, lng = excluded.lng, tags = excluded.tags, note = excluded.note, source = excluded.source,
-        price = excluded.price, image = excluded.image, stay_days = excluded.stay_days, map_hidden = excluded.map_hidden, extra_cats = excluded.extra_cats, muhu_id = excluded.muhu_id, position = excluded.position`);
-    t.ideas.forEach((i, pos) => idea.run({ id: i.id, trip: t.id, place: i.placeId ?? null, name: i.name, cat: i.cat, kind: i.kind ?? null, area: i.hood, lat: i.lat, lng: i.lng, tags: JSON.stringify(i.tags), note: i.note, source: i.source ?? '', price: i.price ?? '', image: i.image ?? '', stayDays: JSON.stringify(i.stayDays ?? []), hidden: i.offMap ? 1 : 0, extra: JSON.stringify(i.extraCats ?? []), muhuId: i.muhuId ?? null, pos }));
+        price = excluded.price, image = excluded.image, stay_days = excluded.stay_days, map_hidden = excluded.map_hidden, extra_cats = excluded.extra_cats, muhu_id = excluded.muhu_id, meals = excluded.meals, position = excluded.position`);
+    t.ideas.forEach((i, pos) => idea.run({ id: i.id, trip: t.id, place: i.placeId ?? null, name: i.name, cat: i.cat, kind: i.kind ?? null, area: i.hood, lat: i.lat, lng: i.lng, tags: JSON.stringify(i.tags), note: i.note, source: i.source ?? '', price: i.price ?? '', image: i.image ?? '', stayDays: JSON.stringify(i.stayDays ?? []), hidden: i.offMap ? 1 : 0, extra: JSON.stringify(i.extraCats ?? []), muhuId: i.muhuId ?? null, meals: JSON.stringify(i.meals ?? []), pos }));
     const day = db.prepare('INSERT INTO days (id, trip_id, position, title) VALUES (?, ?, ?, ?)');
     const stop = db.prepare(`INSERT INTO stops (id, day_id, idea_id, position, time, own_title, own_where, own_note, own_link)
       VALUES (@id, @day, @idea, @pos, @time, @title, @where, @note, @link)`);

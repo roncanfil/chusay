@@ -4,14 +4,14 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type M
 import Sortable from 'sortablejs';
 import { Disc } from '@/components/Disc';
 import { CatIcon, KindIcon, ListSegIcon, MapSegIcon, PhotoCredit, Pic, SrcChip, vars } from '@/components/icons';
-import { BUDGETS, CAT_KEYS, CATS, dayColor, DIETS, INTERESTS, PACE, TRIP_TO_MUHU } from '@/lib/constants';
+import { BUDGETS, CAT_KEYS, CATS, dayColor, DIETS, INTERESTS, MEALS, PACE, TRIP_TO_MUHU } from '@/lib/constants';
 import { kindLabel } from '@/lib/kinds';
 import { searchCatalog, suggestions } from '@/lib/picks';
 import { uid } from '@/lib/seed';
 import { fromCatalog, findPlaces } from '@/lib/search';
 import { editTrip, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
 import { catsOfIdea, inCat, isOn, isSomeday, isUrl, planned, scheduledDay, stayLabel } from '@/lib/trips';
-import type { Cat, Idea, Pace, PlaceResult, Prefs, Trip } from '@/lib/types';
+import type { Cat, Idea, Meal, Pace, PlaceResult, Prefs, Trip } from '@/lib/types';
 import { IdeaCat, IdeaNote, IdeaSource, MapsLink } from './fields';
 import { CarForm, StayDays, StayFields, StayForm } from './stays';
 import { pan, type SetUI, type TabProps, type TripUI } from './ui';
@@ -47,10 +47,11 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
       animation: 150, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', delay: 150, delayOnTouchOnly: true, preventOnFilter: false,
       draggable: '.row.link', filter: 'button,input,textarea,select,a', ghostClass: 'sortable-ghost',
       onUpdate() {
-        const order = [...el.querySelectorAll<HTMLElement>('[data-row]')].map(r => r.dataset.row!), cat = el.dataset.cat;
+        // only the ideas in this list swap places (a category, or one meal of Food & drink)
+        const order = [...el.querySelectorAll<HTMLElement>('[data-row]')].map(r => r.dataset.row!), here = new Set(order);
         editTrip(t.id, tt => {
           const mine = order.map(id => tt.ideas.find(i => i.id === id)!).filter(Boolean);
-          let n = 0; tt.ideas = tt.ideas.map(i => inCat(i, cat!) ? mine[n++] ?? i : i);
+          let n = 0; tt.ideas = tt.ideas.map(i => here.has(i.id) ? mine[n++] ?? i : i);
         });
         setDragKey(k => k + 1);
       },
@@ -58,6 +59,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
     return () => { sections.destroy(); made.forEach(s => s.destroy()); };
   });
   const [comparing, setComparing] = useState<string | null>(null); // a section shown as options side by side
+  const [openIn, setOpenIn] = useState<string | null>(null); // which meal list an opened food place was opened in (it can be in several)
   const [picked, setPicked] = useState<string[] | null>(null); // picking several ideas at once; null when not picking
   const pickToggle = (id: string) => setPicked(p => p && (p.includes(id) ? p.filter(x => x !== id) : [...p, id]));
   // what's left off the maps is kept with the trip: whole categories, or single places (a stay we didn't pick)
@@ -203,7 +205,20 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
             {(k === 'stay' || k === 'car') && <> <button type="button" className="linkish" onClick={() => setComparing(comparing === k ? null : k)}>{comparing === k ? 'Back to the list' : 'Compare them'}</button></>}
           </span>}
           {comparing === k ? <Compare t={t} list={t.ideas.filter(i => inCat(i, k))} open={id => { setComparing(null); set({ open: id, hl: id, panTo: pan(id) }); }} />
-          : !!counts[k] && <div className="group" data-cat={k}>{t.ideas.filter(i => inCat(i, k)).map(i => <IdeaRow key={i.id} t={t} i={i} ui={ui} set={set} pick={picked ? { on: picked.includes(i.id), toggle: () => pickToggle(i.id) } : null} offMap={!!i.offMap} catOff={catOff(i.cat)} toggleMap={() => editTrip(t.id, tt => { const x = tt.ideas.find(y => y.id === i.id)!; if (x.offMap) delete x.offMap; else x.offMap = true; })} />)}</div>}
+          : !!counts[k] && (() => {
+            const list = t.ideas.filter(i => inCat(i, k));
+            const rows = (l: Idea[], g: string) => l.map(i => <IdeaRow key={i.id} t={t} i={i} ui={ui} set={set} group={g} openIn={openIn} setOpenIn={setOpenIn} pick={picked ? { on: picked.includes(i.id), toggle: () => pickToggle(i.id) } : null} offMap={!!i.offMap} catOff={catOff(i.cat)} toggleMap={() => editTrip(t.id, tt => { const x = tt.ideas.find(y => y.id === i.id)!; if (x.offMap) delete x.offMap; else x.offMap = true; })} />);
+            // Food & drink, once any place is sorted: a list per meal (a place good for two shows in both), then the rest
+            if (k !== 'food' || !list.some(i => i.meals?.length)) return <>{k === 'food' && <span className="faint small drag-hint">Open a place to sort it under Breakfast, Lunch, Dinner or Other.</span>}<div className="group" data-cat={k}>{rows(list, k)}</div></>;
+            const meals: [Meal | 'none', string, string][] = [...MEALS, ['none', 'Not sorted yet', 'var(--ink-3)']];
+            return meals.map(([m, label, color]) => {
+              const l = list.filter(i => m === 'none' ? !i.meals?.length : i.meals?.includes(m));
+              return !!l.length && <div key={m} className="meal-sec" style={vars({ '--mc': color })}>
+                <div className="meal-head"><i className="sc-dot" />{label}<span className="faint small">{l.length}</span></div>
+                <div className="group" data-cat={k}>{rows(l, m)}</div>
+              </div>;
+            });
+          })()}
         </Disc></div>
       ))}</div>}
   </>;
@@ -212,9 +227,11 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
 // opening a row shows the note, the source, day chips to plan it, and Remove idea
 // offMap: this idea left off the map; catOff: its whole category is
 // pick: while picking several, a tap ticks the row instead of opening it
-function IdeaRow({ t, i, ui, set, pick, offMap, catOff, toggleMap }: { t: Trip; i: Idea; ui: TripUI; set: SetUI; pick: { on: boolean; toggle: () => void } | null; offMap: boolean; catOff: boolean; toggleMap: () => void }) {
-  const d = isSomeday(t) ? -1 : scheduledDay(t, i.id), open = !pick && ui.open === i.id;
-  const toggleOpen = () => { if (pick) return pick.toggle(); const o = open ? null : i.id; set({ open: o, hl: o, ...(o ? { panTo: pan(o) } : {}) }); };
+function IdeaRow({ t, i, ui, set, pick, offMap, catOff, toggleMap, group, openIn, setOpenIn }: { t: Trip; i: Idea; ui: TripUI; set: SetUI; pick: { on: boolean; toggle: () => void } | null; offMap: boolean; catOff: boolean; toggleMap: () => void; group: string; openIn: string | null; setOpenIn: (g: string) => void }) {
+  // a food place listed under two meals opens only where it was tapped (or, opened from the map, under its first meal)
+  const first = i.meals?.[0] ?? group, d = isSomeday(t) ? -1 : scheduledDay(t, i.id);
+  const open = !pick && ui.open === i.id && (openIn === group || (!i.meals?.includes(openIn as Meal) && group === first));
+  const toggleOpen = () => { if (pick) return pick.toggle(); const o = open ? null : i.id; setOpenIn(group); set({ open: o, hl: o, ...(o ? { panTo: pan(o) } : {}) }); };
   const click = (e: MouseEvent) => { if (!(e.target as Element).closest('button,a')) toggleOpen(); };
   const key = (e: KeyboardEvent) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); toggleOpen(); } };
   function setDay(k: number) {
@@ -241,6 +258,7 @@ function IdeaRow({ t, i, ui, set, pick, offMap, catOff, toggleMap }: { t: Trip; 
         <IdeaSource t={t} i={i} />
         <StayFields t={t} i={i} />
         <IdeaCat t={t} i={i} />
+        {inCat(i, 'food') && <IdeaMeals t={t} i={i} />}
         <MapsLink t={t} i={i} />
         <PhotoCredit p={i} />
         {i.cat === 'stay' && !isSomeday(t) && <StayDays t={t} i={i} />}
@@ -255,6 +273,18 @@ function IdeaRow({ t, i, ui, set, pick, offMap, catOff, toggleMap }: { t: Trip; 
   </>;
 }
 
+
+// food & drink: which meals it's good for, as many as fit; it's listed under each
+function IdeaMeals({ t, i }: { t: Trip; i: Idea }) {
+  const flip = (m: Meal) => editTrip(t.id, tt => {
+    const x = tt.ideas.find(y => y.id === i.id)!, l = x.meals ?? [];
+    x.meals = l.includes(m) ? l.filter(y => y !== m) : MEALS.map(([k]) => k).filter(k => k === m || l.includes(k));
+    if (!x.meals.length) delete x.meals;
+  });
+  return <div className="inline-field">Good for <span className="chips">{MEALS.map(([m, label, color]) => (
+    <button key={m} type="button" className="chip dchip" style={vars({ '--dc': color })} aria-pressed={!!i.meals?.includes(m)} onClick={() => flip(m)}>{label}</button>
+  ))}</span></div>;
+}
 
 // take an idea off this trip and keep it elsewhere: another trip, or Muhu for some later trip (it leaves this trip's days too)
 // takes ideas off this trip (and its days), and keeps them in another trip, in Muhu, or nowhere (removed)
