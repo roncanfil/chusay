@@ -249,7 +249,9 @@ function MuhuDetails({ S, m, onCompare }: { S: AppState; m: MuhuIdea; onCompare?
 }
 
 interface Pick { id: string; group: string }
-interface ItemProps { S: AppState; m: MuhuIdea; cat: MuhuCat; sel: boolean; open: boolean; toggle: () => void; photos: boolean; onCompare: (id: string) => void }
+interface ItemProps { S: AppState; m: MuhuIdea; cat: MuhuCat; sel: boolean; open: boolean; toggle: () => void; photos: boolean; onCompare: (id: string) => void; many?: boolean }
+// with several countries shown together, each idea says which one it's in
+const placeLine = (m: MuhuIdea, many?: boolean) => [m.area, many && m.country, m.when].filter(Boolean).join(' · ');
 const clickable = (toggle: () => void) => ({
   tabIndex: 0,
   onClick: (e: MouseEvent) => { if (!(e.target as Element).closest('button,a')) toggle(); },
@@ -257,25 +259,25 @@ const clickable = (toggle: () => void) => ({
 });
 
 // a tile: the photo, the name and where it is; opening it shows the details right below its row
-function MuhuTile({ S, m, cat, sel, open, toggle, photos, onCompare }: ItemProps) {
+function MuhuTile({ S, m, cat, sel, open, toggle, photos, onCompare, many }: ItemProps) {
   return <>
     <div data-id={m.id} className={`mi-tile ${sel ? 'sel' : ''}`} style={vars({ '--cc': MUHU_CATS[cat].color })} aria-expanded={sel} {...clickable(toggle)}>
       <MuhuPhoto m={m} cat={cat} big google={photos} />
       {m.want === 'high' && <span className="must">{WANT.high}</span>}
       <b>{m.name}</b>
-      {(m.area || m.when) && <small>{[m.area, m.when].filter(Boolean).join(' · ')}</small>}
+      {placeLine(m, many) && <small>{placeLine(m, many)}</small>}
     </div>
     {open && <div className="tile-more" style={vars({ '--cc': MUHU_CATS[cat].color })}><MuhuPhoto m={m} cat={cat} big credit cls="mph hero" /><MuhuDetails S={S} m={m} onCompare={onCompare} /></div>}
   </>;
 }
 
-function MuhuRow({ S, m, cat, sel, open, toggle, photos, onCompare }: ItemProps) {
+function MuhuRow({ S, m, cat, sel, open, toggle, photos, onCompare, many }: ItemProps) {
   return <>
     <div data-id={m.id} className={`row link ${sel ? 'sel' : ''}`} style={vars({ '--cc': MUHU_CATS[cat].color })} aria-expanded={sel} {...clickable(toggle)}>
       <MuhuPhoto m={m} cat={cat} google={photos} cls="mph thumb-sm" />
       <div className="main">
         <span className="title">{m.name}{m.want === 'high' && <span className="must">{WANT.high}</span>}</span>
-        {(m.area || m.when) && <span className="meta">{[m.area, m.when].filter(Boolean).join(' · ')}</span>}
+        {placeLine(m, many) && <span className="meta">{placeLine(m, many)}</span>}
         <SrcChip v={m.source} />
       </div>
       <span className="caret" aria-hidden="true">›</span>
@@ -392,7 +394,7 @@ export function MuhuPage() {
     io.observe(el); return () => io.disconnect();
   }, [ready]);
   const [by, setBy] = useState<'country' | 'cat'>('country');
-  const [cid, setCid] = useState<string | null>(null);
+  const [cids, setCids] = useState<string[]>([]); // the countries shown together; none picked = the one with the most ideas
   const [open, setOpen] = useState<Pick | null>(null);
   const [compareId, setCompareId] = useState<string | null>(null); // the first of two ideas side by side
   const [panel, setPanel] = useState<'add' | 'import' | null>(null);
@@ -412,7 +414,14 @@ export function MuhuPage() {
     .sort((a, b) => b.list.length - a.list.length || a.name.localeCompare(b.name));
   const inCat = (k: MuhuCat) => here.filter(m => catsOf(m).includes(k));
   const cats = MUHU_KEYS.filter(k => inCat(k).length);
-  const country = countries.find(c => c.cid === cid) || countries[0];
+  const chosen = countries.filter(c => cids.includes(c.cid)), sel = chosen.length ? chosen : countries.slice(0, 1);
+  // one or more countries, shown as one: their ideas together, sorted into the same categories
+  const country = { cid: sel.map(c => c.cid).join('+'), home: sel[0]?.cid ?? PORTUGAL, list: sel.flatMap(c => c.list), many: sel.length > 1 };
+  // tapping a country adds it to the ones shown, tapping it again takes it off (one always stays)
+  const toggleCountry = (c: string) => {
+    const now = sel.map(x => x.cid);
+    setCids(now.includes(c) ? (now.length > 1 ? now.filter(x => x !== c) : now) : [...now, c]); setOpen(null);
+  };
   // one or more categories: the tiles when browsing by category, the filter otherwise; none picked = all of them
   const picked = fCats.filter(k => MUHU_CATS[k]), inPicked = (m: MuhuIdea) => !picked.length || catsOf(m).some(c => picked.includes(c));
   const toggleCat = (k: MuhuCat) => { setFCats(l => l.includes(k) ? l.filter(x => x !== k) : [...l, k]); setOpen(null); };
@@ -422,7 +431,7 @@ export function MuhuPage() {
   const keep = (m: MuhuIdea) => matches(m, q) && inPicked(m) && (fWant === 'any' || m.want === fWant);
   const filtered = !!(searching || picked.length || fWant !== 'any');
   const found = searching ? here.filter(keep) : [];
-  const shown = searching ? found : (by === 'country' ? country?.list ?? [] : here).filter(keep);
+  const shown = searching ? found : (by === 'country' ? country.list : here).filter(keep);
   const pick = open && S.muhu.find(m => m.id === open.id) || null;
   // on wide screens the picked idea opens on the right; "Photo & map" keeps that column (with the map) even with nothing picked
   const compare = compareId && S.muhu.find(m => m.id === compareId) || null;
@@ -432,11 +441,12 @@ export function MuhuPage() {
   const startCompare = (id: string) => { setCompareId(id); setOpen(null); toast('Now pick another idea to compare.'); };
   // after saving, the new idea is opened and scrolled to, with the search and filters cleared so nothing hides it
   const done = (c: string, id?: string) => {
-    setPanel(null); setBy('country'); setCid(c);
+    setPanel(null); setBy('country'); if (!sel.some(x => x.cid === c)) setCids([c]);
     if (!id) return;
     setQ(''); setFCats([]); setFWant('any'); setCompareId(null);
     const m = getState()?.muhu.find(x => x.id === id);
-    if (m) { setOpen({ id, group: newest ? 'new' : mainCat(m) }); openDisc(newest ? `muhu-${c}-new` : `muhu-${c}-${mainCat(m)}`); }
+    const key = sel.some(x => x.cid === c) ? country.cid : c;
+    if (m) { setOpen({ id, group: newest ? 'new' : mainCat(m) }); openDisc(newest ? `muhu-${key}-new` : `muhu-${key}-${mainCat(m)}`); }
     requestAnimationFrame(() => requestAnimationFrame(() => listRef.current?.querySelector(`[data-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })));
   };
   const choose = (id: string, group: string) => setOpen(o => o?.id === id && (side || o.group === group) ? null : { id, group });
@@ -444,7 +454,7 @@ export function MuhuPage() {
     const Item = view.muhuTiles ? MuhuTile : MuhuRow;
     const all = [...list].sort(order).map(m => {
       const sel = (!!open && open.id === m.id && (side || open.group === group)) || m.id === compareId;
-      return <Item key={m.id} S={S} m={m} onCompare={startCompare} cat={cat ?? catsOf(m).find(c => picked.includes(c)) ?? mainCat(m)} sel={sel} open={sel && !side && !compare} toggle={() => choose(m.id, group)} photos={photos} />;
+      return <Item key={m.id} S={S} m={m} onCompare={startCompare} cat={cat ?? catsOf(m).find(c => picked.includes(c)) ?? mainCat(m)} sel={sel} open={sel && !side && !compare} toggle={() => choose(m.id, group)} photos={photos} many={!searching && by === 'country' && country.many} />;
     });
     return view.muhuTiles ? <div className="mideas">{all}</div> : <div className="group">{all}</div>;
   };
@@ -457,8 +467,8 @@ export function MuhuPage() {
         <button type="button" className="btn primary" aria-expanded={panel === 'add'} onClick={() => setPanel(p => p === 'add' ? null : 'add')}>{panel === 'add' ? 'Cancel' : '+ Add an idea'}</button>
       </div>
       {panel && <div ref={formRef} style={{ marginTop: 18, scrollMarginTop: 90 }}>{panel === 'add'
-        ? <AddForm cid={country?.cid || PORTUGAL} onDone={done} />
-        : <ImportForm S={S} cid={country?.cid || PORTUGAL} onDone={done} />}</div>}
+        ? <AddForm cid={country.home} onDone={done} />
+        : <ImportForm S={S} cid={country.home} onDone={done} />}</div>}
 
       {!here.length ? (
         <div className="group empty" style={{ marginTop: 28 }}>
@@ -473,9 +483,12 @@ export function MuhuPage() {
             <button type="button" aria-pressed={by === 'country'} onClick={() => setBy('country')}>By country</button>
             <button type="button" aria-pressed={by === 'cat'} onClick={() => setBy('cat')}>By category</button>
           </div>
+          {by === 'country' && countries.length > 1 && <p className="faint small muhu-hint">{country.many
+            ? <>{sel.map(c => c.name).join(' and ')} together. <button type="button" className="linkish" onClick={() => { setCids([sel[0].cid]); setOpen(null); }}>Just {sel[0].name}</button></>
+            : 'Tap another country to see it alongside.'}</p>}
           {by === 'country'
             ? <div className="mtiles">{countries.map(c => (
-              <button key={c.cid} type="button" className="mtile" style={vars({ '--sc': 'var(--s-want)' })} aria-pressed={c.cid === country.cid} onClick={() => { setCid(c.cid); setOpen(null); }}>
+              <button key={c.cid} type="button" className="mtile" style={vars({ '--sc': 'var(--s-want)' })} aria-pressed={sel.includes(c)} onClick={() => toggleCountry(c.cid)}>
                 <b>{c.name}</b><small className="num">{ideas(c.list.length)}</small><Mix list={c.list} />
               </button>
             ))}</div>

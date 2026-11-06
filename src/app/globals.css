@@ -673,6 +673,7 @@ a.src:hover { text-decoration: underline; }
 .mtile.with-ic .ic { width: 28px; height: 28px; border-radius: 8px; }
 .mtile.with-ic .ic svg { width: 16px; height: 16px; }
 .muhu-list { margin-top: 18px; }
+.muhu-hint { margin: 8px 0 0; }
 .must { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft); vertical-align: 2px; }
 .more .input { font-size: 15px; padding: 8px 10px; }
 .more .form-row { gap: 10px; }
