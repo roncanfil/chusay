@@ -9,17 +9,17 @@ import { Thumb } from '@/components/map/Thumb';
 import { CITY } from '@/lib/data/cities';
 import { mkTrip } from '@/lib/seed';
 import { toast, update, useAppState, useConfig } from '@/lib/store';
-import { fmtRange, isoDate, isPast, isSomeday, relTime, today } from '@/lib/trips';
+import { fmtRange, isoDate, isOn, isPast, isSomeday, relTime, today } from '@/lib/trips';
 import type { CityKey, DestinationResult, Trip } from '@/lib/types';
 
-// tiles are colored like the world map: planning, want to go (someday), visited (past)
-const SECTIONS = { up: ['planning', 'Coming up'], some: ['want', 'Someday'], past: ['visited', 'Been there'] } as const;
+// tiles are colored like the world map: planning, want to go (someday), visited (past), and not interested for called off
+const SECTIONS = { up: ['planning', 'Coming up'], some: ['want', 'Someday'], past: ['visited', 'Been there'], off: ['nope', 'Called off'] } as const;
 type Section = keyof typeof SECTIONS;
 
 function Tile({ t, kind }: { t: Trip; kind: Section }) {
-  const tag = kind === 'some' ? `${t.ideas.length} ideas` : kind === 'past' ? 'Past trip' : relTime(t) || 'Coming up';
+  const tag = kind === 'some' ? `${t.ideas.length} ideas` : kind === 'past' ? 'Past trip' : kind === 'off' ? 'Called off' : relTime(t) || 'Coming up';
   return (
-    <Link className="tile" href={`/trips/${t.id}`} style={vars({ '--sc': `var(--s-${SECTIONS[kind][0]})` })}>
+    <Link className={`tile ${kind === 'off' ? 'off' : ''}`} href={`/trips/${t.id}`} style={vars({ '--sc': `var(--s-${SECTIONS[kind][0]})` })}>
       <span className="tile-map"><Thumb t={t} /></span>
       {/* the city (or region) the trip goes to, and its dates on their own line */}
       <span className="tile-txt"><b>{t.name}</b><small>{t.dest.name}</small>{!isSomeday(t) && <small className="num">{fmtRange(t)}</small>}</span>
@@ -91,8 +91,9 @@ export function TripsPage() {
   const S = useAppState(), cfg = useConfig();
   const [newOpen, setNewOpen] = useState(false);
   if (!S || !cfg) return null;
-  const upcoming = S.trips.filter(t => !isSomeday(t) && !isPast(t)).sort((a, b) => a.start!.localeCompare(b.start!));
-  const someday = S.trips.filter(isSomeday);
+  const upcoming = S.trips.filter(t => isOn(t) && !isSomeday(t)).sort((a, b) => a.start!.localeCompare(b.start!));
+  const someday = S.trips.filter(t => isOn(t) && isSomeday(t));
+  const off = S.trips.filter(t => t.off);
   const past = S.trips.filter(isPast).sort((a, b) => b.start!.localeCompare(a.start!));
   return (
     <div className="wrap">
@@ -104,6 +105,7 @@ export function TripsPage() {
       <TileSection kind="up" list={upcoming} empty="Nothing booked yet." />
       <TileSection kind="some" list={someday} note="Ideas for places we want to go, no dates needed" empty="Save a place you want to go with “+ New”." />
       <TileSection kind="past" list={past} empty="Trips appear here once they are over." />
+      {!!off.length && <TileSection kind="off" list={off} note="Not going, but everything planned is kept" empty="" />}
     </div>
   );
 }

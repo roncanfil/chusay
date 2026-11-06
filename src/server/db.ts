@@ -115,6 +115,8 @@ const MIGRATIONS: string[] = [
   // 11: a Muhu idea moves onto a trip (not copied) and comes back after it
   `ALTER TABLE muhu ADD COLUMN on_trip TEXT;
   ALTER TABLE ideas ADD COLUMN muhu_id TEXT;`,
+  // 12: a trip can be called off and kept, plans and all
+  `ALTER TABLE trips ADD COLUMN called_off INTEGER NOT NULL DEFAULT 0;`,
 ];
 
 // foreign keys are off while migrating, so rebuilding a table (copy, drop, rename) doesn't cascade-delete

@@ -10,7 +10,7 @@ import { searchCatalog, suggestions } from '@/lib/picks';
 import { uid } from '@/lib/seed';
 import { fromCatalog, findPlaces } from '@/lib/search';
 import { editTrip, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
-import { catsOfIdea, inCat, isPast, isSomeday, isUrl, planned, scheduledDay, stayLabel } from '@/lib/trips';
+import { catsOfIdea, inCat, isOn, isSomeday, isUrl, planned, scheduledDay, stayLabel } from '@/lib/trips';
 import type { Cat, Idea, Pace, PlaceResult, Prefs, Trip } from '@/lib/types';
 import { IdeaCat, IdeaNote, IdeaSource, MapsLink } from './fields';
 import { CarForm, StayDays, StayFields, StayForm } from './stays';
@@ -275,7 +275,7 @@ function moveIdeas(t: Trip, ids: string[], to: string | 'muhu' | null) {
     }
   });
 }
-const otherTrips = (S: { trips: Trip[] }, t: Trip) => S.trips.filter(x => x.id !== t.id && !isPast(x)).sort((a, b) => Number(b.dest.cid === t.dest.cid) - Number(a.dest.cid === t.dest.cid));
+const otherTrips = (S: { trips: Trip[] }, t: Trip) => S.trips.filter(x => x.id !== t.id && isOn(x)).sort((a, b) => Number(b.dest.cid === t.dest.cid) - Number(a.dest.cid === t.dest.cid));
 const whereTo = (S: { trips: Trip[] }, t: Trip, to: string) => to === 'muhu' ? `Muhu, under ${t.dest.country}` : S.trips.find(x => x.id === to)!.name;
 
 function MoveIdea({ t, i, done }: { t: Trip; i: Idea; done: () => void }) {

@@ -13,7 +13,7 @@ import { usePhoto } from '@/lib/photos';
 import { findAnywhere } from '@/lib/search';
 import { uid } from '@/lib/seed';
 import { editMuhu, getState, openDisc, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
-import { isPast } from '@/lib/trips';
+import { isOn } from '@/lib/trips';
 import type { AppState, MuhuCat, MuhuIdea, PlaceResult, SavedSearch, Trip, Want } from '@/lib/types';
 
 const WORLD = worldData as { c: { id: string; n: string }[] };
@@ -201,7 +201,7 @@ function GoogleField({ m }: { m: MuhuIdea }) {
 function MuhuDetails({ S, m, onCompare }: { S: AppState; m: MuhuIdea; onCompare?: (id: string) => void }) {
   const google = !!useConfig()?.places;
   const ed = (fn: (x: MuhuIdea) => void) => editMuhu(m.id, fn);
-  const trips = S.trips.filter(t => t.dest.cid === m.cid && !isPast(t));
+  const trips = S.trips.filter(t => t.dest.cid === m.cid && isOn(t));
   // moved, not copied: it leaves the Muhu lists while it's on the trip, and comes back once the trip is over
   function toTrip(id: string) {
     update(s => {

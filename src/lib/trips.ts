@@ -10,7 +10,10 @@ export const isoMonth = (d: Date) => isoDate(d).slice(0, 7);
 export const isSomeday = (t: Trip) => !t.start;
 export function dayDate(t: Trip, k: number) { const d = new Date(t.start + 'T12:00:00'); d.setDate(d.getDate() + k); return d; }
 export const endDate = (t: Trip) => dayDate(t, t.len - 1);
-export const isPast = (t: Trip) => !isSomeday(t) && endDate(t) < today();
+// a called-off trip is never past: it didn't happen
+export const isPast = (t: Trip) => !t.off && !isSomeday(t) && endDate(t) < today();
+// still on: coming up, or a Someday list (not called off)
+export const isOn = (t: Trip) => !t.off && !isPast(t);
 // the preview's sketch maps exist for three cities
 export const hasMap = (t: Trip) => !!(t.city && CITY_GEO[t.city]);
 export const located = (t: Trip) => t.ideas.filter(i => i.lat != null);
@@ -72,10 +75,10 @@ export const gmaps = (t: Trip, i: Idea) => `https://www.google.com/maps/search/?
 // statuses come from trips automatically and can be overridden by hand; a country can hold several
 export function statusOf(S: AppState, cid: string): { s: Status[]; auto: boolean } {
   if (S.world[cid]?.length) return { s: S.world[cid], auto: false };
-  const ts = S.trips.filter(t => t.dest.cid === cid);
+  const all = S.trips.filter(t => t.dest.cid === cid), ts = all.filter(t => !t.off);
   if (ts.some(isPast) || S.visits.some(v => v.cid === cid)) return { s: ['visited'], auto: true };
   if (ts.some(t => !isSomeday(t))) return { s: ['planning'], auto: true };
-  if (ts.length || S.muhu.some(m => m.cid === cid)) return { s: ['want'], auto: true };
+  if (all.length || S.muhu.some(m => m.cid === cid)) return { s: ['want'], auto: true };
   return { s: [], auto: false };
 }
 export interface VisitRow { cid: string; places: string; from: string; when: string; trip?: string; id?: string }

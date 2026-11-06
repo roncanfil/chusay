@@ -131,6 +131,7 @@ export interface Trip {
   feedback: Feedback;
   mapOffCats?: string[]; // whole categories left off the maps
   catOrder?: string[]; // the Ideas sections in the order we put them
+  off?: boolean; // called off: kept with everything planned, but not coming up, and never counted as visited
 }
 
 export interface Visit {

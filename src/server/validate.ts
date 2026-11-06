@@ -16,6 +16,7 @@ export function parseTrip(v: unknown, id: string): Trip {
   str(v.dest.name, 'dest.name'); str(v.dest.country, 'dest.country'); str(v.dest.cid, 'dest.cid');
   if (v.start !== null) str(v.start, 'start');
   if (typeof v.len !== 'number') throw new BadRequest('len must be a number');
+  if (v.off !== undefined && typeof v.off !== 'boolean') throw new BadRequest('off must be true or false');
   for (const i of arr(v.ideas, 'ideas')) { if (!isObj(i)) throw new BadRequest('bad idea'); str(i.id, 'idea.id'); str(i.name, 'idea.name'); arr(i.tags, 'idea.tags'); }
   for (const d of arr(v.days, 'days')) {
     if (!isObj(d)) throw new BadRequest('bad day');

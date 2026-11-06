@@ -97,7 +97,13 @@ function TripView({ t }: { t: Trip }) {
   function pickDates(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget), start = String(f.get('start')), len = Math.max(1, Math.min(21, Number(f.get('len')) || 5));
-    editTrip(t.id, tt => { tt.start = start; tt.len = len; tt.days = Array.from({ length: len }, () => ({ id: uid(), title: '', stops: [] })); });
+    // a trip moved to Someday kept its days: they come back, cut or padded to the new length
+    editTrip(t.id, tt => {
+      tt.start = start;
+      while (tt.days.length < len) tt.days.push({ id: uid(), title: '', stops: [] });
+      if (tt.days.length > len) tt.days[len - 1].stops.push(...tt.days.splice(len).flatMap(d => d.stops.filter(x => x.own)));
+      tt.len = len;
+    });
     toast(`${t.name} now has dates. All ${t.ideas.length} ideas came with it.`);
     setUI({ ...initialUI(t), tab: 'days' });
     scrollTo(0, 0);
@@ -116,6 +122,14 @@ function TripView({ t }: { t: Trip }) {
     });
     set({ datesOpen: false, day: Math.min(ui.day, len - 1) });
     toast(len < t.len ? `Dates changed. Places from the days you dropped are back in Ideas.` : 'Dates changed.');
+  }
+  // where the trip sits on the Trips page: Someday keeps the plan and drops the dates; called off keeps everything
+  const [moving, setMoving] = useState(false);
+  function moveTo(to: 'someday' | 'off' | 'on') {
+    editTrip(t.id, tt => { if (to === 'someday') { tt.start = null; tt.off = false; } else if (to === 'off') tt.off = true; else delete tt.off; });
+    setMoving(false); set({ datesOpen: false });
+    toast(to === 'someday' ? `${t.name} is under Someday now. Its days are kept for when you pick dates.`
+      : to === 'off' ? `${t.name} is called off. Everything planned is kept, and nothing counts as visited.` : `${t.name} is back on.`);
   }
   const [naming, setNaming] = useState(false);
   function rename(v: string) { const name = v.trim(); if (name && name !== t.name) { editTrip(t.id, tt => { tt.name = name; }); toast('Renamed.'); } setNaming(false); }
@@ -150,8 +164,19 @@ function TripView({ t }: { t: Trip }) {
           <span>·</span><span>{fmtRange(t)}</span>
           {someday ? <button type="button" className="btn-sm" aria-expanded={ui.datesOpen} onClick={() => set({ datesOpen: !ui.datesOpen })}>{ui.datesOpen ? 'Cancel' : 'Pick dates'}</button>
             : <button type="button" className="btn-sm" aria-expanded={ui.datesOpen} onClick={() => set({ datesOpen: !ui.datesOpen })}>{ui.datesOpen ? 'Cancel' : 'Change dates'}</button>}
-          {!someday && (past ? <span className="pill">Past trip</span> : relTime(t) ? <span className="pill go">{relTime(t)}</span> : null)}
+          {t.off ? <span className="pill off">Called off</span> : !someday && (past ? <span className="pill">Past trip</span> : relTime(t) ? <span className="pill go">{relTime(t)}</span> : null)}
+          {!past && <button type="button" className="btn-sm" aria-expanded={moving} onClick={() => setMoving(m => !m)}>{moving ? 'Cancel' : 'Move'}</button>}
         </div>
+        {moving && (
+          <div className="group dates-form move-form">
+            <span className="field">Move this trip to<span className="chips">
+              {t.off && <button type="button" className="chip" onClick={() => moveTo('on')}>{someday ? 'Back to Someday' : 'Back to Coming up'}</button>}
+              {!someday && <button type="button" className="chip" onClick={() => moveTo('someday')}>Someday, no dates</button>}
+              {!t.off && <button type="button" className="chip" onClick={() => moveTo('off')}>Called off</button>}
+            </span></span>
+            <span className="faint small">Nothing is deleted. A called-off trip keeps its ideas and days, and its places don’t count as visited.</span>
+          </div>
+        )}
         {!someday && ui.datesOpen && (
           <form className="group dates-form" onSubmit={changeDates}>
             <label className="field">First day<input name="start" type="date" required defaultValue={t.start!} /></label>

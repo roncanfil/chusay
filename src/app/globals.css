@@ -530,6 +530,11 @@ h1 { font-weight: 700; letter-spacing: -.02em; }
 .tile-txt { display: grid; gap: 1px; padding: 0 4px 2px; min-width: 0; }
 .tile-txt b { font-size: 15.5px; font-weight: 700; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tile-txt small { font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* called off: faded, its tag dark on the gray so it still reads */
+.tile.off { opacity: .78; }
+.tile.off .tile-tag { color: var(--ink); }
+.pill.off { background: color-mix(in srgb, var(--s-nope) 45%, var(--surface)); color: var(--ink); }
+.move-form .chips { margin-top: 2px; }
 .tile-tag { position: absolute; top: 18px; left: 18px; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--sc); color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
 .sc-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--sc); margin-right: 9px; vertical-align: 2px; }
 @media (max-width: 480px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .tile { padding: 8px; gap: 8px; border-radius: 18px; } .tile-tag { top: 14px; left: 14px; } .tile-txt b { font-size: 14.5px; } }

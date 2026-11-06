@@ -24,7 +24,7 @@ export function loadState(db: Database): AppState {
         center: r.center_lat != null && r.center_lng != null ? { lat: Number(r.center_lat), lng: Number(r.center_lng) } : null,
         start: (r.start_date as string) ?? null, len: Number(r.length_days), notes: String(r.notes),
         ...(r.map_off && r.map_off !== '[]' ? { mapOffCats: json<string[]>(r.map_off, []) } : {}),
-        ...(r.cat_order && r.cat_order !== '[]' ? { catOrder: json<string[]>(r.cat_order, []) } : {}),
+        ...(r.cat_order && r.cat_order !== '[]' ? { catOrder: json<string[]>(r.cat_order, []) } : {}), ...(r.called_off ? { off: true } : {}),
         ideas: ideas.filter(i => i.trip_id === r.id).map(i => ({
           id: String(i.id), ...(i.google_place_id ? { placeId: String(i.google_place_id) } : {}), name: String(i.name), cat: i.category as Cat, ...(i.kind ? { kind: String(i.kind) } : {}),
           hood: String(i.area), lat: i.lat as number | null, lng: i.lng as number | null,
@@ -70,12 +70,12 @@ export function saveTrip(db: Database, t: Trip) {
     const gone = new Set((db.prepare('SELECT id FROM gone_ideas WHERE id IN (SELECT value FROM json_each(?))').all(JSON.stringify(t.ideas.map(i => i.id))) as Row[]).map(r => String(r.id)));
     if (gone.size) t = { ...t, ideas: t.ideas.filter(i => !gone.has(i.id)), days: t.days.map(d => ({ ...d, stops: d.stops.filter(s => !s.idea || !gone.has(s.idea)) })) };
     db.prepare(`INSERT OR IGNORE INTO gone_ideas (id) SELECT id FROM ideas WHERE trip_id = ? AND id NOT IN (SELECT value FROM json_each(?))`).run(t.id, JSON.stringify(t.ideas.map(i => i.id)));
-    db.prepare(`INSERT INTO trips (id, name, destination_name, country_name, country_code, city_key, center_lat, center_lng, start_date, length_days, notes, map_off, cat_order)
-      VALUES (@id, @name, @dn, @cn, @cc, @city, @lat, @lng, @start, @len, @notes, @mapOff, @catOrder)
+    db.prepare(`INSERT INTO trips (id, name, destination_name, country_name, country_code, city_key, center_lat, center_lng, start_date, length_days, notes, map_off, cat_order, called_off)
+      VALUES (@id, @name, @dn, @cn, @cc, @city, @lat, @lng, @start, @len, @notes, @mapOff, @catOrder, @off)
       ON CONFLICT(id) DO UPDATE SET name = excluded.name, destination_name = excluded.destination_name, country_name = excluded.country_name,
         country_code = excluded.country_code, city_key = excluded.city_key, center_lat = excluded.center_lat, center_lng = excluded.center_lng,
-        start_date = excluded.start_date, length_days = excluded.length_days, notes = excluded.notes, map_off = excluded.map_off, cat_order = excluded.cat_order`)
-      .run({ id: t.id, name: t.name, dn: t.dest.name, cn: t.dest.country, cc: t.dest.cid, city: t.city, lat: t.center?.lat ?? null, lng: t.center?.lng ?? null, start: t.start, len: t.len, notes: t.notes, mapOff: JSON.stringify(t.mapOffCats ?? []), catOrder: JSON.stringify(t.catOrder ?? []) });
+        start_date = excluded.start_date, length_days = excluded.length_days, notes = excluded.notes, map_off = excluded.map_off, cat_order = excluded.cat_order, called_off = excluded.called_off`)
+      .run({ id: t.id, name: t.name, dn: t.dest.name, cn: t.dest.country, cc: t.dest.cid, city: t.city, lat: t.center?.lat ?? null, lng: t.center?.lng ?? null, start: t.start, len: t.len, notes: t.notes, mapOff: JSON.stringify(t.mapOffCats ?? []), catOrder: JSON.stringify(t.catOrder ?? []), off: t.off ? 1 : 0 });
     // days and stops are rewritten in their current order; ideas are upserted so created_at survives
     db.prepare('DELETE FROM days WHERE trip_id = ?').run(t.id);
     db.prepare('DELETE FROM stop_votes WHERE trip_id = ?').run(t.id);

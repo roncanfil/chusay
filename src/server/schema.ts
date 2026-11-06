@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS trips (
   notes            TEXT NOT NULL DEFAULT '',
   map_off          TEXT NOT NULL DEFAULT '[]', -- JSON categories left off the maps
   cat_order        TEXT NOT NULL DEFAULT '[]', -- JSON: the Ideas sections in our order
+  called_off       INTEGER NOT NULL DEFAULT 0, -- kept with its plans, but not coming up or visited
   created_at       TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

@@ -15,7 +15,8 @@ export function FeedbackView({ t }: { t: Trip }) {
   const f = t.feedback;
   const edit = (fn: (fb: Feedback) => void) => editTrip(t.id, tt => fn(tt.feedback));
   return <>
-    {!isPast(t) && <div className="banner">This trip hasn’t happened yet. Come back after {fmtDay(endDate(t))} to note what you loved. It shapes future picks.</div>}
+    {t.off ? <div className="banner">This trip was called off. Everything planned is kept here in case we go another time.</div>
+      : !isPast(t) && <div className="banner">This trip hasn’t happened yet. Come back after {fmtDay(endDate(t))} to note what you loved. It shapes future picks.</div>}
     <Disc k="fb-overall" cls="tint" style={vars({ '--sc': '#12A39F' })} head={<><i className="sec-dot" /><b>Overall</b></>}>
       <div className="group">
         <div className="row"><div className="main"><span className="title">Would we go back?</span></div>

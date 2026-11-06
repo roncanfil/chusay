@@ -194,16 +194,16 @@ export async function uploadPhoto(file: File): Promise<string> {
   return ((await r.json()) as { url: string }).url;
 }
 
-/* ---------- moved onto a trip: back in Muhu once the trip is over, under Been there if we went ---------- */
+/* ---------- moved onto a trip: back in Muhu once the trip is over (under Been there if we went) or called off ---------- */
 // what changed on the trip (notes, pin, link) comes back too. The same outcome on either screen, so both can run it.
 export function settleMoved(s: AppState) {
   for (const m of s.muhu) {
     if (!m.onTrip) continue;
     const t = s.trips.find(x => x.id === m.onTrip), i = t?.ideas.find(x => x.muhuId === m.id);
     if (!t || !i) { delete m.onTrip; continue; } // taken off the trip before going: back as it was
-    if (!isPast(t)) continue;
+    if (!isPast(t) && !t.off) continue;
     Object.assign(m, { note: i.note, area: i.hood, lat: i.lat, lng: i.lng, ...(i.source ? { source: i.source } : {}), ...(i.placeId ? { placeId: i.placeId } : {}) });
-    if (planned(t, i)) {
+    if (!t.off && planned(t, i)) { // a called-off trip sends its ideas back as they were, not as visited
       m.cats = ['visited', ...m.cats.filter(c => c !== 'visited')];
       m.note = [`Been there on ${t.name} (${fmtMonth(t.start!.slice(0, 7))}).`, m.note].filter(Boolean).join('\n');
     }
@@ -212,5 +212,5 @@ export function settleMoved(s: AppState) {
 }
 export const needsSettling = (s: AppState) => s.muhu.some(m => m.onTrip && (() => {
   const t = s.trips.find(x => x.id === m.onTrip);
-  return !t || isPast(t) || !t.ideas.some(x => x.muhuId === m.id);
+  return !t || isPast(t) || !!t.off || !t.ideas.some(x => x.muhuId === m.id);
 })());
