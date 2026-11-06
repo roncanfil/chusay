@@ -27,6 +27,7 @@ function write(key: string, v: unknown) {
 // the household's own categories join the built-in ones before anything draws with them
 const data = createStore<AppState | null>(() => null, null, s => { if (s) addCustomCats(s.categories); });
 let loaded = false, loading = false, edits = 0;
+let lastText = '', textEdits = -1; // the last state read from the server, and the edit count it was read at
 
 // null until the first load arrives (and always while rendering on the server)
 export function useAppState() {
@@ -40,8 +41,12 @@ export function refresh(force = false) {
   loading = true;
   const at = edits;
   fetch('/api/state', { cache: 'no-store' })
-    .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json() as Promise<AppState>; })
-    .then(s => { if (edits === at && !busy()) data.set(s); loaded = true; })
+    .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.text(); })
+    // nothing new since the last look: keep the state as it is, so the page doesn't redraw every few seconds
+    .then(text => {
+      if (edits === at && !busy()) { if (text !== lastText || edits !== textEdits) data.set(JSON.parse(text) as AppState); lastText = text; textEdits = edits; }
+      loaded = true;
+    })
     .catch(() => toast('Couldn’t load your trips. Is the server running?'))
     .finally(() => { loading = false; });
 }
@@ -120,11 +125,13 @@ function sync(prev: AppState, next: AppState) {
 }
 
 if (typeof window !== 'undefined') {
-  // pick up the other person's (or another screen's) changes when coming back to the tab or window, and every minute while
-  // it's open, so an old copy doesn't overwrite newer changes; send anything waiting when leaving
+  // pick up the other person's (or another screen's) changes when coming back to the tab or window, and every 15 seconds
+  // while it's open and nobody is typing here, so both screens stay in step and an old copy doesn't overwrite newer changes;
+  // send anything waiting when leaving
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(true); else flush(); });
   window.addEventListener('focus', () => refresh(true));
-  setInterval(() => { if (document.visibilityState === 'visible' && Date.now() - lastEdit > 30_000) refresh(true); }, 60_000);
+  window.addEventListener('online', () => refresh(true));
+  setInterval(() => { if (document.visibilityState === 'visible' && Date.now() - lastEdit > 10_000) refresh(true); }, 15_000);
   window.addEventListener('pagehide', flush);
 }
 
