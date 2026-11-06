@@ -512,9 +512,10 @@ h1 { font-weight: 700; letter-spacing: -.02em; }
   .viewbar .seg button { padding: 6px 10px; }
   .viewbar .seg button:has(> svg:first-child) { padding-left: 8px; }
 }
-/* phones: the map stays pinned at the top while the list scrolls under it */
+/* phones: the map sits above the list and scrolls away with the page, so it never covers what's being typed
+   (the household found a pinned map left no room once the keyboard was up); "Map" folds it away */
 @media (max-width: 639px) {
-  .trip-layout.has-map .mapcol { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 63px); z-index: 6; background: var(--bg); padding-bottom: 8px; margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding-inline: max(16px, env(safe-area-inset-left, 0px)); box-shadow: 0 10px 14px -14px rgba(0,0,0,.4); }
+  .trip-layout.has-map .mapcol { position: static; padding-bottom: 8px; }
   .trip-layout.has-map .mapcol .map-box { aspect-ratio: auto; height: min(34vh, 260px); }
   .trip-layout.has-map .mapcol .map-credit { display: none; }
   .map-toggle { padding-block: 6px; }
