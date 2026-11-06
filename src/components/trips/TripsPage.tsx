@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { cityKeyFor, useDestinationSearch } from '@/components/DestinationSearch';
 import { vars } from '@/components/icons';
-import { Thumb } from '@/components/map/Thumb';
+import { CountryThumb } from '@/components/map/CountryThumb';
 import { CITY } from '@/lib/data/cities';
 import { mkTrip } from '@/lib/seed';
 import { toast, update, useAppState, useConfig } from '@/lib/store';
@@ -20,7 +20,7 @@ function Tile({ t, kind }: { t: Trip; kind: Section }) {
   const tag = kind === 'some' ? `${t.ideas.length} ideas` : kind === 'past' ? 'Past trip' : kind === 'off' ? 'Called off' : relTime(t) || 'Coming up';
   return (
     <Link className={`tile ${kind === 'off' ? 'off' : ''}`} href={`/trips/${t.id}`} style={vars({ '--sc': `var(--s-${SECTIONS[kind][0]})` })}>
-      <span className="tile-map"><Thumb t={t} /></span>
+      <span className="tile-map"><CountryThumb t={t} /></span>
       {/* the city (or region) the trip goes to, and its dates on their own line */}
       <span className="tile-txt"><b>{t.name}</b><small>{t.dest.name}</small>{!isSomeday(t) && <small className="num">{fmtRange(t)}</small>}</span>
       <span className="tile-tag">{tag}</span>

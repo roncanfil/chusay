@@ -526,6 +526,10 @@ h1 { font-weight: 700; letter-spacing: -.02em; }
 @media (hover: hover) and (pointer: fine) { .tile:hover { translate: 0 -2px; box-shadow: 0 10px 22px -14px color-mix(in srgb, var(--sc) 80%, transparent); } }
 .tile-map { flex: 1; min-height: 0; border-radius: 10px; overflow: hidden; display: block; }
 .tile-map .thumb { width: 100%; height: 100%; border-radius: 0; }
+/* the country's outline on the tile, in the tile's color; its neighbors faint for a sense of where it is */
+.tile-map .thumb.shape { background: color-mix(in srgb, var(--sc) 9%, var(--surface)); }
+.thumb.shape .shape-near { fill: color-mix(in srgb, var(--sc) 10%, var(--land)); stroke: color-mix(in srgb, var(--sc) 22%, var(--surface)); }
+.thumb.shape .shape-own { fill: color-mix(in srgb, var(--sc) 70%, var(--surface)); stroke: color-mix(in srgb, var(--sc) 85%, var(--ink)); stroke-linejoin: round; }
 .tile-map .thumb.blank { display: grid; place-items: center; font-size: 44px; font-weight: 800; color: color-mix(in srgb, var(--sc) 75%, var(--ink)); background: color-mix(in srgb, var(--sc) 22%, var(--surface)); }
 .tile-txt { display: grid; gap: 1px; padding: 0 4px 2px; min-width: 0; }
 .tile-txt b { font-size: 15.5px; font-weight: 700; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
