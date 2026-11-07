@@ -169,7 +169,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
   );
 
   // stays and rental cars always have their section, so there's a place to add the options to compare
-  const groups = (ui.cat === 'all' ? ordered : [ui.cat]).filter(k => counts[k] || (ui.cat === 'all' && (k === 'stay' || k === 'car')));
+  const all = !ui.cats.length, groups = (all ? ordered : ordered.filter(k => ui.cats.includes(k))).filter(k => counts[k] || (all && (k === 'stay' || k === 'car')));
   const [carForm, setCarForm] = useState(false);
   return <>
     <div className="toolbar">
@@ -182,7 +182,8 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
         </div>
       )}
       <div className="seg cats" role="group" aria-label="Show category">
-        {cats.map(([k, l]) => <button key={k} type="button" aria-pressed={ui.cat === k} onClick={() => set({ cat: k, open: null, hl: null })}>{k !== 'all' && <CatIcon cat={k} cls="ic-sm" />}{l}</button>)}
+        {/* pick as many categories as you like; All shows everything again */}
+        {cats.map(([k, l]) => <button key={k} type="button" aria-pressed={k === 'all' ? all : ui.cats.includes(k)} onClick={() => set({ cats: k === 'all' ? [] : ui.cats.includes(k) ? ui.cats.filter(c => c !== k) : [...ui.cats, k], open: null, hl: null })}>{k !== 'all' && <CatIcon cat={k} cls="ic-sm" />}{l}</button>)}
       </div>
     </div>
     {picked && <PickBar t={t} picked={picked} setPicked={setPicked} all={t.ideas.map(i => i.id)} />}

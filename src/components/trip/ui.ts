@@ -10,7 +10,7 @@ export interface TripUI {
   open: string | null; // the opened idea row
   hl: string | null; // the highlighted map pin (an idea id)
   panTo: PanRequest | null;
-  cat: Cat | 'all';
+  cats: Cat[]; // the categories shown in Ideas and on its map, as many as picked; none = all
   adding: boolean;
   search: { q: string; loading: boolean; results: PlaceResult[]; error?: string } | null;
   datesOpen: boolean;
@@ -24,7 +24,7 @@ export interface TabProps { t: Trip; ui: TripUI; set: SetUI; mapOk: boolean }
 
 export const initialUI = (t: Trip): TripUI => ({
   tab: t.start ? 'days' : 'ideas', day: 0, sel: null, open: null, hl: null, panTo: null,
-  cat: 'all', adding: false, search: null, datesOpen: false, placeOpen: false, addPanel: null, dropFor: null,
+  cats: [], adding: false, search: null, datesOpen: false, placeOpen: false, addPanel: null, dropFor: null,
 });
 
 // ask the map to center on a place

@@ -52,7 +52,7 @@ function TripView({ t }: { t: Trip }) {
   const mapOk = canMap(t, !!cfg?.mapsKey);
   const showMap = mapOk && ((tab === 'days' && view.dayMap) || (tab === 'ideas' && view.ideasMap));
   const mspec = tab === 'days' ? dayMapSpec(t, ui.day)
-    : { places: t.ideas.filter(i => (ui.cat === 'all' || inCat(i, ui.cat)) && (!offMap(t, i) || planned(t, i))).map(i => ({ idea: i })), routes: [], key: `ideas-${t.id}-${ui.cat}` };
+    : { places: t.ideas.filter(i => (!ui.cats.length || ui.cats.some(c => inCat(i, c))) && (!offMap(t, i) || planned(t, i))).map(i => ({ idea: i })), routes: [], key: `ideas-${t.id}-${ui.cats.join('+') || 'all'}` };
 
   // clicking a pin opens its row, and the row scrolls into view
   function onPin(id: string) {
@@ -60,7 +60,7 @@ function TripView({ t }: { t: Trip }) {
     if (tab === 'ideas') {
       const open = ui.open === id ? null : id, idea = ideaOf(t, id)!;
       hl = open;
-      set({ open, hl, ...(open && ui.cat !== 'all' && idea.cat !== ui.cat ? { cat: 'all' as const } : {}) });
+      set({ open, hl, ...(open && ui.cats.length && !ui.cats.some(c => inCat(idea, c)) ? { cats: [...ui.cats, idea.cat] } : {}) });
       if (open) openDisc('cat-' + idea.cat);
     } else {
       // the map shows every day: a pin opens its stop on whichever day it's on
