@@ -24,6 +24,8 @@ export interface MapProps {
   panTo: PanRequest | null;
   onPin: (ideaId: string) => void;
   onMove?: (ideaId: string, lat: number, lng: number) => void; // Google maps only: the highlighted pin can be dragged
+  // Google maps only: placing a pin by hand. While set, a tap on the map puts it there; the hint says what's being placed
+  drop?: { hint: string; at: (lat: number, lng: number) => void; cancel: () => void } | null;
 }
 
 // Google Maps when the server has a browser key; otherwise the preview's sketch maps

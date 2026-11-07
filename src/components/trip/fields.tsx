@@ -1,15 +1,36 @@
 import { Pic, PinSvg, vars } from '@/components/icons';
 import { NewCategory } from '@/components/NewCategory';
+import { useMapsFailed } from '@/components/map/GoogleMap';
 import { CATS, CAT_KEYS } from '@/lib/constants';
-import { editIdea } from '@/lib/store';
+import { editIdea, setView, toggleMapHidden, useConfig, useSession } from '@/lib/store';
 import { kindLabel } from '@/lib/kinds';
 import { gmaps, inCat, isMaps, stayLabel } from '@/lib/trips';
 import type { Idea, Trip } from '@/lib/types';
+import type { MouseEvent } from 'react';
+import type { SetUI } from './ui';
 
 // the top of an opened place in the itinerary: its picture large, and what, where, how much and which nights at a glance
 export function IdeaHero({ t, i }: { t: Trip; i: Idea }) {
   const facts = [kindLabel(i), i.hood, i.price, i.cat === 'stay' && stayLabel(t, i) && `Staying: ${stayLabel(t, i)}`].filter(Boolean);
   return <div className="idea-hero"><Pic p={i} big />{facts.length > 0 && <span className="facts">{facts.join(' · ')}</span>}</div>;
+}
+
+// put the place's pin on the map by hand: tap where it is, then drag it to fine-tune. No address needed
+export function IdeaPin({ i, set, tab }: { i: Idea; set: SetUI; tab: 'days' | 'ideas' }) {
+  const cfg = useConfig(), failed = useMapsFailed(), { mapHidden } = useSession(), google = !!cfg?.mapsKey && !failed;
+  if (!google) return null;
+  function start(e: MouseEvent<HTMLButtonElement>) {
+    setView(tab === 'days' ? { dayMap: true } : { ideasMap: true });
+    if (mapHidden) toggleMapHidden();
+    set({ dropFor: i.id, hl: i.lat != null ? i.id : null });
+    // on phones the map is above the list: bring it into view
+    const lay = e.currentTarget.closest('.trip-layout');
+    requestAnimationFrame(() => lay?.querySelector('.mapcol')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+  }
+  return <div className="inline-field">Map pin
+    <span className="faint small">{i.lat == null ? 'not on the map yet' : 'drag it on the map to move it'}</span>
+    <button type="button" className="btn-sm linkbtn pin-btn" onClick={start}><PinSvg />{i.lat == null ? 'Drop a pin' : 'Put it somewhere else'}</button>
+  </div>;
 }
 
 // the household's own note on a saved place; Google never fills this in

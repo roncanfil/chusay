@@ -6,6 +6,7 @@ import { kindLabel, kindPath, short } from '@/lib/kinds';
 import { GVIEWS } from '@/lib/map/panzoom';
 import { tripCenter } from '@/lib/trips';
 import type { Idea } from '@/lib/types';
+import { PinSvg } from '@/components/icons';
 import type { MapProps } from './TripMap';
 
 type Marker = google.maps.marker.AdvancedMarkerElement;
@@ -70,7 +71,7 @@ function declutter(box: HTMLElement, pins: Pin[]) {
   }
 }
 
-export function GoogleMap({ t, places, routes, viewKey, hl, panTo, onPin, onMove, mapsKey, mapId }: MapProps & { mapsKey: string; mapId: string }) {
+export function GoogleMap({ t, places, routes, viewKey, hl, panTo, onPin, onMove, drop, mapsKey, mapId }: MapProps & { mapsKey: string; mapId: string }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const pins = useRef(new Map<string, Pin>());
@@ -84,6 +85,7 @@ export function GoogleMap({ t, places, routes, viewKey, hl, panTo, onPin, onMove
     const ll = at instanceof google.maps.LatLng ? at.toJSON() : at as google.maps.LatLngLiteral;
     onMove?.(id, ll.lat, ll.lng);
   });
+  const tapped = useEffectEvent((e: google.maps.MapMouseEvent) => { if (drop && e.latLng) drop.at(e.latLng.lat(), e.latLng.lng()); });
   const tidy = useEffectEvent(() => { if (boxRef.current) declutter(boxRef.current, [...pins.current.values()]); });
   const center = useEffectEvent(() => centerOf(t, located));
 
@@ -99,6 +101,7 @@ export function GoogleMap({ t, places, routes, viewKey, hl, panTo, onPin, onMove
         const c = gm.getCenter(); if (c) GVIEWS[keyRef.current] = { lat: c.lat(), lng: c.lng(), zoom: gm.getZoom() ?? 13 };
         tidy();
       });
+      gm.addListener('click', (e: google.maps.MapMouseEvent) => tapped(e));
       setMap(gm);
     }).catch(fail);
     return () => {
@@ -163,7 +166,9 @@ export function GoogleMap({ t, places, routes, viewKey, hl, panTo, onPin, onMove
   return (
     <div className="map-card">
       <div className="map-box">
-        <div ref={boxRef} className="gmap" role="region" aria-label={`Map of ${t.dest.name}`} />
+        <div ref={boxRef} className={`gmap ${drop ? 'dropping' : ''}`} role="region" aria-label={`Map of ${t.dest.name}`} />
+        {/* placing a pin by hand: a tap on the map puts it there */}
+        {drop && <div className="map-drop" role="status"><PinSvg /><span>{drop.hint}</span><button type="button" className="linkish" onClick={drop.cancel}>Cancel</button></div>}
         <div className="map-ctrl">
           <button type="button" onClick={() => map?.setZoom((map.getZoom() ?? 13) + 1)} aria-label="Zoom in">+</button>
           <button type="button" onClick={() => map?.setZoom((map.getZoom() ?? 13) - 1)} aria-label="Zoom out">−</button>

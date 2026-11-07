@@ -11,7 +11,7 @@ import { findPlaces } from '@/lib/search';
 import { editTrip, setView, toast, useConfig, useView } from '@/lib/store';
 import { dayDate, fmtDay, fmtRange, ideaOf, isOption, offMap, scheduledDay, staysOn } from '@/lib/trips';
 import type { OwnPlan, PlaceResult, Stop, Trip } from '@/lib/types';
-import { IdeaCat, IdeaHero, IdeaNote, IdeaSource, MapsLink } from './fields';
+import { IdeaCat, IdeaHero, IdeaNote, IdeaPin, IdeaSource, MapsLink } from './fields';
 import { StayDays, StayFields } from './stays';
 import { pan, type SetUI, type TabProps, type TripUI } from './ui';
 
@@ -257,6 +257,7 @@ function StopItem({ t, k, s, ui, set }: { t: Trip; k: number; s: Stop; ui: TripU
         {i!.cat === 'stay' && <StayDays t={t} i={i!} />}
         <IdeaCat t={t} i={i!} />
         <MapsLink t={t} i={i!} />
+        <IdeaPin i={i!} set={set} tab="days" />
         <PhotoCredit p={i!} />
         {controls}
       </div>}

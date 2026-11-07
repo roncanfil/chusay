@@ -305,8 +305,16 @@ function SidePanel({ S, list, pick, compare, onPin, onCompare, onStopCompare, vi
     color: MUHU_CATS[mainCat(m)].color, icon: MUHU_CATS[mainCat(m)].icon, dim: !!pick && pick.id !== m.id,
   }));
   const t: Trip = { id: 'muhu', name: 'Muhu', city: null, dest: { name: pick?.country || located[0]?.country || '', country: '', cid: '' }, center: null, start: null, len: 0, ideas: places.map(p => p.idea), days: [], notes: '', feedback: { again: '', highlights: '', next: '', votes: {} } };
-  const map = withMap && cfg?.mapsKey && !failed && !!located.length && (pick ? pick.lat != null : true)
-    && <GoogleMap t={t} places={places} routes={[]} viewKey={viewKey} hl={pick?.id ?? null} panTo={pan} onPin={onPin} mapsKey={cfg.mapsKey} mapId={cfg.mapId}
+  // a picked idea that isn't on the map yet: the map shows the others, and a tap puts its pin there (no address needed)
+  const [noDrop, setNoDrop] = useState<string | null>(null);
+  const dropping = !!pick && pick.lat == null && noDrop !== pick.id;
+  const drop = dropping ? {
+    hint: `Tap the map where ${pick.name} is`,
+    at: (lat: number, lng: number) => { editMuhu(pick.id, x => { x.lat = lat; x.lng = lng; }); toast(`Pinned ${pick.name}. Drag the pin to fine-tune.`); },
+    cancel: () => setNoDrop(pick.id),
+  } : null;
+  const map = withMap && cfg?.mapsKey && !failed && !!located.length && (pick ? pick.lat != null || dropping : true)
+    && <GoogleMap t={t} places={places} routes={[]} viewKey={viewKey} hl={pick?.id ?? null} panTo={pan} onPin={onPin} drop={drop} mapsKey={cfg.mapsKey} mapId={cfg.mapId}
       onMove={(id, lat, lng) => { editMuhu(id, x => { x.lat = lat; x.lng = lng; }); toast('Pin moved.'); }} />;
   if (compare) return <aside ref={ref} className="muhu-side"><Compare a={compare} b={pick && pick.id !== compare.id ? pick : null} onEdit={id => { onStopCompare(); onPin(id); }} onStop={onStopCompare} /></aside>;
   if (!pick) return <aside ref={ref} className="muhu-side">{map}<p className="faint small">Pick an idea to see its photo, where it is and everything you saved about it.{cfg?.places && located.length < list.length ? ` ${list.length - located.length} aren’t on the map yet: open one and use “Find it”.` : ''}</p></aside>;
@@ -320,7 +328,7 @@ function SidePanel({ S, list, pick, compare, onPin, onCompare, onStopCompare, vi
         <button type="button" className="icon-btn" onClick={() => onPin(pick.id)} aria-label="Close">×</button>
       </div>
       <div className={`side-top ${map ? 'big-map' : ''}`}>{map || <MuhuPhoto key={pick.id} m={pick} cat={cat} big credit cls="mph side-photo" />}</div>
-      {map && <span className="faint small">Drag the pin to move it.</span>}
+      {map && !dropping && <span className="faint small">Drag the pin to move it.</span>}
       <div className="side-card"><MuhuDetails S={S} m={pick} /></div>
     </aside>
   );

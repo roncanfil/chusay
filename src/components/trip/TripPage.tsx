@@ -8,7 +8,7 @@ import { TripMap, type MapPlace, type MapRoute } from '@/components/map/TripMap'
 import { dayColor, TAB_COLORS, type Tab } from '@/lib/constants';
 import { CITY } from '@/lib/data/cities';
 import { uid } from '@/lib/seed';
-import { editTrip, openDisc, setView, toast, toggleMapHidden, useAppState, useConfig, useSession, useView } from '@/lib/store';
+import { editIdea, editTrip, openDisc, setView, toast, toggleMapHidden, useAppState, useConfig, useSession, useView } from '@/lib/store';
 import { canMap, fmtRange, ideaOf, isoDate, isPast, inCat, isSomeday, offMap, planned, relTime, staysOn, today } from '@/lib/trips';
 import type { CityKey, DestinationResult, Trip } from '@/lib/types';
 import { CultureView } from './CultureView';
@@ -71,6 +71,17 @@ function TripView({ t }: { t: Trip }) {
     }
     if (hl) requestAnimationFrame(() => layoutRef.current?.querySelector(tab === 'ideas' ? `[data-row="${id}"]` : `.stn[data-idea="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
   }
+
+  // placing a pin by hand: a tap on the map puts the idea there; the highlighted pin can be dragged afterwards
+  const dropIdea = ui.dropFor ? ideaOf(t, ui.dropFor) : undefined;
+  const drop = dropIdea ? {
+    hint: `Tap the map where ${dropIdea.name} is`,
+    at: (lat: number, lng: number) => { editIdea(t.id, dropIdea.id, x => { x.lat = lat; x.lng = lng; }); set({ dropFor: null, hl: dropIdea.id }); toast(`Pinned ${dropIdea.name}. Drag the pin to fine-tune.`); },
+    cancel: () => set({ dropFor: null }),
+  } : null;
+  const movePin = (id: string, lat: number, lng: number) => { editIdea(t.id, id, x => { x.lat = lat; x.lng = lng; }); toast('Pin moved.'); };
+  // a place being pinned stays on the map while it's open, even if its category or day isn't showing
+  if (dropIdea && dropIdea.lat != null && !mspec.places.some(p => p.idea.id === dropIdea.id)) mspec.places.push({ idea: dropIdea });
 
   // drag the divider between list and map; the width is remembered, double-click resets it
   function startResize(e: ReactPointerEvent) {
@@ -206,7 +217,7 @@ function TripView({ t }: { t: Trip }) {
           <div className="split-handle" role="separator" aria-orientation="vertical" aria-label="Drag to resize the list and map" tabIndex={0} title="Drag to resize. Double-click to reset."
             onPointerDown={startResize} onDoubleClick={() => setView({ listW: null })} onKeyDown={resizeKey}><i /></div>
           <button type="button" className="map-toggle" aria-expanded={!mapHidden} onClick={toggleMapHidden}><span className="caret" aria-hidden="true">›</span>Map</button>
-          <TripMap t={t} places={mspec.places} routes={mspec.routes} viewKey={mspec.key} hl={ui.hl} panTo={ui.panTo} onPin={onPin} />
+          <TripMap t={t} places={mspec.places} routes={mspec.routes} viewKey={mspec.key} hl={ui.hl} panTo={ui.panTo} onPin={onPin} onMove={movePin} drop={drop} />
         </aside>
       )}
       <div className="trip-body">
