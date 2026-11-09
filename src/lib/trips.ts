@@ -68,6 +68,8 @@ export function relTime(t: Trip) {
 /* ---------- where an idea came from ---------- */
 export const isUrl = (v?: string) => /^https?:\/\/\S+$/i.test((v || '').trim());
 export const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
+// links from these sites are stays; any other pasted link is saved as a tour
+export const isStayLink = (u: string) => /(^|\.)(airbnb|booking|vrbo|homeaway|expedia|hotels|agoda|hostelworld|plumguide)\.[a-z.]+$/i.test(host(u));
 export const isMaps = (v?: string) => isUrl(v) && /(^|\.)google\.[a-z.]+\/maps|maps\.google\.|maps\.app\.goo\.gl|goo\.gl\/maps/i.test(v!.trim().replace(/^https?:\/\/(www\.)?/i, ''));
 export const gmaps = (t: Trip, i: Idea) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.name + ', ' + t.dest.name)}${i.placeId ? '&query_place_id=' + encodeURIComponent(i.placeId) : ''}`;
 

@@ -10,10 +10,10 @@ import { searchCatalog, suggestions } from '@/lib/picks';
 import { uid } from '@/lib/seed';
 import { fromCatalog, findPlaces } from '@/lib/search';
 import { editTrip, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
-import { catsOfIdea, inCat, isOn, isSomeday, isUrl, planned, scheduledDay, stayLabel } from '@/lib/trips';
+import { catsOfIdea, inCat, isOn, isSomeday, isStayLink, isUrl, planned, scheduledDay, stayLabel } from '@/lib/trips';
 import type { Cat, Idea, Meal, Pace, PlaceResult, Prefs, Trip } from '@/lib/types';
 import { IdeaCat, IdeaNote, IdeaPin, IdeaSource, MapsLink } from './fields';
-import { CarForm, StayDays, StayFields, StayForm } from './stays';
+import { CarForm, StayDays, StayFields, StayForm, TourForm } from './stays';
 import { pan, type SetUI, type TabProps, type TripUI } from './ui';
 
 const TRY = ['pastries', 'fado', 'museum', 'viewpoint', 'hotel', 'market', 'tacos', 'temple', 'riad', 'garden'];
@@ -25,7 +25,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
   const S = useAppState()!, view = useView(), google = !!useConfig()?.places;
   const [query, setQuery] = useState('');
   const [manual, setManual] = useState<string | null>(null); // the name typed so far, when adding by hand
-  const [stayUrl, setStayUrl] = useState<string | null>(null); // a pasted booking-site link being saved as a stay
+  const [stayUrl, setStayUrl] = useState<string | null>(null); // a pasted link being saved: a stay from a booking site, a tour otherwise
   const searchSeq = useRef(0);
   const listRef = useRef<HTMLDivElement>(null);
   // Sortable moves DOM nodes React owns; after a drop the groups are re-mounted from state
@@ -86,7 +86,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
   }
   function openAdd() { setQuery(''); setManual(null); setStayUrl(null); searchSeq.current++; set({ adding: true, search: null }); }
   function closeAdd() { setManual(null); setStayUrl(null); searchSeq.current++; set({ adding: false, search: null }); }
-  // a link is a stay from a booking site; anything else is a place search
+  // a link is a stay (booking sites) or a tour (any other site); anything else is a place search
   function submit(q: string) {
     if (isUrl(q)) { searchSeq.current++; setManual(null); set({ search: null }); setStayUrl(q.trim()); setQuery(''); }
     else { setStayUrl(null); runSearch(q); }
@@ -110,11 +110,11 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
   const searchBox = ui.adding && (
     <div className="group searchbox">
       <form className="search row" role="search" onSubmit={e => { e.preventDefault(); submit(query); }}>
-        <input className="input" value={query} onChange={e => setQuery(e.target.value)} autoFocus placeholder={`Search places in ${t.dest.name}, or paste a booking link`} autoComplete="off" />
+        <input className="input" value={query} onChange={e => setQuery(e.target.value)} autoFocus placeholder={`Search places in ${t.dest.name}, or paste a link`} autoComplete="off" />
         <button className="btn" type="submit">Search</button>
         <button className="icon-btn" type="button" onClick={closeAdd} aria-label="Close search">×</button>
       </form>
-      {stayUrl ? <StayForm key={stayUrl} t={t} url={stayUrl} onDone={() => setStayUrl(null)} />
+      {stayUrl ? (isStayLink(stayUrl) ? <StayForm key={stayUrl} t={t} url={stayUrl} onDone={() => setStayUrl(null)} /> : <TourForm key={stayUrl} t={t} url={stayUrl} onDone={() => setStayUrl(null)} />)
       : manual !== null ? (
         <form className="manual" onSubmit={addManual}>
           <div className="form-row">
@@ -126,7 +126,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
         </form>
       ) : !s ? (() => {
         const words = google ? TRY_GOOGLE : TRY.filter(w => searchCatalog(t, w).length).slice(0, 4);
-        return <div className="more" style={{ paddingLeft: 18 }}><span className="faint small">Try {words.length ? words.map((w, n) => <span key={w}>{n ? ', ' : ''}<button type="button" className="linkish" onClick={() => { setQuery(w); runSearch(w); }}>{w}</button></span>) : 'a type of place, like “market” or “hotel”'}, or {byHand()}. For a stay, paste its Airbnb or Booking.com link.</span></div>;
+        return <div className="more" style={{ paddingLeft: 18 }}><span className="faint small">Try {words.length ? words.map((w, n) => <span key={w}>{n ? ', ' : ''}<button type="button" className="linkish" onClick={() => { setQuery(w); runSearch(w); }}>{w}</button></span>) : 'a type of place, like “market” or “hotel”'}, or {byHand()}. For a stay, paste its Airbnb or Booking.com link; any other link is saved as a tour.</span></div>;
       })()
         : s.loading ? <><div className="shimmer" /><div className="shimmer" /></>
         : s.results.length ? <>

@@ -100,6 +100,32 @@ export function StayForm({ t, url, onDone }: { t: Trip; url: string; onDone: () 
   );
 }
 
+// any other pasted link (a packaged tour, an activity's page): saved as a tour with the link, named from the page
+export function TourForm({ t, url, onDone }: { t: Trip; url: string; onDone: () => void }) {
+  const [name, setName] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    previewStay(url).then(r => r.name, () => `Tour on ${host(url)}`).then(n => { if (live) setName(n); });
+    return () => { live = false; };
+  }, [url]);
+  if (name === null) return <div className="manual"><span className="faint small">Reading {host(url)}…</span><div className="shimmer" /></div>;
+  function save(e: FormEvent) {
+    e.preventDefault();
+    const n = name!.trim() || `Tour on ${host(url)}`;
+    editTrip(t.id, tt => { tt.ideas.push({ id: uid(), name: n, cat: 'tour', hood: '', lat: null, lng: null, tags: [], note: '', source: url }); });
+    toast(`Saved ${n} to ${CATS.tour.label}.`); onDone();
+  }
+  return (
+    <form className="manual" onSubmit={save}>
+      <label className="field">Name<input value={name} onChange={e => setName(e.target.value)} autoFocus required /></label>
+      <div className="section-head">
+        <span className="faint small">Saved as a tour with its link. You can change its category once it’s saved.</span>
+        <span className="sp" /><button type="button" className="btn quiet" onClick={onDone}>Cancel</button><button type="submit" className="btn primary">Save tour</button>
+      </div>
+    </form>
+  );
+}
+
 // in an opened stay: its price, and its pin, placed or moved by searching an address or area
 export function StayFields({ t, i }: { t: Trip; i: Idea }) {
   const [moving, setMoving] = useState(false);
