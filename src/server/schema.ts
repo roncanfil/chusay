@@ -126,6 +126,15 @@ CREATE TABLE IF NOT EXISTS muhu (
   created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- sites with trips in many places (tour companies and the like), kept to browse when looking for ideas
+CREATE TABLE IF NOT EXISTS sites (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  url        TEXT NOT NULL,
+  note       TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- categories the household added, for trip ideas or for Muhu
 CREATE TABLE IF NOT EXISTS categories (
   id         TEXT PRIMARY KEY,

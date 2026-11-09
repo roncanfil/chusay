@@ -120,6 +120,11 @@ function sync(prev: AppState, next: AppState) {
     for (const x of next.searches) if (!prev.searches.some(p => p.id === x.id)) run(() => call('POST', '/api/muhu/searches', x));
     for (const x of prev.searches) if (!next.searches.some(n => n.id === x.id)) run(() => call('DELETE', `/api/muhu/searches/${x.id}`));
   }
+  if (prev.sites !== next.sites) {
+    const was = prev.sites ?? [], now = next.sites ?? [];
+    for (const x of now) if (was.find(p => p.id === x.id) !== x) later(`site:${x.id}`, k => { const cur = getState()?.sites.find(y => y.id === x.id); return cur ? call('PUT', `/api/sites/${x.id}`, cur, k) : Promise.resolve(); });
+    for (const x of was) if (!now.some(n => n.id === x.id)) run(() => call('DELETE', `/api/sites/${x.id}`));
+  }
   if (prev.prefs !== next.prefs) later('prefs', k => call('PUT', '/api/preferences', getState()!.prefs, k));
   for (const place of next.dismissed) if (!prev.dismissed.includes(place)) run(() => call('POST', '/api/dismissed', { place }));
 }

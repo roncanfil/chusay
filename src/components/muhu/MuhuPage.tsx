@@ -13,8 +13,8 @@ import { usePhoto } from '@/lib/photos';
 import { findAnywhere } from '@/lib/search';
 import { uid } from '@/lib/seed';
 import { editMuhu, getState, openDisc, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
-import { isOn } from '@/lib/trips';
-import type { AppState, MuhuCat, MuhuIdea, PlaceResult, SavedSearch, Trip, Want } from '@/lib/types';
+import { host, isOn, isUrl } from '@/lib/trips';
+import type { AppState, MuhuCat, MuhuIdea, PlaceResult, SavedSearch, Site, Trip, Want } from '@/lib/types';
 
 const WORLD = worldData as { c: { id: string; n: string }[] };
 const SORTED = WORLD.c.map(c => [c.id, c.n] as const).sort((a, b) => a[1].localeCompare(b[1]));
@@ -393,6 +393,59 @@ function SavedSearches({ S, now, apply }: { S: AppState; now: Omit<SavedSearch, 
 }
 
 // Muhu: seeds for future trips, by country or by category
+// a site's name, link and note, typed in; a new one is named after its site until they name it
+function SiteForm({ x, onDone }: { x?: Site; onDone: () => void }) {
+  const [url, setUrl] = useState(x?.url ?? ''), [name, setName] = useState(x?.name ?? ''), [note, setNote] = useState(x?.note ?? '');
+  function save(e: FormEvent) {
+    e.preventDefault();
+    const u = url.trim(), link = isUrl(u) ? u : `https://${u}`;
+    if (!isUrl(link)) { toast('That doesn’t look like a web link.'); return; }
+    const site = { id: x?.id ?? uid(), url: link, name: name.trim() || host(link), note: note.trim() };
+    update(s => { const n = s.sites.findIndex(y => y.id === site.id); if (n < 0) s.sites.push(site); else s.sites[n] = site; });
+    if (!x) toast(`Saved ${site.name} to Sites to browse.`);
+    onDone();
+  }
+  return (
+    <form className="manual" onSubmit={save}>
+      <div className="form-row">
+        <label className="field">Link<input value={url} onChange={e => setUrl(e.target.value)} placeholder="Paste the site’s link" required autoFocus={!x} /></label>
+        <label className="field">Name<input value={name} onChange={e => setName(e.target.value)} placeholder={isUrl(url.trim()) ? host(url.trim()) : 'e.g. Explore'} /></label>
+      </div>
+      <label className="field">Note<input value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. family trips, good for the kids’ ages" /></label>
+      <div className="section-head">
+        {x && <button type="button" className="btn quiet" onClick={() => { update(s => { s.sites = s.sites.filter(y => y.id !== x.id); }); toast(`Removed ${x.name}.`); onDone(); }}>Remove</button>}
+        <span className="sp" /><button type="button" className="btn quiet" onClick={onDone}>Cancel</button><button type="submit" className="btn primary">Save</button>
+      </div>
+    </form>
+  );
+}
+
+// tour companies and other sites with trips in many places, kept here to browse; whatever they find there goes to its country
+function SitesToBrowse({ S }: { S: AppState }) {
+  const sites = S.sites ?? [], [editing, setEditing] = useState<string | null>(null); // a site's id, or 'new'
+  return (
+    <Disc k="muhu-sites" open={false} cls="tint block" style={{ ...vars({ '--sc': 'var(--c-tour)' }), marginTop: 18 }} head={<><b>Sites to browse</b>{!!sites.length && <span className="faint small">{sites.length}</span>}</>}>
+      <div className="group">
+        {sites.map(x => editing === x.id ? <SiteForm key={x.id} x={x} onDone={() => setEditing(null)} /> : (
+          <div key={x.id} className="row">
+            <div className="main">
+              <a className="title" href={x.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ink)', textDecoration: 'none' }}>{x.name} <span className="faint" aria-hidden="true">↗</span></a>
+              <span className="meta">{[x.note, host(x.url)].filter(Boolean).join(' · ')}</span>
+            </div>
+            <button type="button" className="btn-sm" onClick={() => setEditing(x.id)}>Edit</button>
+          </div>
+        ))}
+        {editing === 'new' ? <SiteForm onDone={() => setEditing(null)} /> : (
+          <div className="more" style={{ paddingLeft: 18 }}>
+            <span className="faint small">{sites.length ? '' : 'Sites with trips in many places, for when you just want to look around. When something catches your eye, add it to its country. '}
+              <button type="button" className="linkish" onClick={() => setEditing('new')}>+ Add a site</button></span>
+          </div>
+        )}
+      </div>
+    </Disc>
+  );
+}
+
 export function MuhuPage() {
   const S = useAppState(), cfg = useConfig(), view = useView(), wide = useWide(), listRef = useRef<HTMLDivElement>(null);
   // the round + at the bottom shows once "+ Add an idea" has scrolled away, so adding never needs a scroll back up
@@ -479,6 +532,7 @@ export function MuhuPage() {
       {panel && <div ref={formRef} style={{ marginTop: 18, scrollMarginTop: 90 }}>{panel === 'add'
         ? <AddForm cid={country.home} onDone={done} />
         : <ImportForm S={S} cid={country.home} onDone={done} />}</div>}
+      <SitesToBrowse S={S} />
 
       {!here.length ? (
         <div className="group empty" style={{ marginTop: 28 }}>

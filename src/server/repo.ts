@@ -1,6 +1,6 @@
 import 'server-only';
 import type { Database } from 'better-sqlite3';
-import type { AppState, Cat, CityKey, Meal, CustomCat, MuhuCat, MuhuIdea, Pace, Prefs, SavedSearch, Status, Trip, Visit, Vote, Want } from '@/lib/types';
+import type { AppState, Cat, CityKey, Meal, CustomCat, MuhuCat, MuhuIdea, Pace, Prefs, SavedSearch, Site, Status, Trip, Visit, Vote, Want } from '@/lib/types';
 
 type Row = Record<string, unknown>;
 const json = <T,>(v: unknown, fallback: T): T => { try { return v == null ? fallback : JSON.parse(String(v)) as T; } catch { return fallback; } };
@@ -54,6 +54,7 @@ export function loadState(db: Database): AppState {
       ...(r.on_trip ? { onTrip: String(r.on_trip) } : {}),
     })),
     searches: all('SELECT * FROM muhu_searches ORDER BY created_at, rowid').map(r => ({ id: String(r.id), name: String(r.name), q: String(r.query), cats: String(r.category).split(',').filter(Boolean), want: r.want as SavedSearch['want'] })),
+    sites: all('SELECT * FROM sites ORDER BY created_at, rowid').map(r => ({ id: String(r.id), name: String(r.name), url: String(r.url), note: String(r.note) })),
     categories: all('SELECT * FROM categories ORDER BY created_at, rowid').map(r => ({ id: String(r.id), scope: r.scope as CustomCat['scope'], label: String(r.label), color: String(r.color), icon: String(r.icon) })),
     world: all('SELECT * FROM country_status ORDER BY rowid').reduce<Record<string, Status[]>>((w, r) => { (w[String(r.country_code)] ??= []).push(r.status as Status); return w; }, {}),
     visits: all('SELECT * FROM visits ORDER BY month DESC').map(r => ({ id: String(r.id), cid: String(r.country_code), places: String(r.places), from: String(r.month), to: String(r.month) })),
@@ -131,6 +132,10 @@ export const muhuImages = (db: Database, ids: string[]) =>
 export function addSearch(db: Database, x: SavedSearch) {
   db.prepare('INSERT OR REPLACE INTO muhu_searches (id, name, query, category, want) VALUES (?, ?, ?, ?, ?)').run(x.id, x.name, x.q, x.cats.join(','), x.want);
 }
+export function saveSite(db: Database, x: Site) {
+  db.prepare('INSERT INTO sites (id, name, url, note) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, url = excluded.url, note = excluded.note').run(x.id, x.name, x.url, x.note);
+}
+export function removeSite(db: Database, id: string) { db.prepare('DELETE FROM sites WHERE id = ?').run(id); }
 export function addCategory(db: Database, c: CustomCat) {
   db.prepare('INSERT OR REPLACE INTO categories (id, scope, label, color, icon) VALUES (?, ?, ?, ?, ?)').run(c.id, c.scope, c.label, c.color, c.icon);
 }
@@ -155,10 +160,11 @@ export function dismissPick(db: Database, place: string) { db.prepare('INSERT OR
 // the proof of concept's "Reset sample data": wipes everything and loads the given state
 export function replaceAll(db: Database, s: AppState) {
   db.transaction(() => {
-    for (const table of ['gone_ideas', 'stop_votes', 'stops', 'days', 'ideas', 'feedback', 'culture', 'trips', 'country_status', 'visits', 'preferences', 'dismissed_picks', 'muhu', 'muhu_searches', 'categories']) db.prepare(`DELETE FROM ${table}`).run();
+    for (const table of ['gone_ideas', 'stop_votes', 'stops', 'days', 'ideas', 'feedback', 'culture', 'trips', 'country_status', 'visits', 'preferences', 'dismissed_picks', 'muhu', 'muhu_searches', 'sites', 'categories']) db.prepare(`DELETE FROM ${table}`).run();
     s.trips.forEach(t => saveTrip(db, t));
     saveMuhu(db, s.muhu);
     s.searches.forEach(x => addSearch(db, x));
+    (s.sites ?? []).forEach(x => saveSite(db, x));
     s.categories.forEach(c => addCategory(db, c));
     for (const [cid, st] of Object.entries(s.world)) setCountryStatus(db, cid, st);
     s.visits.forEach(v => addVisit(db, v));

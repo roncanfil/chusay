@@ -1,5 +1,5 @@
 import 'server-only';
-import type { CultureEntry, CustomCat, MuhuIdea, Prefs, Quirks, SavedSearch, Status, Trip, Visit } from '@/lib/types';
+import type { CultureEntry, CustomCat, MuhuIdea, Prefs, Quirks, SavedSearch, Site, Status, Trip, Visit } from '@/lib/types';
 
 // Light shape checks for what the browser sends; SQLite's constraints catch the rest.
 export class BadRequest extends Error {}
@@ -64,6 +64,13 @@ export function parseSearch(v: unknown): SavedSearch {
   for (const k of ['id', 'name', 'q', 'want']) str(v[k], k);
   arr(v.cats, 'cats').forEach(c => str(c, 'cats'));
   return v as unknown as SavedSearch;
+}
+
+export function parseSite(v: unknown): Site {
+  if (!isObj(v)) throw new BadRequest('bad site');
+  for (const k of ['id', 'name', 'note']) str(v[k], k);
+  if (!/^https?:\/\/\S+$/i.test(str(v.url, 'url'))) throw new BadRequest('url must be a web link');
+  return { id: v.id, name: v.name, url: v.url, note: v.note } as Site;
 }
 
 export function parseCategory(v: unknown): CustomCat {

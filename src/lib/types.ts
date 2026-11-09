@@ -184,6 +184,14 @@ export interface SavedSearch {
   want: Want | 'any';
 }
 
+// a site with trips in many places (a tour company, say), kept in Muhu to browse when looking for ideas
+export interface Site {
+  id: string;
+  name: string;
+  url: string;
+  note: string;
+}
+
 // a category the household added, for trip ideas or for Muhu
 export interface CustomCat {
   id: string;
@@ -197,6 +205,7 @@ export interface AppState {
   trips: Trip[];
   muhu: MuhuIdea[];
   searches: SavedSearch[];
+  sites: Site[];
   categories: CustomCat[];
   world: Record<string, Status[]>;
   visits: Visit[];
