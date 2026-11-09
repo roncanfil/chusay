@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
 import { seed } from '@/lib/seed';
+import { familyWeeksSql } from './familyWeeks';
 import { demoMode } from './mode';
 import { SCHEMA } from './schema';
 import { replaceAll } from './repo';
@@ -119,6 +120,8 @@ const MIGRATIONS: string[] = [
   `ALTER TABLE trips ADD COLUMN called_off INTEGER NOT NULL DEFAULT 0;`,
   // 13: food & drink places sorted by meal: breakfast, lunch, dinner or other
   `ALTER TABLE ideas ADD COLUMN meals TEXT NOT NULL DEFAULT '[]';`,
+  // 14: data, not a table change: the family volunteer weeks as Someday trips (see familyWeeks.ts)
+  familyWeeksSql(),
 ];
 
 // foreign keys are off while migrating, so rebuilding a table (copy, drop, rename) doesn't cascade-delete
