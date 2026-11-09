@@ -142,7 +142,7 @@ export function StayFields({ t, i }: { t: Trip; i: Idea }) {
   </>;
 }
 
-// a stay: the days we sleep there, every day or only some (changing hotels halfway); it shows at the top of those days
+// a stay or rental car: the whole trip (shown once above the days) or only some days (changing hotels halfway; shown on those days)
 export function StayDays({ t, i }: { t: Trip; i: Idea }) {
   const ds = i.stayDays ?? [], all = ds.includes('*'), on = (id: string) => all || ds.includes(id);
   function toggle(id: string) {
@@ -153,8 +153,8 @@ export function StayDays({ t, i }: { t: Trip; i: Idea }) {
     });
   }
   return (
-    <div className="inline-field">Staying here <span className="chips">
-      <button type="button" className="chip dchip" style={vars({ '--dc': CATS.stay.color })} aria-pressed={all} onClick={() => editTrip(t.id, tt => { tt.ideas.find(y => y.id === i.id)!.stayDays = all ? [] : ['*']; })}>All days</button>
+    <div className="inline-field">{i.cat === 'car' ? 'Using it' : 'Staying here'} <span className="chips">
+      <button type="button" className="chip dchip" style={vars({ '--dc': CATS[i.cat].color })} aria-pressed={all} onClick={() => editTrip(t.id, tt => { tt.ideas.find(y => y.id === i.id)!.stayDays = all ? [] : ['*']; })}>Whole trip</button>
       {t.days.map((d, k) => <button key={d.id} type="button" className="chip dchip" style={vars({ '--dc': dayColor(k) })} aria-pressed={on(d.id)} onClick={() => toggle(d.id)}>Day {k + 1}</button>)}
     </span></div>
   );

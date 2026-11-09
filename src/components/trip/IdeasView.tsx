@@ -10,7 +10,7 @@ import { searchCatalog, suggestions } from '@/lib/picks';
 import { uid } from '@/lib/seed';
 import { fromCatalog, findPlaces } from '@/lib/search';
 import { editTrip, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
-import { catsOfIdea, inCat, isOn, isSomeday, isStayLink, isUrl, planned, scheduledDay, stayLabel } from '@/lib/trips';
+import { catsOfIdea, inCat, isOn, isOption, isSomeday, isStayLink, isUrl, planned, scheduledDay, stayLabel } from '@/lib/trips';
 import type { Cat, Idea, Meal, Pace, PlaceResult, Prefs, Trip } from '@/lib/types';
 import { IdeaCat, IdeaNote, IdeaPin, IdeaSource, MapsLink } from './fields';
 import { CarForm, StayDays, StayFields, StayForm, TourForm } from './stays';
@@ -263,7 +263,7 @@ function IdeaRow({ t, i, ui, set, pick, offMap, catOff, toggleMap, group, openIn
         <MapsLink t={t} i={i} />
         <IdeaPin i={i} set={set} tab="ideas" />
         <PhotoCredit p={i} />
-        {i.cat === 'stay' && !isSomeday(t) && <StayDays t={t} i={i} />}
+        {isOption(i) && !isSomeday(t) && <StayDays t={t} i={i} />}
         {!isSomeday(t) && <div className="inline-field">{d >= 0 ? 'Planned for' : 'Add to'} <span className="chips">{t.days.map((x, k) => <button key={x.id} type="button" className="chip dchip" style={vars({ '--dc': dayColor(k) })} aria-pressed={d === k} onClick={() => setDay(k)}>Day {k + 1}</button>)}</span></div>}
         <MoveIdea t={t} i={i} done={() => set({ open: null, hl: null })} />
         <div className="acts">

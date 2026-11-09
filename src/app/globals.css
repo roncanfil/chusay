@@ -840,6 +840,10 @@ label.btn-sm[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .days .aghead .day-title:hover, .days .aghead .day-title:focus { background: none; box-shadow: 0 1px 0 var(--line); }
 .agday .open-day { padding: 2px 0 4px; }
 .agday .stay-wrap { margin: 2px 0 4px; }
+/* the stay and rental car kept the whole trip: one row above the days; an opened one takes the full width */
+.whole-trip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 16px; }
+.whole-trip .stay-wrap { margin: 0; }
+.whole-trip .stay-wrap:has(.stay-more) { flex-basis: 100%; }
 .agday .add-panel { margin: 0 0 8px; }
 .subway.agenda .stn { grid-template-columns: 46px 26px minmax(0, 1fr); column-gap: 12px; padding: 0 8px 0 0; align-items: center; border-radius: 10px; }
 .subway.agenda .stn::before { display: none; }

@@ -36,15 +36,17 @@ export const isOption = (i: Idea) => i.cat === 'stay' || i.cat === 'car';
 export const offMap = (t: Trip, i: Idea) => !!i.offMap || !!t.mapOffCats?.includes(i.cat);
 // on a day, or a stay we're sleeping at: shown on the maps whatever was hidden
 export const planned = (t: Trip, i: Idea) => scheduledDay(t, i.id) >= 0 || !!i.stayDays?.length;
-// the stays we're sleeping at on day k
-export const staysOn = (t: Trip, k: number) => t.ideas.filter(i => i.cat === 'stay' && i.stayDays?.some(d => d === '*' || d === t.days[k]?.id));
-// "All days", "Day 2" or "Days 1, 2, 4", for a stay's tag
+// the stay and rental car kept the whole trip: shown once above the days, not on every day
+export const wholeTrip = (t: Trip) => t.ideas.filter(i => isOption(i) && !!i.stayDays?.includes('*'));
+// a stay or car for only some days (changing hotels halfway): shown on those days
+export const staysOn = (t: Trip, k: number) => t.ideas.filter(i => isOption(i) && !i.stayDays?.includes('*') && !!t.days[k] && !!i.stayDays?.includes(t.days[k].id));
+// "Whole trip", "Day 2" or "Days 1, 2, 4", for a stay's tag
 export function stayLabel(t: Trip, i: Idea) {
   const ds = i.stayDays ?? [];
   if (!ds.length) return '';
-  if (ds.includes('*')) return 'All days';
+  if (ds.includes('*')) return 'Whole trip';
   const ks = t.days.map((d, k) => ds.includes(d.id) ? k + 1 : 0).filter(Boolean);
-  return ks.length === t.days.length ? 'All days' : ks.length === 1 ? `Day ${ks[0]}` : ks.length ? `Days ${ks.join(', ')}` : '';
+  return ks.length === t.days.length ? 'Whole trip' : ks.length === 1 ? `Day ${ks[0]}` : ks.length ? `Days ${ks.join(', ')}` : '';
 }
 
 export const fmtDay = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });

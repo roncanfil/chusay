@@ -9,8 +9,8 @@ import { suggestDay } from '@/lib/picks';
 import { uid } from '@/lib/seed';
 import { findPlaces } from '@/lib/search';
 import { editTrip, setView, toast, useConfig, useView } from '@/lib/store';
-import { dayDate, fmtDay, fmtRange, ideaOf, isOption, offMap, scheduledDay, staysOn } from '@/lib/trips';
-import type { OwnPlan, PlaceResult, Stop, Trip } from '@/lib/types';
+import { dayDate, fmtDay, fmtRange, ideaOf, isOption, offMap, scheduledDay, staysOn, wholeTrip } from '@/lib/trips';
+import type { Idea, OwnPlan, PlaceResult, Stop, Trip } from '@/lib/types';
 import { IdeaCat, IdeaHero, IdeaNote, IdeaPin, IdeaSource, MapsLink } from './fields';
 import { StayDays, StayFields } from './stays';
 import { pan, type SetUI, type TabProps, type TripUI } from './ui';
@@ -26,7 +26,8 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
   const [stayOpen, setStayOpen] = useState<string | null>(null); // "day:idea" of an opened "Staying at" line
   const compact = view.density === 'compact';
   // places left off the map still go on a day from here; they come last
-  const unplanned = t.ideas.filter(i => scheduledDay(t, i.id) < 0).sort((a, b) => Number(offMap(t, a)) - Number(offMap(t, b)));
+  // a stay or car already kept for the whole trip (or some days) isn't offered again
+  const unplanned = t.ideas.filter(i => scheduledDay(t, i.id) < 0 && !(isOption(i) && i.stayDays?.length)).sort((a, b) => Number(offMap(t, a)) - Number(offMap(t, b)));
   const canSuggest = unplanned.some(i => !isOption(i) && i.lat != null);
 
   // stops drag to reorder and between days; ideas drag in from "+ From ideas"
@@ -40,6 +41,8 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
         const to = Number(ol.dataset.day), at = evt.newDraggableIndex ?? 0, from = evt.from, item = evt.item;
         editTrip(t.id, tt => {
           let stop: Stop;
+          const opt = !from.classList.contains('subway') && tt.ideas.find(i => i.id === item.dataset.idea);
+          if (opt && isOption(opt)) { opt.stayDays = ['*']; return; } // a stay or car dropped on a day is kept for the whole trip
           if (from.classList.contains('subway')) {
             const src = tt.days[Number(from.dataset.day)];
             stop = src.stops.splice(src.stops.findIndex(x => x.id === item.dataset.stop), 1)[0];
@@ -79,7 +82,15 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
     });
     set({ day: k, sel: s.id, addPanel: null }); toast(`Added to Day ${k + 1}. You can add where and notes now.`);
   }
-  function addToDay(k: number, ideaId: string) { editTrip(t.id, tt => { tt.days[k].stops.push({ id: uid(), idea: ideaId, time: '' }); }); set({ day: k }); }
+  // a stay or rental car is kept for the whole trip and shown once above the days; its days can be narrowed when it's opened
+  function addToDay(k: number, ideaId: string) {
+    const i = ideaOf(t, ideaId);
+    if (i && isOption(i)) {
+      editTrip(t.id, tt => { tt.ideas.find(x => x.id === ideaId)!.stayDays = ['*']; });
+      set({ addPanel: null }); toast(`${i.name} is set for the whole trip. It shows once, above the days.`); return;
+    }
+    editTrip(t.id, tt => { tt.days[k].stops.push({ id: uid(), idea: ideaId, time: '' }); }); set({ day: k });
+  }
   // a place that isn't in Ideas yet: saved to Ideas (only what identifies it) and put on the day in one go
   function addNew(k: number, p: PlaceResult) {
     const id = uid();
@@ -110,9 +121,25 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
     </div>
   );
 
+  // "Staying at" or "Rental car" as one line that opens in place; k is the day it sits on, or -1 above the days
+  const optionLine = (i: Idea, k: number) => {
+    const key = `${k}:${i.id}`, isOpen = stayOpen === key;
+    return <div key={i.id} className="stay-wrap" style={vars({ '--cc': CATS[i.cat].color })}>
+      <button type="button" className="stay-base" aria-expanded={isOpen} onClick={() => { setStayOpen(isOpen ? null : key); set({ ...(k >= 0 ? { day: k } : {}), hl: isOpen ? null : i.id, ...(isOpen ? {} : { panTo: pan(i.id) }) }); }}>
+        <CatIcon cat={i.cat} cls="ic-sm" /><span>{i.cat === 'car' ? 'Rental car' : 'Staying at'} <b>{i.name}</b>{i.hood ? ` · ${i.hood}` : ''}</span><span className="caret" aria-hidden="true">›</span>
+      </button>
+      {/* everything about it, opened in place */}
+      {isOpen && <div className="stay-more">
+        <IdeaHero t={t} i={i} /><IdeaNote t={t} i={i} /><IdeaSource t={t} i={i} /><StayFields t={t} i={i} /><StayDays t={t} i={i} /><MapsLink t={t} i={i} /><PhotoCredit p={i} />
+      </div>}
+    </div>;
+  };
+  const whole = wholeTrip(t);
+
   // Agenda: every day as a calendar card, its date in the day's color; tapping the date puts that day on the map
   return <>
     {bar}
+    {!!whole.length && <div className="whole-trip"><span className="faint small">Whole trip</span>{whole.map(i => optionLine(i, -1))}</div>}
     <div key={dragKey} ref={daysRef} className={`days agenda-days ${compact ? 'compact' : ''}`}>
       {t.days.map((d, k) => {
         const dt = dayDate(t, k), cur = ui.day === k;
@@ -129,18 +156,7 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
                 <input className="day-title" value={d.title} onChange={e => editTrip(t.id, tt => { tt.days[k].title = e.target.value; })} placeholder={fmtDay(dt)} aria-label={`Day ${k + 1} name`} />
                 <div className="day-add">{pill('ideas', <>+ From ideas <span className="n">{unplanned.length}</span></>)}{pill('own', '+ Custom')}</div>
               </div>
-              {staysOn(t, k).map(i => {
-                const key = `${k}:${i.id}`, isOpen = stayOpen === key;
-                return <div key={i.id} className="stay-wrap" style={vars({ '--cc': CATS[i.cat].color })}>
-                  <button type="button" className="stay-base" aria-expanded={isOpen} onClick={() => { setStayOpen(isOpen ? null : key); set({ day: k, hl: isOpen ? null : i.id, ...(isOpen ? {} : { panTo: pan(i.id) }) }); }}>
-                    <CatIcon cat={i.cat} cls="ic-sm" /><span>Staying at <b>{i.name}</b>{i.hood ? ` · ${i.hood}` : ''}</span><span className="caret" aria-hidden="true">›</span>
-                  </button>
-                  {/* everything about where we sleep, opened in place */}
-                  {isOpen && <div className="stay-more">
-                    <IdeaHero t={t} i={i} /><IdeaNote t={t} i={i} /><IdeaSource t={t} i={i} /><StayFields t={t} i={i} /><StayDays t={t} i={i} /><MapsLink t={t} i={i} /><PhotoCredit p={i} />
-                  </div>}
-                </div>;
-              })}
+              {staysOn(t, k).map(i => optionLine(i, k))}
               {ap === 'own' && <OwnForm onAdd={(title, time) => addOwn(k, title, time)} />}
               {ap === 'ideas' && (
                 <div className="add-panel"><NewPlace t={t} k={k} onAdd={p => addNew(k, p)} onCustom={title => addOwn(k, title, '')} />{unplanned.length
