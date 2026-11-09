@@ -549,28 +549,28 @@ export function MuhuPage() {
           {searching ? countries.map(c => {
             const list = found.filter(m => m.cid === c.cid);
             return !!list.length && (
-              <Disc key={c.cid} k={`muhu-search-${c.cid}`} cls="tint" style={vars({ '--sc': 'var(--s-want)' })} head={<><b>{c.name}</b><span className="faint small">{list.length}</span></>}>
+              <Disc key={c.cid} k={`muhu-search-${c.cid}`} cls="tint block" style={vars({ '--sc': 'var(--s-want)' })} head={<><b>{c.name}</b><span className="faint small">{list.length}</span></>}>
                 {items(list, null, `q-${c.cid}`)}
               </Disc>
             );
           }) : by === 'country' && newest ? (() => {
             const list = country.list.filter(keep);
             return !!list.length && (
-              <Disc k={`muhu-${country.cid}-new`} cls="tint" style={vars({ '--sc': 'var(--s-want)' })} head={<><b>Newest first</b><span className="faint small">{list.length}</span></>}>
+              <Disc k={`muhu-${country.cid}-new`} cls="tint block" style={vars({ '--sc': 'var(--s-want)' })} head={<><b>Newest first</b><span className="faint small">{list.length}</span></>}>
                 {items(list, null, 'new')}
               </Disc>
             );
           })() : by === 'country' ? MUHU_KEYS.filter(k => !picked.length || picked.includes(k)).map(k => {
             const list = country.list.filter(m => catsOf(m).includes(k) && keep(m));
             return !!list.length && (
-              <Disc key={k} k={`muhu-${country.cid}-${k}`} cls="tint" style={vars({ '--sc': MUHU_CATS[k].color })} head={<><MuhuIcon cat={k} /><b>{MUHU_CATS[k].label}</b><span className="faint small">{list.length}</span></>}>
+              <Disc key={k} k={`muhu-${country.cid}-${k}`} cls="tint block" style={vars({ '--sc': MUHU_CATS[k].color })} head={<><MuhuIcon cat={k} /><b>{MUHU_CATS[k].label}</b><span className="faint small">{list.length}</span></>}>
                 {items(list, k, k)}
               </Disc>
             );
           }) : countries.map(c => {
             const list = c.list.filter(keep);
             return !!list.length && (
-              <Disc key={c.cid} k={`muhu-cat-${c.cid}`} cls="tint" style={vars({ '--sc': oneCat ? MUHU_CATS[oneCat].color : 'var(--s-want)' })} head={<><b>{c.name}</b><span className="faint small">{list.length}</span></>}>
+              <Disc key={c.cid} k={`muhu-cat-${c.cid}`} cls="tint block" style={vars({ '--sc': oneCat ? MUHU_CATS[oneCat].color : 'var(--s-want)' })} head={<><b>{c.name}</b><span className="faint small">{list.length}</span></>}>
                 {items(list, oneCat, c.cid)}
               </Disc>
             );

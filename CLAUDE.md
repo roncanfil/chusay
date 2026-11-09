@@ -50,7 +50,7 @@ The SQLite file on their server holds their actual trips.
 
 ## Design rules (from the household; keep them)
 
-- White, airy look; turquoise accent `#12A39F`; Plus Jakarta Sans; dark mode follows the system. Reuse the CSS variables and classes in `src/app/globals.css`.
+- White, airy look; turquoise accent `#12A39F`; Plus Jakarta Sans; dark mode follows the system. The "Passport" look (their pick, Nov 2026): Young Serif for titles, a faint dotted-paper background, trip tiles as postage stamps, days as ticket stubs. Ideas and Muhu sections are bold color blocks (solid band in the category color). Its overrides sit at the end of `globals.css`. Reuse the CSS variables and classes in `src/app/globals.css`.
 - Color coding everywhere is a requirement, not decoration: each tab, day, category, trip status and section has its color.
 - The list sits beside the map on wider screens; nobody should scroll to reach the map there. On phones the map sits above the list and scrolls away with the page (they asked: a pinned map left no room once the keyboard was up).
 - Everything opens and closes in place. No pop-up windows or floating panels. The one exception they asked for: Muhu’s round + button at the bottom, which opens the add form in place.

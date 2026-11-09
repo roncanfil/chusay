@@ -197,7 +197,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
     {!t.ideas.length
       ? <div className="group empty"><b style={{ color: 'var(--ink)' }}>No ideas saved yet</b><span>Search for places, or open your picks.</span><button type="button" className="btn primary" onClick={openAdd}>+ Add a place</button></div>
       : <div ref={listRef} key={dragKey}>{groups.map(k => (
-        <div key={k} data-sec={k}><Disc k={`cat-${k}`} cls="tint" style={vars({ '--sc': CATS[k].color })} head={<><span className="grip" aria-label="Drag to reorder sections" title="Drag to reorder sections">⋮⋮</span><CatIcon cat={k} /><b>{CATS[k].label}</b><span className="faint small">{counts[k] || ''}</span></>}>
+        <div key={k} data-sec={k}><Disc k={`cat-${k}`} cls="tint block" style={vars({ '--sc': CATS[k].color })} head={<><span className="grip" aria-label="Drag to reorder sections" title="Drag to reorder sections">⋮⋮</span><CatIcon cat={k} /><b>{CATS[k].label}</b><span className="faint small">{counts[k] || ''}</span></>}>
           {k === 'car' && (carForm ? <CarForm t={t} onDone={() => setCarForm(false)} />
             : <div><button type="button" className="btn-sm" onClick={() => setCarForm(true)}>+ Add a rental car</button></div>)}
           {k === 'stay' && !counts[k] && <div className="faint small drag-hint">Paste an Airbnb or Booking.com link, or search for a hotel, with <button type="button" className="linkish" onClick={openAdd}>+ Add a place</button>.</div>}

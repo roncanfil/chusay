@@ -861,3 +861,53 @@ label.btn-sm[aria-disabled="true"] { opacity: .6; cursor: progress; }
   .subway.agenda .stn-more { grid-column: 1 / 4; }
 }
 @media (max-width: 639px) { .agdate { position: static; } }
+
+/* ===== Passport look (the household's pick, Nov 2026): serif titles, dotted paper, stamp tiles, ticket-stub days =====
+   Kept as one block of overrides at the end so the look can be tuned in one place. */
+:root { --f-serif: var(--font-serif), "Young Serif", Georgia, "Times New Roman", serif; --dots: color-mix(in srgb, var(--accent) 16%, transparent); }
+body { background-image: radial-gradient(var(--dots) 1px, transparent 1.3px); background-size: 18px 18px; background-attachment: fixed; }
+h1, .brand, .section-head h2 { font-family: var(--f-serif); font-weight: 400; letter-spacing: -.01em; }
+.brand { color: var(--accent-ink); font-size: 22px; }
+.topbar { border-bottom: 1.5px dashed color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.nav a[aria-current="page"] { background: none; border-radius: 0; box-shadow: inset 0 -2px 0 var(--accent); }
+
+/* trip tiles as postage stamps: a scalloped paper edge, a colored frame inside, the status as a tilted rubber stamp */
+.tile { background: none; border: 0; border-radius: 0; padding: 18px; gap: 8px; filter: drop-shadow(0 1px 1px rgba(16, 40, 43, .16)) drop-shadow(0 6px 10px rgba(16, 40, 43, .07)); }
+.tile-paper { position: absolute; inset: 0; padding: 7px; background: var(--surface); z-index: 0;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, radial-gradient(circle 5px, #0000 96%, #000) -7px -7px / 14px 14px;
+  mask: linear-gradient(#000 0 0) content-box, radial-gradient(circle 5px, #0000 96%, #000) -7px -7px / 14px 14px; }
+.tile::before { content: ""; position: absolute; inset: 12px; z-index: 0; border: 1.5px solid color-mix(in srgb, var(--sc) 70%, transparent); border-radius: 4px; background: color-mix(in srgb, var(--sc) 12%, var(--surface)); }
+.tile > .tile-map, .tile > .tile-txt { position: relative; z-index: 1; }
+.tile-map { border-radius: 3px; }
+.tile-txt b { font-family: var(--f-serif); font-weight: 400; font-size: 16.5px; }
+.tile-tag { top: 20px; left: auto; right: 16px; z-index: 2; background: color-mix(in srgb, var(--surface) 75%, transparent); color: color-mix(in srgb, var(--sc) 85%, var(--ink)); border: 2px solid var(--sc); box-shadow: none; transform: rotate(-8deg); text-transform: uppercase; letter-spacing: .06em; font-size: 11px; font-weight: 800; }
+@media (hover: hover) and (pointer: fine) { .tile:hover { box-shadow: none; filter: drop-shadow(0 2px 2px rgba(16, 40, 43, .18)) drop-shadow(0 12px 16px color-mix(in srgb, var(--sc) 30%, transparent)); } }
+@media (max-width: 480px) { .tile { padding: 16px; border-radius: 0; } .tile-tag { top: 17px; right: 12px; left: auto; } .tile-txt b { font-size: 15px; } }
+
+/* each day as a ticket: a stub in the day's color with notches, torn along a dashed line */
+.agenda-days { gap: 12px; }
+.agday, .agday:first-child { gap: 0; padding: 0; border-top: 0; border-radius: 14px; background: var(--surface); box-shadow: 0 0 0 1px color-mix(in srgb, var(--dc) 30%, var(--line)); grid-template-columns: 70px minmax(0, 1fr); }
+.agday.cur { box-shadow: 0 0 0 2px var(--dc), 0 8px 20px -14px var(--dc); }
+.agdate, .agday.cur .agdate { position: static; align-self: stretch; height: auto; align-content: center; padding: 14px 0; border-radius: 14px 0 0 14px; background: var(--dc); color: #fff;
+  -webkit-mask: radial-gradient(circle 7px at 100% 0, #0000 98%, #000) top / 100% 51% no-repeat, radial-gradient(circle 7px at 100% 100%, #0000 98%, #000) bottom / 100% 51% no-repeat;
+  mask: radial-gradient(circle 7px at 100% 0, #0000 98%, #000) top / 100% 51% no-repeat, radial-gradient(circle 7px at 100% 100%, #0000 98%, #000) bottom / 100% 51% no-repeat; }
+.agdate:hover { background: color-mix(in srgb, var(--dc) 88%, var(--ink)); }
+.agdate b { font-family: var(--f-serif); font-weight: 400; font-size: 32px; }
+.agbody { padding: 10px 12px 10px 14px; border-left: 2px dashed color-mix(in srgb, var(--dc) 45%, var(--line)); }
+.days .aghead .day-title { font-family: var(--f-serif); font-weight: 400; font-size: 19px; }
+.days .aghead .day-title::placeholder { font-weight: 400; }
+@media (max-width: 520px) { .agday, .agday:first-child { grid-template-columns: 56px minmax(0, 1fr); } .agdate b { font-size: 26px; } .agbody { padding: 8px 8px 8px 10px; } }
+
+/* idea and Muhu sections: a serif heading with a short underline in the section's color */
+.disc.tint > .disc-head b { font-family: var(--f-serif); font-weight: 400; font-size: 18px; padding-bottom: 3px; background: linear-gradient(var(--sc), var(--sc)) 0 100% / 36px 3px no-repeat; }
+
+/* Ideas and Muhu sections as bold color blocks (the household's pick): a solid band in the category's color, white rows on a light tint */
+.disc.block { border-radius: 18px; overflow: hidden; background: color-mix(in srgb, var(--sc) 9%, var(--surface)); margin-top: 12px; }
+.disc.block > .disc-head, .disc.block > .disc-head:hover { background: var(--sc); color: #fff; padding: 9px 14px; border-radius: 0; }
+.disc.block > .disc-head:hover { filter: brightness(1.05); }
+.disc.block > .disc-head b { color: #fff !important; font-family: var(--f-body); font-weight: 800; font-size: 17px; background: none; padding: 0; }
+.disc.block > .disc-head .faint, .disc.block > .disc-head .caret, .disc.block > .disc-head .grip { color: rgba(255, 255, 255, .85); }
+.disc.block > .disc-head .ic { background: #fff; color: var(--sc); }
+.disc.block > .disc-body { padding: 8px 8px 10px; }
+.disc.block > .disc-body .group { border: 0; }
+.disc.block > .disc-body > .drag-hint, .disc.block > .disc-body > .faint { padding-inline: 6px; }
