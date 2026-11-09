@@ -9,7 +9,7 @@ import { CountryThumb } from '@/components/map/CountryThumb';
 import { CITY } from '@/lib/data/cities';
 import { mkTrip } from '@/lib/seed';
 import { toast, update, useAppState, useConfig } from '@/lib/store';
-import { fmtRange, isoDate, isOn, isPast, isSomeday, relTime, today } from '@/lib/trips';
+import { fmtRange, isoDate, isOn, isPast, MAX_DAYS, isSomeday, relTime, today } from '@/lib/trips';
 import type { CityKey, DestinationResult, Trip } from '@/lib/types';
 
 // tiles are colored like the world map: planning, want to go (someday), visited (past), and not interested for called off
@@ -53,7 +53,7 @@ function NewTripForm({ onDone }: { onDone: () => void }) {
     const t = mkTrip({
       name: name || (some ? `${where} someday` : `${where} trip`), city,
       ...(dest ? { dest: { name: dest.name, country: dest.country, cid: dest.cid }, center: { lat: dest.lat, lng: dest.lng } } : {}),
-      start: some ? null : String(f.get('start')), len: some ? 0 : Math.max(1, Math.min(21, Number(f.get('len')) || 4)),
+      start: some ? null : String(f.get('start')), len: some ? 0 : Math.max(1, Math.min(MAX_DAYS, Number(f.get('len')) || 4)),
     });
     update(s => { s.trips.push(t); });
     onDone();
@@ -75,7 +75,7 @@ function NewTripForm({ onDone }: { onDone: () => void }) {
           </div>}
         {!some && <>
           <label className="field">First day<input name="start" type="date" required defaultValue={isoDate(today())} /></label>
-          <label className="field">Days<input name="len" type="number" min="1" max="21" defaultValue="4" required /></label>
+          <label className="field">Days<input name="len" type="number" min="1" max={MAX_DAYS} defaultValue="4" required /></label>
         </>}
       </div>
       {google && !dest && where.results}

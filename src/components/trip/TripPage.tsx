@@ -9,7 +9,7 @@ import { dayColor, TAB_COLORS, type Tab } from '@/lib/constants';
 import { CITY } from '@/lib/data/cities';
 import { uid } from '@/lib/seed';
 import { editIdea, editTrip, openDisc, setView, toast, toggleMapHidden, useAppState, useConfig, useSession, useView } from '@/lib/store';
-import { canMap, fmtRange, ideaOf, isoDate, isPast, inCat, isSomeday, offMap, planned, relTime, staysOn, today } from '@/lib/trips';
+import { canMap, fmtRange, ideaOf, isoDate, isPast, inCat, isSomeday, MAX_DAYS, offMap, planned, relTime, staysOn, today } from '@/lib/trips';
 import type { CityKey, DestinationResult, Trip } from '@/lib/types';
 import { CultureView } from './CultureView';
 import { DaysView } from './DaysView';
@@ -107,7 +107,7 @@ function TripView({ t }: { t: Trip }) {
   // Pick dates turns a Someday list into a trip and keeps every idea
   function pickDates(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const f = new FormData(e.currentTarget), start = String(f.get('start')), len = Math.max(1, Math.min(21, Number(f.get('len')) || 5));
+    const f = new FormData(e.currentTarget), start = String(f.get('start')), len = Math.max(1, Math.min(MAX_DAYS, Number(f.get('len')) || 5));
     // a trip moved to Someday kept its days: they come back, cut or padded to the new length
     editTrip(t.id, tt => {
       tt.start = start;
@@ -124,7 +124,7 @@ function TripView({ t }: { t: Trip }) {
   // and move their own plans (meeting friends, reservations) to the new last day
   function changeDates(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const f = new FormData(e.currentTarget), start = String(f.get('start')), len = Math.max(1, Math.min(21, Number(f.get('len')) || t.len));
+    const f = new FormData(e.currentTarget), start = String(f.get('start')), len = Math.max(1, Math.min(MAX_DAYS, Number(f.get('len')) || t.len));
     editTrip(t.id, tt => {
       tt.start = start;
       while (tt.days.length < len) tt.days.push({ id: uid(), title: '', stops: [] });
@@ -191,14 +191,14 @@ function TripView({ t }: { t: Trip }) {
         {!someday && ui.datesOpen && (
           <form className="group dates-form" onSubmit={changeDates}>
             <label className="field">First day<input name="start" type="date" required defaultValue={t.start!} /></label>
-            <label className="field">Days<input name="len" type="number" min="1" max="21" defaultValue={t.len} required /></label>
+            <label className="field">Days<input name="len" type="number" min="1" max={MAX_DAYS} defaultValue={t.len} required /></label>
             <button className="btn primary" type="submit">Save dates</button>
           </form>
         )}
         {someday && ui.datesOpen && (
           <form className="group dates-form" onSubmit={pickDates}>
             <label className="field">First day<input name="start" type="date" required defaultValue={isoDate(today())} /></label>
-            <label className="field">Days<input name="len" type="number" min="1" max="21" defaultValue="5" required /></label>
+            <label className="field">Days<input name="len" type="number" min="1" max={MAX_DAYS} defaultValue="5" required /></label>
             <button className="btn primary" type="submit">Make it a trip</button>
           </form>
         )}

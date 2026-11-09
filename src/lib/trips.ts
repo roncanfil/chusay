@@ -66,6 +66,8 @@ export function relTime(t: Trip) {
 }
 
 /* ---------- where an idea came from ---------- */
+// longest trip the date forms take; a long stay abroad or a summer away can run for months
+export const MAX_DAYS = 365;
 export const isUrl = (v?: string) => /^https?:\/\/\S+$/i.test((v || '').trim());
 export const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
 // links from these sites are stays; any other pasted link is saved as a tour
