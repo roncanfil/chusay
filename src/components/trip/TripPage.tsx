@@ -9,8 +9,8 @@ import { dayColor, TAB_COLORS, type Tab } from '@/lib/constants';
 import { CITY } from '@/lib/data/cities';
 import { uid } from '@/lib/seed';
 import { editIdea, editTrip, openDisc, setView, toast, toggleMapHidden, useAppState, useConfig, useSession, useView } from '@/lib/store';
-import { canMap, fmtRange, ideaOf, isoDate, isPast, inCat, isSomeday, MAX_DAYS, offMap, planned, relTime, staysOn, today } from '@/lib/trips';
-import type { CityKey, DestinationResult, Trip } from '@/lib/types';
+import { canMap, fmtRange, ideaOf, isoDate, isPast, inCat, isSomeday, MAX_DAYS, offMap, planned, relTime, staysOn, today, wholeTrip } from '@/lib/trips';
+import type { CityKey, DestinationResult, Idea, Trip } from '@/lib/types';
 import { CultureView } from './CultureView';
 import { DaysView } from './DaysView';
 import { FeedbackView } from './FeedbackView';
@@ -27,14 +27,15 @@ export function TripPage({ id }: { id: string }) {
 
 // map pins and routes for the itinerary: one day's stops, or every day's route in its own color
 // the agenda's map: the whole trip, the picked day bright with its route, the other days faded back.
-// A trip with nothing planned yet shows its unplanned ideas, faded, except the ones left off the map
+// A trip with nothing planned yet shows its unplanned ideas, faded, except the ones left off the map.
+// Rental cars never show here: they go everywhere with us, so a pin for one only clutters the days
 function dayMapSpec(t: Trip, day: number): { places: MapPlace[]; routes: MapRoute[]; key: string } {
-  const places: MapPlace[] = [];
-  t.days.forEach((d, k) => d.stops.forEach(s => { const i = ideaOf(t, s.idea); if (i && !places.some(p => p.idea === i)) places.push({ idea: i, dim: k !== day }); }));
-  // where we sleep that day is always bright, outside the day's route
-  for (const i of staysOn(t, day)) { const p = places.find(x => x.idea === i); if (p) p.dim = false; else places.push({ idea: i }); }
-  if (!places.length) return { places: t.ideas.filter(i => !offMap(t, i)).map(i => ({ idea: i, dim: true })), routes: [], key: `day-${t.id}-${day}` };
-  const route = (t.days[day]?.stops ?? []).map(s => ideaOf(t, s.idea)).filter(i => !!i);
+  const places: MapPlace[] = [], shown = (i: Idea) => i.cat !== 'car';
+  t.days.forEach((d, k) => d.stops.forEach(s => { const i = ideaOf(t, s.idea); if (i && shown(i) && !places.some(p => p.idea === i)) places.push({ idea: i, dim: k !== day }); }));
+  // where we sleep that day (or the whole trip) is always bright, outside the day's route
+  for (const i of [...wholeTrip(t), ...staysOn(t, day)].filter(shown)) { const p = places.find(x => x.idea === i); if (p) p.dim = false; else places.push({ idea: i }); }
+  if (!places.length) return { places: t.ideas.filter(i => shown(i) && !offMap(t, i)).map(i => ({ idea: i, dim: true })), routes: [], key: `day-${t.id}-${day}` };
+  const route = (t.days[day]?.stops ?? []).map(s => ideaOf(t, s.idea)).filter((i): i is Idea => !!i && shown(i));
   return { places: places.sort((a, b) => Number(!!b.dim) - Number(!!a.dim)), routes: route.length > 1 ? [{ color: dayColor(day), ideas: route }] : [], key: `day-${t.id}-${day}` };
 }
 
