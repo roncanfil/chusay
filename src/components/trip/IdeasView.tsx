@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent } from 'react';
+import { Fragment, useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent } from 'react';
 import Sortable from 'sortablejs';
 import { Disc } from '@/components/Disc';
+import { MoveTo } from '@/components/MoveTo';
 import { CatIcon, KindIcon, ListSegIcon, MapSegIcon, PhotoCredit, Pic, SrcChip, vars } from '@/components/icons';
 import { BUDGETS, CAT_KEYS, CATS, dayColor, DIETS, INTERESTS, MEALS, PACE, TRIP_TO_MUHU } from '@/lib/constants';
 import { kindLabel } from '@/lib/kinds';
@@ -12,7 +13,7 @@ import { fromCatalog, findPlaces } from '@/lib/search';
 import { editTrip, setView, toast, update, useAppState, useConfig, useView } from '@/lib/store';
 import { catsOfIdea, inCat, isOn, isOption, isSomeday, isStayLink, isUrl, planned, scheduledDay, stayLabel } from '@/lib/trips';
 import type { Cat, Idea, Meal, Pace, PlaceResult, Prefs, Trip } from '@/lib/types';
-import { IdeaCat, IdeaNote, IdeaPin, IdeaSource, MapsLink } from './fields';
+import { IdeaCat, IdeaNote, IdeaPin, IdeaSource, MapsLink, toggleCat } from './fields';
 import { CarForm, StayDays, StayFields, StayForm, TourForm } from './stays';
 import { pan, type SetUI, type TabProps, type TripUI } from './ui';
 
@@ -27,6 +28,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
   const [manual, setManual] = useState<string | null>(null); // the name typed so far, when adding by hand
   const [stayUrl, setStayUrl] = useState<string | null>(null); // a pasted link being saved: a stay from a booking site, a tour otherwise
   const searchSeq = useRef(0);
+  const [draft, setDraft] = useState<{ p: PlaceResult; idea: Idea } | null>(null); // a found place getting its details before it's saved
   const listRef = useRef<HTMLDivElement>(null);
   // Sortable moves DOM nodes React owns; after a drop the groups are re-mounted from state
   const [dragKey, setDragKey] = useState(0);
@@ -76,7 +78,7 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
   async function runSearch(q: string) {
     q = q.trim(); if (!q) return;
     const n = ++searchSeq.current;
-    setManual(null); set({ search: { q, loading: true, results: [] } });
+    setManual(null); setDraft(null); set({ search: { q, loading: true, results: [] } });
     try {
       const results = await findPlaces(t, q, google);
       if (n === searchSeq.current) set({ search: { q, loading: false, results } });
@@ -84,18 +86,19 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
       if (n === searchSeq.current) set({ search: { q, loading: false, results: [], error: `Search isn’t working right now. ${e instanceof Error ? e.message : ''}` } });
     }
   }
-  function openAdd() { setQuery(''); setManual(null); setStayUrl(null); searchSeq.current++; set({ adding: true, search: null }); }
-  function closeAdd() { setManual(null); setStayUrl(null); searchSeq.current++; set({ adding: false, search: null }); }
+  function openAdd() { setQuery(''); setManual(null); setStayUrl(null); setDraft(null); searchSeq.current++; set({ adding: true, search: null }); }
+  function closeAdd() { setManual(null); setStayUrl(null); setDraft(null); searchSeq.current++; set({ adding: false, search: null }); }
   // a link is a stay (booking sites) or a tour (any other site); anything else is a place search
   function submit(q: string) {
     if (isUrl(q)) { searchSeq.current++; setManual(null); set({ search: null }); setStayUrl(q.trim()); setQuery(''); }
     else { setStayUrl(null); runSearch(q); }
   }
   // keep only what identifies the place; notes are yours to write
-  function addPlace(p: PlaceResult, tags: string[] = []) {
-    editTrip(t.id, tt => { tt.ideas.push({ id: uid(), ...(p.placeId ? { placeId: p.placeId } : {}), name: p.name, cat: p.cat, kind: p.kind, hood: p.hood, lat: p.lat, lng: p.lng, tags: [...tags], note: '' }); });
+  const asIdea = (p: PlaceResult, tags: string[] = []): Idea => ({ id: uid(), ...(p.placeId ? { placeId: p.placeId } : {}), name: p.name, cat: p.cat, kind: p.kind, hood: p.hood, lat: p.lat, lng: p.lng, tags: [...tags], note: '' });
+  function addPlace(p: PlaceResult, tags: string[] = [], idea = asIdea(p, tags)) {
+    editTrip(t.id, tt => { tt.ideas.push(idea); });
     if (s?.results) set({ search: { ...s, results: s.results.filter(x => x !== p) } });
-    toast(`Saved ${p.name} to ${CATS[p.cat].label}.`);
+    setDraft(null); toast(`Saved ${idea.name} to ${CATS[idea.cat].label}.`);
   }
   // step one of the build guide's Ideas tab: a place typed in by hand, with no location
   function addManual(e: FormEvent<HTMLFormElement>) {
@@ -130,12 +133,16 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
       })()
         : s.loading ? <><div className="shimmer" /><div className="shimmer" /></>
         : s.results.length ? <>
-          {s.results.map(p => (
-            <div key={p.placeId || p.name} className="row" style={vars({ '--cc': CATS[p.cat].color })}>
-              <Pic p={p} /><div className="main"><span className="title">{p.name}</span><span className="meta">{kindLabel(p)}{p.hood ? ' · ' + p.hood : ''}</span></div>
-              <button type="button" className="btn-sm" onClick={() => addPlace(p)}>+ Save</button>
-            </div>
-          ))}
+          {s.results.map(p => {
+            const on = draft?.p === p;
+            return <Fragment key={p.placeId || p.name}>
+              <div className={`row ${on ? 'sel' : ''}`} style={vars({ '--cc': CATS[p.cat].color })}>
+                <Pic p={p} /><div className="main"><span className="title">{p.name}</span><span className="meta">{kindLabel(p)}{p.hood ? ' · ' + p.hood : ''}</span></div>
+                <button type="button" className="btn-sm" aria-expanded={on} onClick={() => setDraft(on ? null : { p, idea: asIdea(p) })}>{on ? 'Not this one' : '+ Choose'}</button>
+              </div>
+              {on && <DraftIdea draft={draft.idea} change={fn => setDraft(d => d && { ...d, idea: (() => { const x = structuredClone(d.idea); fn(x); return x; })() })} save={() => addPlace(p, [], draft.idea)} cancel={() => setDraft(null)} />}
+            </Fragment>;
+          })}
           <div className="more" style={{ paddingLeft: 18 }}><span className="faint small">{google ? 'From Google. Only the name, kind, area and location are saved; notes are yours.' : 'Sample results. The real app finds places with Google but only saves the name and location. Notes are yours.'} Not here? You can {byHand(s.q)}.</span></div>
         </>
         : <div className="empty">{s.error || (google ? `Nothing found for “${s.q}”.` : `No sample results for “${s.q}”. The real search covers everything on Google Maps.`)}<span>You can {byHand(s.q)}.</span></div>}
@@ -277,15 +284,33 @@ function IdeaRow({ t, i, ui, set, pick, offMap, catOff, toggleMap, group, openIn
 
 
 // food & drink: which meals it's good for, as many as fit; it's listed under each
+const flipMeal = (x: Idea, m: Meal) => {
+  const l = x.meals ?? [];
+  x.meals = l.includes(m) ? l.filter(y => y !== m) : MEALS.map(([k]) => k).filter(k => k === m || l.includes(k));
+  if (!x.meals.length) delete x.meals;
+};
+const mealChips = (i: Idea, flip: (m: Meal) => void) => <div className="inline-field">Good for <span className="chips">{MEALS.map(([m, label, color]) => (
+  <button key={m} type="button" className="chip dchip" style={vars({ '--dc': color })} aria-pressed={!!i.meals?.includes(m)} onClick={() => flip(m)}>{label}</button>
+))}</span></div>;
 function IdeaMeals({ t, i }: { t: Trip; i: Idea }) {
-  const flip = (m: Meal) => editTrip(t.id, tt => {
-    const x = tt.ideas.find(y => y.id === i.id)!, l = x.meals ?? [];
-    x.meals = l.includes(m) ? l.filter(y => y !== m) : MEALS.map(([k]) => k).filter(k => k === m || l.includes(k));
-    if (!x.meals.length) delete x.meals;
-  });
-  return <div className="inline-field">Good for <span className="chips">{MEALS.map(([m, label, color]) => (
-    <button key={m} type="button" className="chip dchip" style={vars({ '--dc': color })} aria-pressed={!!i.meals?.includes(m)} onClick={() => flip(m)}>{label}</button>
-  ))}</span></div>;
+  return mealChips(i, m => editTrip(t.id, tt => flipMeal(tt.ideas.find(y => y.id === i.id)!, m)));
+}
+
+// a place picked from the search, before it's saved: the same details an opened idea has, filled in now or later
+function DraftIdea({ draft: i, change, save, cancel }: { draft: Idea; change: (fn: (x: Idea) => void) => void; save: () => void; cancel: () => void }) {
+  return (
+    <form className="more draft" style={vars({ '--cc': CATS[i.cat]?.color })} onSubmit={e => { e.preventDefault(); save(); }}>
+      <label className="note-field"><span>Our notes</span>
+        <textarea rows={2} value={i.note} autoFocus onChange={e => change(x => { x.note = e.target.value; })} placeholder="Add a note: booking info, what to order, who recommended it…" />
+      </label>
+      <label className="note-field"><span>Source</span>
+        <input className="input src-in" value={i.source || ''} onChange={e => change(x => { x.source = e.target.value; })} placeholder="Paste a link (Google Maps, blog, video) or who told you" />
+      </label>
+      <div className="inline-field">Category <span className="chips">{CAT_KEYS.map(k => <button key={k} type="button" className="chip dchip" style={vars({ '--dc': CATS[k].color })} aria-pressed={inCat(i, k)} title={i.cat === k ? 'The main one: its color on the map' : undefined} onClick={() => change(x => toggleCat(x, k))}>{CATS[k].label}</button>)}</span></div>
+      {inCat(i, 'food') && mealChips(i, m => change(x => flipMeal(x, m)))}
+      <div className="acts"><span className="sp" /><button type="button" className="btn quiet" onClick={cancel}>Cancel</button><button type="submit" className="btn primary">Save idea</button></div>
+    </form>
+  );
 }
 
 // take an idea off this trip and keep it elsewhere: another trip, or Muhu for some later trip (it leaves this trip's days too)
@@ -314,10 +339,10 @@ function MoveIdea({ t, i, done }: { t: Trip; i: Idea; done: () => void }) {
   const S = useAppState()!;
   const move = (to: string) => { moveIdeas(t, [i.id], to); done(); toast(`Moved ${i.name} to ${whereTo(S, t, to)}.`); };
   return (
-    <div className="inline-field">Move to <span className="chips">
+    <MoveTo>
       <button type="button" className="chip" onClick={() => move('muhu')}>Muhu, for later</button>
       {otherTrips(S, t).map(x => <button key={x.id} type="button" className="chip" onClick={() => move(x.id)}>{x.name}</button>)}
-    </span></div>
+    </MoveTo>
   );
 }
 

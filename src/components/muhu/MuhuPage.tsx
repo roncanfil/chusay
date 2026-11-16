@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent, type FormEvent, type KeyboardEvent, type MouseEvent, type RefObject } from 'react';
 import { Disc } from '@/components/Disc';
+import { MoveTo } from '@/components/MoveTo';
 import { NewCategory } from '@/components/NewCategory';
 import { ListSegIcon, MapSegIcon, PinSvg, SrcChip, vars } from '@/components/icons';
 import { GoogleMap, useMapsFailed } from '@/components/map/GoogleMap';
@@ -236,10 +237,10 @@ function MuhuDetails({ S, m, onCompare }: { S: AppState; m: MuhuIdea; onCompare?
         {SORTED.map(([id, n]) => <option key={id} value={id}>{n}</option>)}
       </select>
     </label>
-    {!!trips.length && <div className="inline-field">Move to a trip <span className="chips">{trips.map(t => {
+    {!!trips.length && <MoveTo label="Move to a trip">{trips.map(t => {
       const has = t.ideas.some(i => plain(i.name) === plain(m.name));
       return <button key={t.id} type="button" className="chip" aria-pressed={has} disabled={has} onClick={() => toTrip(t.id)}>{has ? `Already in ${t.name}` : t.name}</button>;
-    })}</span></div>}
+    })}</MoveTo>}
     <div className="acts">
       {onCompare && <button type="button" className="btn-sm" onClick={() => onCompare(m.id)}>Compare with…</button>}
       <a className="btn-sm linkbtn" href={mapsUrl(m)} target="_blank" rel="noopener noreferrer"><PinSvg />Open in Google Maps</a>

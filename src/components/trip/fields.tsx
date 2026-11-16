@@ -44,7 +44,7 @@ export function IdeaNote({ t, i }: { t: Trip; i: Idea }) {
 
 // one or more categories; the first picked is the main one (its color and map pin). Changing the main one drops the old kind,
 // which belonged to the old category
-function toggleCat(x: Idea, k: string) {
+export function toggleCat(x: Idea, k: string) {
   const extra = x.extraCats ?? [];
   if (x.cat === k) { if (!extra.length) return; x.cat = extra[0]; x.extraCats = extra.slice(1); delete x.kind; }
   else x.extraCats = extra.includes(k) ? extra.filter(c => c !== k) : [...extra, k];

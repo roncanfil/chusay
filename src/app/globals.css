@@ -915,3 +915,7 @@ h1, .brand, .section-head h2 { font-family: var(--f-serif); font-weight: 400; le
 .disc.block > .disc-body { padding: 8px 8px 10px; }
 .disc.block > .disc-body .group { border: 0; }
 .disc.block > .disc-body > .drag-hint, .disc.block > .disc-body > .faint { padding-inline: 6px; }
+
+/* a found place getting its details before it's saved, and the folded "Move to" on an opened idea */
+.more.draft { padding-top: 12px; background: color-mix(in srgb, var(--cc, var(--accent)) 5%, transparent); }
+.move-to { flex-wrap: wrap; }
