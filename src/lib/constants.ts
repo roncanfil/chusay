@@ -69,7 +69,9 @@ export const WANT: Record<Exclude<Want, ''>, string> = { high: 'Must do', med: '
 // a seed copied onto a trip lands in the closest trip category
 // and the other way, for an idea moved off a trip into Muhu
 // food & drink by meal, each with its own color so the groups stand apart
-export const MEALS: [Meal, string, string][] = [['breakfast', 'Breakfast', '#E3A23C'], ['lunch', 'Lunch', '#5BA05A'], ['dinner', 'Dinner', '#6C63B5'], ['other', 'Other', '#8C8A80']];
+export const MEALS: [Meal, string, string][] = [['breakfast', 'Breakfast', '#E3A23C'], ['brunch', 'Brunch', '#E0795A'], ['lunch', 'Lunch', '#5BA05A'], ['snacks', 'Snacks', '#3E9BB5'], ['dinner', 'Dinner', '#6C63B5'], ['latenight', 'Late night', '#3D4A8C'], ['drinks', 'Drinks', '#A84D7A']];
+// places sorted under "Other" before the list grew keep it, last, until it's turned off
+export const OLD_MEAL: [Meal, string, string] = ['other', 'Other', '#8C8A80'];
 export const TRIP_TO_MUHU: Record<string, MuhuCat> = { sight: 'built', food: 'food', act: 'fun', tour: 'fun', stay: 'other', shop: 'shop', car: 'other' };
 export const MUHU_TO_TRIP: Record<MuhuCat, Cat> = { outdoors: 'sight', food: 'food', built: 'sight', events: 'act', fun: 'act', culture: 'sight', kids: 'act', shop: 'shop', visited: 'sight', other: 'sight' };
 

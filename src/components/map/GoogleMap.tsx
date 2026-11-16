@@ -45,12 +45,23 @@ function pinElement(): Pin['el'] {
 
 type Located = { idea: Idea }[];
 const centerOf = (t: MapProps['t'], located: Located) => tripCenter(t) || { lat: located[0]?.idea.lat ?? 0, lng: located[0]?.idea.lng ?? 0 };
-function fitPlaces(map: google.maps.Map, located: Located, fallback: google.maps.LatLngLiteral) {
+// the main cluster of places: a day trip or the airport far from the rest doesn't pull the whole map out
+// (they asked for a tighter first view; ⤢ fits every place)
+const mid = (a: number[]) => [...a].sort((x, y) => x - y)[a.length >> 1];
+function core(located: Located) {
+  if (located.length < 4) return located;
+  const lat = mid(located.map(p => p.idea.lat!)), lng = mid(located.map(p => p.idea.lng!)), k = Math.cos(lat * Math.PI / 180);
+  const d = located.map(p => Math.hypot(p.idea.lat! - lat, (p.idea.lng! - lng) * k));
+  const lim = Math.max(mid(d) * 2.5, .01); // about 1 km at least
+  return located.filter((_, n) => d[n] <= lim);
+}
+function fitPlaces(map: google.maps.Map, all: Located, fallback: google.maps.LatLngLiteral, everything = false) {
+  const located = everything ? all : core(all);
   if (located.length > 1) {
     const b = new google.maps.LatLngBounds();
     located.forEach(p => b.extend({ lat: p.idea.lat!, lng: p.idea.lng! }));
-    map.fitBounds(b, 60);
-  } else { map.setCenter(located[0] ? { lat: located[0].idea.lat!, lng: located[0].idea.lng! } : fallback); map.setZoom(located[0] ? 15 : 12); }
+    map.fitBounds(b, 32);
+  } else { map.setCenter(located[0] ? { lat: located[0].idea.lat!, lng: located[0].idea.lng! } : fallback); map.setZoom(located[0] ? 16 : 13); }
 }
 
 // labels that would overlap another pin, label or the map buttons flip to the left, or hide until zoomed in
@@ -172,7 +183,7 @@ export function GoogleMap({ t, places, routes, viewKey, hl, panTo, onPin, onMove
         <div className="map-ctrl">
           <button type="button" onClick={() => map?.setZoom((map.getZoom() ?? 13) + 1)} aria-label="Zoom in">+</button>
           <button type="button" onClick={() => map?.setZoom((map.getZoom() ?? 13) - 1)} aria-label="Zoom out">−</button>
-          <button type="button" onClick={() => { delete GVIEWS[viewKey]; if (map) fitPlaces(map, located, centerOf(t, located)); }} aria-label="Fit to places" title="Fit to places">⤢</button>
+          <button type="button" onClick={() => { delete GVIEWS[viewKey]; if (map) fitPlaces(map, located, centerOf(t, located), true); }} aria-label="Fit to places" title="Fit to places">⤢</button>
         </div>
       </div>
     </div>

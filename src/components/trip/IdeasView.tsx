@@ -5,7 +5,7 @@ import Sortable from 'sortablejs';
 import { Disc } from '@/components/Disc';
 import { MoveTo } from '@/components/MoveTo';
 import { CatIcon, KindIcon, ListSegIcon, MapSegIcon, PhotoCredit, Pic, SrcChip, vars } from '@/components/icons';
-import { BUDGETS, CAT_KEYS, CATS, dayColor, DIETS, INTERESTS, MEALS, PACE, TRIP_TO_MUHU } from '@/lib/constants';
+import { BUDGETS, CAT_KEYS, CATS, dayColor, DIETS, INTERESTS, MEALS, OLD_MEAL, PACE, TRIP_TO_MUHU } from '@/lib/constants';
 import { kindLabel } from '@/lib/kinds';
 import { searchCatalog, suggestions } from '@/lib/picks';
 import { uid } from '@/lib/seed';
@@ -217,8 +217,8 @@ export function IdeasView({ t, ui, set, mapOk }: TabProps) {
             const list = t.ideas.filter(i => inCat(i, k));
             const rows = (l: Idea[], g: string) => l.map(i => <IdeaRow key={i.id} t={t} i={i} ui={ui} set={set} group={g} openIn={openIn} setOpenIn={setOpenIn} pick={picked ? { on: picked.includes(i.id), toggle: () => pickToggle(i.id) } : null} offMap={!!i.offMap} catOff={catOff(i.cat)} toggleMap={() => editTrip(t.id, tt => { const x = tt.ideas.find(y => y.id === i.id)!; if (x.offMap) delete x.offMap; else x.offMap = true; })} />);
             // Food & drink, once any place is sorted: a list per meal (a place good for two shows in both), then the rest
-            if (k !== 'food' || !list.some(i => i.meals?.length)) return <>{k === 'food' && <span className="faint small drag-hint">Open a place to sort it under Breakfast, Lunch, Dinner or Other.</span>}<div className="group" data-cat={k}>{rows(list, k)}</div></>;
-            const meals: [Meal | 'none', string, string][] = [...MEALS, ['none', 'Not sorted yet', 'var(--ink-3)']];
+            if (k !== 'food' || !list.some(i => i.meals?.length)) return <>{k === 'food' && <span className="faint small drag-hint">Open a place to sort it by meal, from Breakfast to Drinks.</span>}<div className="group" data-cat={k}>{rows(list, k)}</div></>;
+            const meals: [Meal | 'none', string, string][] = [...MEALS, OLD_MEAL, ['none', 'Not sorted yet', 'var(--ink-3)']];
             return meals.map(([m, label, color]) => {
               const l = list.filter(i => m === 'none' ? !i.meals?.length : i.meals?.includes(m));
               return !!l.length && <div key={m} className="meal-sec" style={vars({ '--mc': color })}>
@@ -286,10 +286,10 @@ function IdeaRow({ t, i, ui, set, pick, offMap, catOff, toggleMap, group, openIn
 // food & drink: which meals it's good for, as many as fit; it's listed under each
 const flipMeal = (x: Idea, m: Meal) => {
   const l = x.meals ?? [];
-  x.meals = l.includes(m) ? l.filter(y => y !== m) : MEALS.map(([k]) => k).filter(k => k === m || l.includes(k));
+  x.meals = l.includes(m) ? l.filter(y => y !== m) : [...MEALS, OLD_MEAL].map(([k]) => k).filter(k => k === m || l.includes(k));
   if (!x.meals.length) delete x.meals;
 };
-const mealChips = (i: Idea, flip: (m: Meal) => void) => <div className="inline-field">Good for <span className="chips">{MEALS.map(([m, label, color]) => (
+const mealChips = (i: Idea, flip: (m: Meal) => void) => <div className="inline-field">Good for <span className="chips">{(i.meals?.includes('other') ? [...MEALS, OLD_MEAL] : MEALS).map(([m, label, color]) => (
   <button key={m} type="button" className="chip dchip" style={vars({ '--dc': color })} aria-pressed={!!i.meals?.includes(m)} onClick={() => flip(m)}>{label}</button>
 ))}</span></div>;
 function IdeaMeals({ t, i }: { t: Trip; i: Idea }) {

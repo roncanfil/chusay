@@ -8,7 +8,7 @@ const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 
 const str = (v: unknown, what: string) => { if (typeof v !== 'string') throw new BadRequest(`${what} must be text`); return v; };
 const arr = (v: unknown, what: string) => { if (!Array.isArray(v)) throw new BadRequest(`${what} must be a list`); return v as unknown[]; };
 const STATUSES = ['visited', 'planning', 'want', 'nope'];
-const MEALS = ['breakfast', 'lunch', 'dinner', 'other'];
+const MEALS = ['breakfast', 'brunch', 'lunch', 'snacks', 'dinner', 'latenight', 'drinks', 'other'];
 
 export function parseTrip(v: unknown, id: string): Trip {
   if (!isObj(v) || v.id !== id) throw new BadRequest('trip id does not match the URL');
@@ -21,7 +21,7 @@ export function parseTrip(v: unknown, id: string): Trip {
   for (const i of arr(v.ideas, 'ideas')) {
     if (!isObj(i)) throw new BadRequest('bad idea');
     str(i.id, 'idea.id'); str(i.name, 'idea.name'); arr(i.tags, 'idea.tags');
-    if (i.meals !== undefined && arr(i.meals, 'idea.meals').some(m => !MEALS.includes(m as string))) throw new BadRequest('meals must be breakfast, lunch, dinner or other');
+    if (i.meals !== undefined && arr(i.meals, 'idea.meals').some(m => !MEALS.includes(m as string))) throw new BadRequest('meals must be breakfast, brunch, lunch, snacks, dinner, latenight, drinks or other');
   }
   for (const d of arr(v.days, 'days')) {
     if (!isObj(d)) throw new BadRequest('bad day');

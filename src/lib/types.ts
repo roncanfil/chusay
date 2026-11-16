@@ -46,7 +46,8 @@ export interface Idea extends PlaceLike {
   muhuId?: string; // came from this Muhu idea, which waits for it to come back after the trip
   meals?: Meal[]; // food & drink: which meals it's good for; it's listed under each of them
 }
-export type Meal = 'breakfast' | 'lunch' | 'dinner' | 'other';
+// 'other' is only on places sorted before Nov 2026; it's no longer offered
+export type Meal = 'breakfast' | 'brunch' | 'lunch' | 'snacks' | 'dinner' | 'latenight' | 'drinks' | 'other';
 
 // What a booking-site link could tell about a stay; anything missing is filled in by hand.
 export interface StayPreview {
