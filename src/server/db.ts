@@ -122,6 +122,8 @@ const MIGRATIONS: string[] = [
   `ALTER TABLE ideas ADD COLUMN meals TEXT NOT NULL DEFAULT '[]';`,
   // 14: data, not a table change: the family volunteer weeks as Someday trips (see familyWeeks.ts)
   familyWeeksSql(),
+  // 15: an idea can be suggested for a day, then confirmed or deleted from the itinerary
+  `ALTER TABLE stops ADD COLUMN suggested INTEGER NOT NULL DEFAULT 0;`,
 ];
 
 // foreign keys are off while migrating, so rebuilding a table (copy, drop, rename) doesn't cascade-delete

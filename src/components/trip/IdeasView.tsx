@@ -242,10 +242,12 @@ function IdeaRow({ t, i, ui, set, pick, offMap, catOff, toggleMap, group, openIn
   const toggleOpen = () => { if (pick) return pick.toggle(); const o = open ? null : i.id; setOpenIn(group); set({ open: o, hl: o, ...(o ? { panTo: pan(o) } : {}) }); };
   const click = (e: MouseEvent) => { if (!(e.target as Element).closest('button,a')) toggleOpen(); };
   const key = (e: KeyboardEvent) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); toggleOpen(); } };
-  function setDay(k: number) {
-    const cur = scheduledDay(t, i.id);
-    editTrip(t.id, tt => { tt.days.forEach(x => { x.stops = x.stops.filter(st => st.idea !== i.id); }); if (cur !== k) tt.days[k].stops.push({ id: uid(), idea: i.id, time: '' }); });
-    toast(cur !== k ? `Added to Day ${k + 1}.` : 'Taken off the itinerary.');
+  const sugg = d >= 0 && !!t.days[d].stops.find(st => st.idea === i.id)?.suggested;
+  // tapping the day it's planned for takes it off; any other day (or confirming a suggestion) puts it there
+  function setDay(k: number, suggest = false) {
+    const off = d === k && sugg === suggest;
+    editTrip(t.id, tt => { tt.days.forEach(x => { x.stops = x.stops.filter(st => st.idea !== i.id); }); if (!off) tt.days[k].stops.push({ id: uid(), idea: i.id, time: '', ...(suggest ? { suggested: true } : {}) }); });
+    toast(off ? (suggest ? 'Suggestion deleted.' : 'Taken off the itinerary.') : suggest ? `Suggested for Day ${k + 1}. Confirm or delete it on the itinerary.` : `Added to Day ${k + 1}.`);
   }
   function remove() {
     editTrip(t.id, tt => { tt.ideas = tt.ideas.filter(x => x.id !== i.id); tt.days.forEach(x => { x.stops = x.stops.filter(st => st.idea !== i.id); }); });
@@ -256,7 +258,7 @@ function IdeaRow({ t, i, ui, set, pick, offMap, catOff, toggleMap, group, openIn
       {pick && <span className={`tick ${pick.on ? 'on' : ''}`} aria-hidden="true">{pick.on ? '✓' : ''}</span>}
       <Pic p={i} />
       <div className="main"><span className="title">{i.name}</span><span className="meta"><KindIcon p={i} />{[kindLabel(i), i.price, i.hood, i.note, (offMap || catOff) && i.lat != null && !planned(t, i) && 'not on the map'].filter(Boolean).join(' · ')}</span><SrcChip v={i.source} /></div>
-      {d >= 0 && <span className="tag-day" style={vars({ '--dc': dayColor(d) })}>Day {d + 1}</span>}
+      {d >= 0 && <span className={`tag-day ${sugg ? 'sugg' : ''}`} style={vars({ '--dc': dayColor(d) })}>{sugg ? 'Maybe ' : ''}Day {d + 1}</span>}
       {i.cat === 'stay' && !isSomeday(t) && stayLabel(t, i) && <span className="tag-day stay-tag" style={vars({ '--dc': CATS.stay.color })}>{stayLabel(t, i)}</span>}
       <span className="caret" aria-hidden="true">›</span>
     </div>
@@ -271,7 +273,8 @@ function IdeaRow({ t, i, ui, set, pick, offMap, catOff, toggleMap, group, openIn
         <IdeaPin i={i} set={set} tab="ideas" />
         <PhotoCredit p={i} />
         {isOption(i) && !isSomeday(t) && <StayDays t={t} i={i} />}
-        {!isSomeday(t) && <div className="inline-field">{d >= 0 ? 'Planned for' : 'Add to'} <span className="chips">{t.days.map((x, k) => <button key={x.id} type="button" className="chip dchip" style={vars({ '--dc': dayColor(k) })} aria-pressed={d === k} onClick={() => setDay(k)}>Day {k + 1}</button>)}</span></div>}
+        {!isSomeday(t) && <div className="inline-field">{d >= 0 && !sugg ? 'Planned for' : 'Add to'} <span className="chips">{t.days.map((x, k) => <button key={x.id} type="button" className="chip dchip" style={vars({ '--dc': dayColor(k) })} aria-pressed={d === k && !sugg} onClick={() => setDay(k)}>Day {k + 1}</button>)}</span></div>}
+        {!isSomeday(t) && !!t.days.length && <MoveTo label={sugg ? `Suggested for Day ${d + 1}` : 'Suggest for a day'}>{t.days.map((x, k) => <button key={x.id} type="button" className="chip dchip" style={vars({ '--dc': dayColor(k) })} aria-pressed={sugg && d === k} onClick={() => setDay(k, true)}>Day {k + 1}</button>)}</MoveTo>}
         <MoveIdea t={t} i={i} done={() => set({ open: null, hl: null })} />
         <div className="acts">
           {i.lat != null && !catOff && <button type="button" className="btn-sm" aria-pressed={!offMap} onClick={toggleMap}>{offMap ? 'Show on the map' : 'Hide from the map'}</button>}

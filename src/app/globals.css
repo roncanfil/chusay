@@ -919,3 +919,12 @@ h1, .brand, .section-head h2 { font-family: var(--f-serif); font-weight: 400; le
 /* a found place getting its details before it's saved, and the folded "Move to" on an opened idea */
 .more.draft { padding-top: 12px; background: color-mix(in srgb, var(--cc, var(--accent)) 5%, transparent); }
 .move-to { flex-wrap: wrap; }
+
+/* ===== Suggested stops: a maybe on the day, dashed and lighter until it's confirmed or deleted ===== */
+.subway.agenda .stn.suggested { outline: 1.5px dashed color-mix(in srgb, var(--cc) 55%, transparent); outline-offset: -1.5px; background: color-mix(in srgb, var(--cc) 5%, transparent); margin: 3px 0; }
+.stn.suggested .kb { background: transparent; color: var(--cc); border: 1.5px dashed var(--cc); }
+.stn.suggested .tx b { color: var(--ink-2); font-style: italic; }
+.sugg-tag { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--cc); }
+.sugg-acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.sugg-acts .sugg-yes { color: #fff; background: var(--accent); border-color: var(--accent); }
+.tag-day.sugg { background: transparent; border: 1.5px dashed var(--dc); }

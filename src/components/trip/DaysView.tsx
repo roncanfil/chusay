@@ -244,7 +244,10 @@ function StopItem({ t, k, s, ui, set }: { t: Trip; k: number; s: Stop; ui: TripU
     const next = sel ? null : s.id, hl = next && i ? i.id : null;
     set({ sel: next, day: k, hl, ...(hl ? { panTo: pan(hl) } : {}) });
   }
-  const controls = <StopControls t={t} k={k} s={s} set={set} removeLabel={s.own ? 'Delete this plan' : 'Take off this day'} />;
+  const controls = <StopControls t={t} k={k} s={s} set={set} removeLabel={s.own ? 'Delete this plan' : s.suggested ? 'Delete suggestion' : 'Take off this day'} />;
+  // a suggested idea is a maybe: confirm keeps it on the day, delete takes it off (it stays in Ideas)
+  const confirm = () => { editTrip(t.id, tt => { delete tt.days[k].stops.find(x => x.id === s.id)!.suggested; }); toast(`${i!.name} is on Day ${k + 1}.`); };
+  const drop = () => { editTrip(t.id, tt => { tt.days[k].stops = tt.days[k].stops.filter(x => x.id !== s.id); }); set({ sel: null, hl: null }); toast(`Deleted the suggestion. ${i!.name} is still in Ideas.`); };
   if (s.own) {
     const o = s.own;
     return (
@@ -262,9 +265,10 @@ function StopItem({ t, k, s, ui, set }: { t: Trip; k: number; s: Stop; ui: TripU
     );
   }
   return (
-    <li className={`stn ${sel ? 'sel' : ''}`} data-day={k} data-stop={s.id} data-idea={i!.id} style={vars({ '--cc': CATS[i!.cat].color })} onClick={pick}>
+    <li className={`stn ${sel ? 'sel' : ''} ${s.suggested ? 'suggested' : ''}`} data-day={k} data-stop={s.id} data-idea={i!.id} style={vars({ '--cc': CATS[i!.cat].color })} onClick={pick}>
       <span className="agtime num">{s.time}</span><Badge path={kindPath(i!)} />
-      <span className="nm"><span className="tx"><b>{i!.name}</b><small>{[kindLabel(i!), i!.price, i!.hood].filter(Boolean).join(' · ')}</small>{i!.note && !compact && !sel && <span className="note">{i!.note}</span>}</span></span>
+      <span className="nm"><span className="tx">{s.suggested && <span className="sugg-tag">Suggested</span>}<b>{i!.name}</b><small>{[kindLabel(i!), i!.price, i!.hood].filter(Boolean).join(' · ')}</small>{i!.note && !compact && !sel && <span className="note">{i!.note}</span>}</span>
+        {s.suggested && <span className="sugg-acts"><button type="button" className="btn-sm sugg-yes" onClick={confirm}>✓ Confirm</button><button type="button" className="btn-sm" onClick={drop}>Delete</button></span>}</span>
       {sel && <div className="stn-more" data-nodrag>
         <IdeaHero t={t} i={i!} />
         <IdeaNote t={t} i={i!} />

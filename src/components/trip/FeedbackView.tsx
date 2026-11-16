@@ -31,7 +31,7 @@ export function FeedbackView({ t }: { t: Trip }) {
       </div>
     </Disc>
     {t.days.map((d, k) => {
-      const stops = d.stops.filter(s => s.idea);
+      const stops = d.stops.filter(s => s.idea && !s.suggested); // a suggestion never confirmed wasn't part of the trip
       if (!stops.length) return null;
       return (
         <Disc key={d.id} k={`fb-day-${k}`} open={k === 0} cls="tint" style={vars({ '--sc': dayColor(k), '--dc': dayColor(k) })}

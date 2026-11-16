@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS stops (
   own_place_id TEXT,
   own_lat      REAL,
   own_lng      REAL,
+  suggested    INTEGER NOT NULL DEFAULT 0, -- a maybe for that day, until it's confirmed
   CHECK (idea_id IS NOT NULL OR own_title IS NOT NULL)
 );
 CREATE INDEX IF NOT EXISTS stops_day ON stops(day_id, position);

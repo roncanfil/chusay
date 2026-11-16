@@ -98,6 +98,7 @@ export interface Stop {
   time: string;
   idea?: string;
   own?: OwnPlan;
+  suggested?: boolean; // put on the day as a maybe: confirmed or deleted from the itinerary
 }
 
 export interface Day {
