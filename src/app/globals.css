@@ -119,6 +119,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .row .main { flex: 1; min-width: 0; display: grid; gap: 1px; }
 .row .title { font-weight: 600; font-size: 16px; overflow-wrap: anywhere; }
 .row .meta { font-size: 14px; color: var(--ink-3); }
+/* a collapsed idea's notes keep the line breaks they were typed with, cut off after three lines */
+.row .row-note { font-size: 14px; color: var(--ink-3); white-space: pre-line; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .row .chev { color: var(--ink-3); font-size: 20px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cc, var(--ink-3)); flex: none; }
 .more { padding: 0 18px 16px 42px; display: grid; gap: 10px; font-size: 15px; color: var(--ink-2); }
@@ -484,7 +486,7 @@ h1 { font-weight: 700; letter-spacing: -.02em; }
 .stn .tx small { color: var(--ink-3); font-size: 13.5px; display: flex; align-items: center; flex-wrap: wrap; }
 .stn .tx .ic-sm { margin-right: 5px; vertical-align: 0; }
 .stn .tx .ic-sm svg { width: 14px; height: 14px; }
-.stn .note { font-size: 13.5px; color: var(--ink-2); margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.stn .note { font-size: 13.5px; color: var(--ink-2); margin-top: 2px; white-space: pre-line; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .stn .time { align-self: start; margin-top: calc(var(--c) - 11px); font-size: 12.5px; font-weight: 600; color: var(--ink-2); background: var(--surface-2); padding: 2px 8px; border-radius: 999px; text-align: center; }
 .stn .time:empty { visibility: hidden; padding: 0; }
 .stn-more { grid-column: 2 / 4; padding: 0 0 14px 70px; }

@@ -257,7 +257,7 @@ function IdeaRow({ t, i, ui, set, pick, offMap, catOff, toggleMap, group, openIn
     <div className={`row link ${open || pick?.on ? 'sel' : ''}`} data-row={i.id} style={vars({ '--cc': CATS[i.cat].color })} aria-expanded={pick ? undefined : open} aria-checked={pick ? pick.on : undefined} role={pick ? 'checkbox' : undefined} tabIndex={0} onClick={click} onKeyDown={key}>
       {pick && <span className={`tick ${pick.on ? 'on' : ''}`} aria-hidden="true">{pick.on ? '✓' : ''}</span>}
       <Pic p={i} />
-      <div className="main"><span className="title">{i.name}</span><span className="meta"><KindIcon p={i} />{[kindLabel(i), i.price, i.hood, i.note, (offMap || catOff) && i.lat != null && !planned(t, i) && 'not on the map'].filter(Boolean).join(' · ')}</span><SrcChip v={i.source} /></div>
+      <div className="main"><span className="title">{i.name}</span><span className="meta"><KindIcon p={i} />{[kindLabel(i), i.price, i.hood, (offMap || catOff) && i.lat != null && !planned(t, i) && 'not on the map'].filter(Boolean).join(' · ')}</span>{i.note && <span className="row-note">{i.note}</span>}<SrcChip v={i.source} /></div>
       {d >= 0 && <span className={`tag-day ${sugg ? 'sugg' : ''}`} style={vars({ '--dc': dayColor(d) })}>{sugg ? 'Maybe ' : ''}Day {d + 1}</span>}
       {i.cat === 'stay' && !isSomeday(t) && stayLabel(t, i) && <span className="tag-day stay-tag" style={vars({ '--dc': CATS.stay.color })}>{stayLabel(t, i)}</span>}
       <span className="caret" aria-hidden="true">›</span>
