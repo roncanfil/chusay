@@ -8,12 +8,12 @@ import { needsSettling, settleMoved } from '@/lib/muhu';
 import { resetData, toast, update, useAppState, useConfig, useToast } from '@/lib/store';
 
 function Logo() {
+  // hummingbird in a compass ring (picked 2026-11-16; same drawing as src/app/icon.svg)
   return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="16" cy="16" r="15" fill="var(--accent)" />
-      <path d="M8 21c3-1 4-6 8-6s4 4 8 2" fill="none" stroke="var(--on-accent)" strokeWidth="2.2" strokeLinecap="round" strokeDasharray="0.1 4.2" />
-      <circle cx="8" cy="21" r="2.4" fill="var(--on-accent)" />
-      <path d="M24 9.5a3.2 3.2 0 0 0-3.2 3.2c0 2.4 3.2 5.3 3.2 5.3s3.2-2.9 3.2-5.3A3.2 3.2 0 0 0 24 9.5Z" fill="var(--on-accent)" />
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <g fill="var(--accent)"><polygon points="32,0.5 35.5,7 28.5,7"/><polygon points="63.5,32 57,35.5 57,28.5"/><polygon points="32,63.5 28.5,57 35.5,57"/><polygon points="0.5,32 7,28.5 7,35.5"/></g>
+      <circle cx="32" cy="32" r="24" fill="none" stroke="var(--accent)" strokeWidth="3" />
+      <g fill="var(--accent)" transform="translate(16 15.5) scale(.5)"><polygon points="2,12 18.5,19 17.5,22.5" /><circle cx="23" cy="22" r="6.2" /><path d="M18 23 C18 35 27 44 40 48 C43 49 45 47 44 44 C40 35 34 27 28 19 Z" /><path d="M25 22 C31 11 42 5 59 2 C53 11 46 23 35.5 33 Z" /><path d="M39 46 L46 61 L47 51 L56 56 L44 44 Z" /></g>
     </svg>
   );
 }
