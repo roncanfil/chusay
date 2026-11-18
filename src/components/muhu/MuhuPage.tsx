@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent, ty
 import { Disc } from '@/components/Disc';
 import { MoveTo } from '@/components/MoveTo';
 import { NewCategory } from '@/components/NewCategory';
-import { ListSegIcon, MapSegIcon, PinSvg, SrcChip, vars } from '@/components/icons';
+import { ListSegIcon, MapSegIcon, PinSvg, SrcChip, SrcOpen, vars } from '@/components/icons';
 import { GoogleMap, useMapsFailed } from '@/components/map/GoogleMap';
 import type { MapPlace, PanRequest } from '@/components/map/TripMap';
 import { CATS, MUHU_CATS, MUHU_KEYS, MUHU_TO_TRIP, WANT } from '@/lib/constants';
@@ -99,7 +99,7 @@ function ImportForm({ S, cid, onDone }: { S: AppState; cid: string; onDone: (cid
 }
 
 function TextField({ label, value, set, ph }: { label: string; value: string; set: (v: string) => void; ph: string }) {
-  return <label className="note-field"><span>{label}</span><input className="input" value={value} onChange={e => set(e.target.value)} placeholder={ph} /></label>;
+  return <label className="note-field"><span>{label}</span><input className="input" value={value} onChange={e => set(e.target.value)} placeholder={ph} />{label === 'Source' && <SrcOpen v={value} />}</label>;
 }
 
 // the side panel only fits on wide screens; phones open everything in place

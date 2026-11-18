@@ -605,6 +605,8 @@ a.src:hover { text-decoration: underline; }
 .linkbtn svg { width: 15px; height: 15px; color: var(--c-act); }
 .pin-btn svg { color: var(--accent-ink); }
 .src-in { font-size: 15px; padding: 8px 10px; }
+.src-open { justify-self: start; margin-top: 2px; }
+.src-open .faint { font-weight: 400; margin-left: 4px; }
 .stn-more .input { font-size: 15px; padding: 8px 10px; background: var(--surface); }
 .stn.own .tx b { color: color-mix(in srgb, var(--c-own) 70%, var(--ink)); }
 .stn.own .nm .ic { background: color-mix(in srgb, var(--c-own) 12%, var(--surface)); outline: 2px dashed color-mix(in srgb, var(--c-own) 45%, transparent); outline-offset: -2px; }

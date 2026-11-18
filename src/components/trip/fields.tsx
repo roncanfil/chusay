@@ -1,4 +1,4 @@
-import { Pic, PinSvg, vars } from '@/components/icons';
+import { Pic, PinSvg, SrcOpen, vars } from '@/components/icons';
 import { NewCategory } from '@/components/NewCategory';
 import { useMapsFailed } from '@/components/map/GoogleMap';
 import { CATS, CAT_KEYS } from '@/lib/constants';
@@ -62,6 +62,7 @@ export function IdeaSource({ t, i }: { t: Trip; i: Idea }) {
   return (
     <label className="note-field"><span>Source</span>
       <input className="input src-in" value={i.source || ''} onChange={e => editIdea(t.id, i.id, x => { x.source = e.target.value; })} placeholder="Paste a link (Google Maps, blog, video) or who told you" />
+      <SrcOpen v={i.source} />
     </label>
   );
 }

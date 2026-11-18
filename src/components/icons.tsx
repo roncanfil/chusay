@@ -61,3 +61,9 @@ export function SrcChip({ v }: { v?: string }) {
   if (isUrl(s)) return <a className="src" href={s} target="_blank" rel="noopener noreferrer" title={s}><LinkSvg /><span>{host(s)}</span></a>;
   return <span className="src said"><TalkSvg /><span>{s}</span></span>;
 }
+
+// under a Source box: when it holds a link, a button that opens it (the box itself is just text to edit)
+export function SrcOpen({ v }: { v?: string }) {
+  const s = (v || '').trim(); if (!isUrl(s)) return null;
+  return <a className="btn-sm linkbtn src-open" href={s} target="_blank" rel="noopener noreferrer" title={s}><LinkSvg />Open link<span className="faint small">{host(s)}</span></a>;
+}
