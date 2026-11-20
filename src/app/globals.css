@@ -605,8 +605,6 @@ a.src:hover { text-decoration: underline; }
 .linkbtn svg { width: 15px; height: 15px; color: var(--c-act); }
 .pin-btn svg { color: var(--accent-ink); }
 .src-in { font-size: 15px; padding: 8px 10px; }
-.src-open { justify-self: start; margin-top: 2px; }
-.src-open .faint { font-weight: 400; margin-left: 4px; }
 .stn-more .input { font-size: 15px; padding: 8px 10px; background: var(--surface); }
 .stn.own .tx b { color: color-mix(in srgb, var(--c-own) 70%, var(--ink)); }
 .stn.own .nm .ic { background: color-mix(in srgb, var(--c-own) 12%, var(--surface)); outline: 2px dashed color-mix(in srgb, var(--c-own) 45%, transparent); outline-offset: -2px; }
@@ -930,3 +928,12 @@ h1, .brand, .section-head h2 { font-family: var(--f-serif); font-weight: 400; le
 .sugg-acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .sugg-acts .sugg-yes { color: #fff; background: var(--accent); border-color: var(--accent); }
 .tag-day.sugg { background: transparent; border: 1.5px dashed var(--dc); }
+
+/* an idea's sources: saved links show as chips with a small Edit beside them; the box comes back only to change or add one */
+.srcs { display: flex; flex-wrap: wrap; gap: 0 6px; }
+.src-list { display: grid; gap: 6px; font-weight: 400; }
+.src-item { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.src-item .src { margin-top: 0; }
+.src-edit { display: flex; align-items: center; gap: 8px; }
+.src-edit .input { flex: 1; min-width: 0; }
+.src-add { justify-self: start; }

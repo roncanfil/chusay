@@ -4,7 +4,7 @@ import { CATS, ICON, KINDS, type IconKey } from '@/lib/constants';
 import { kindPath } from '@/lib/kinds';
 import { usePhoto } from '@/lib/photos';
 import { useAppState, useConfig } from '@/lib/store';
-import { host, isMaps, isUrl } from '@/lib/trips';
+import { host, isMaps, isUrl, sources } from '@/lib/trips';
 import type { PlaceLike } from '@/lib/types';
 
 // CSS custom properties (--cc, --dc, --sc, …) carry the color coding
@@ -54,16 +54,13 @@ export const PinSvg = () => <svg viewBox="0 0 24 24" {...stroke} strokeWidth="2.
 export const MapSegIcon = () => <svg viewBox="0 0 24 24" {...stroke} strokeWidth="2" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14" /></svg>;
 export const ListSegIcon = () => <svg viewBox="0 0 24 24" {...stroke} strokeWidth="2" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" /></svg>;
 
-// where an idea came from: a link (blog, video, post) opens it; plain text is who told us
+// where an idea came from: a link (blog, video, post) opens it; plain text is who told us. Several sources show one chip each
 export function SrcChip({ v }: { v?: string }) {
-  const s = (v || '').trim(); if (!s) return null;
+  const all = sources(v); if (!all.length) return null;
+  return all.length === 1 ? <OneSrc s={all[0]} /> : <span className="srcs">{all.map((s, n) => <OneSrc key={n} s={s} />)}</span>;
+}
+export function OneSrc({ s }: { s: string }) {
   if (isMaps(s)) return <a className="src maps" href={s} target="_blank" rel="noopener noreferrer" title={s}><PinSvg /><span>Google Maps</span></a>;
   if (isUrl(s)) return <a className="src" href={s} target="_blank" rel="noopener noreferrer" title={s}><LinkSvg /><span>{host(s)}</span></a>;
   return <span className="src said"><TalkSvg /><span>{s}</span></span>;
-}
-
-// under a Source box: when it holds a link, a button that opens it (the box itself is just text to edit)
-export function SrcOpen({ v }: { v?: string }) {
-  const s = (v || '').trim(); if (!isUrl(s)) return null;
-  return <a className="btn-sm linkbtn src-open" href={s} target="_blank" rel="noopener noreferrer" title={s}><LinkSvg />Open link<span className="faint small">{host(s)}</span></a>;
 }

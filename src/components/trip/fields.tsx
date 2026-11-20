@@ -1,10 +1,11 @@
-import { Pic, PinSvg, SrcOpen, vars } from '@/components/icons';
+import { Pic, PinSvg, vars } from '@/components/icons';
 import { NewCategory } from '@/components/NewCategory';
+import { SourceField } from '@/components/SourceField';
 import { useMapsFailed } from '@/components/map/GoogleMap';
 import { CATS, CAT_KEYS } from '@/lib/constants';
 import { editIdea, setView, toggleMapHidden, useConfig, useSession } from '@/lib/store';
 import { kindLabel } from '@/lib/kinds';
-import { gmaps, inCat, isMaps, stayLabel } from '@/lib/trips';
+import { gmaps, inCat, isMaps, sources, stayLabel } from '@/lib/trips';
 import type { Idea, Trip } from '@/lib/types';
 import type { MouseEvent } from 'react';
 import type { SetUI } from './ui';
@@ -59,16 +60,11 @@ export function IdeaCat({ t, i }: { t: Trip; i: Idea }) {
 }
 
 export function IdeaSource({ t, i }: { t: Trip; i: Idea }) {
-  return (
-    <label className="note-field"><span>Source</span>
-      <input className="input src-in" value={i.source || ''} onChange={e => editIdea(t.id, i.id, x => { x.source = e.target.value; })} placeholder="Paste a link (Google Maps, blog, video) or who told you" />
-      <SrcOpen v={i.source} />
-    </label>
-  );
+  return <SourceField value={i.source} set={v => editIdea(t.id, i.id, x => { if (v) x.source = v; else delete x.source; })} />;
 }
 
 // offered when the source isn't already a Google Maps link
 export function MapsLink({ t, i }: { t: Trip; i: Idea }) {
-  if (isMaps(i.source)) return null;
+  if (sources(i.source).some(isMaps)) return null;
   return <div><a className="btn-sm linkbtn" href={gmaps(t, i)} target="_blank" rel="noopener noreferrer"><PinSvg />Open in Google Maps</a></div>;
 }

@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent, ty
 import { Disc } from '@/components/Disc';
 import { MoveTo } from '@/components/MoveTo';
 import { NewCategory } from '@/components/NewCategory';
-import { ListSegIcon, MapSegIcon, PinSvg, SrcChip, SrcOpen, vars } from '@/components/icons';
+import { SourceField } from '@/components/SourceField';
+import { ListSegIcon, MapSegIcon, PinSvg, SrcChip, vars } from '@/components/icons';
 import { GoogleMap, useMapsFailed } from '@/components/map/GoogleMap';
 import type { MapPlace, PanRequest } from '@/components/map/TripMap';
 import { CATS, MUHU_CATS, MUHU_KEYS, MUHU_TO_TRIP, WANT } from '@/lib/constants';
@@ -99,7 +100,7 @@ function ImportForm({ S, cid, onDone }: { S: AppState; cid: string; onDone: (cid
 }
 
 function TextField({ label, value, set, ph }: { label: string; value: string; set: (v: string) => void; ph: string }) {
-  return <label className="note-field"><span>{label}</span><input className="input" value={value} onChange={e => set(e.target.value)} placeholder={ph} />{label === 'Source' && <SrcOpen v={value} />}</label>;
+  return <label className="note-field"><span>{label}</span><input className="input" value={value} onChange={e => set(e.target.value)} placeholder={ph} /></label>;
 }
 
 // the side panel only fits on wide screens; phones open everything in place
@@ -221,7 +222,7 @@ function MuhuDetails({ S, m, onCompare }: { S: AppState; m: MuhuIdea; onCompare?
       <TextField label="When to go" value={m.when} set={v => ed(x => { x.when = v; })} ph="e.g. June, or Sunset" />
       <TextField label="Getting there" value={m.far} set={v => ed(x => { x.far = v; })} ph="e.g. 1 hr by car" />
     </div>
-    <TextField label="Source" value={m.source || ''} set={v => ed(x => { x.source = v; })} ph="Paste a link (Google Maps, blog, video) or who told you" />
+    <SourceField value={m.source} set={v => ed(x => { x.source = v; })} />
     <div className="inline-field">Category <span className="chips">{MUHU_KEYS.map(k => {
       const on = m.cats.includes(k);
       return <button key={k} type="button" className="chip dchip" style={vars({ '--dc': MUHU_CATS[k].color })} aria-pressed={on}

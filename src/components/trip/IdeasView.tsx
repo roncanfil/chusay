@@ -4,7 +4,8 @@ import { Fragment, useEffect, useRef, useState, type FormEvent, type KeyboardEve
 import Sortable from 'sortablejs';
 import { Disc } from '@/components/Disc';
 import { MoveTo } from '@/components/MoveTo';
-import { CatIcon, KindIcon, ListSegIcon, MapSegIcon, PhotoCredit, Pic, SrcChip, SrcOpen, vars } from '@/components/icons';
+import { SourceField } from '@/components/SourceField';
+import { CatIcon, KindIcon, ListSegIcon, MapSegIcon, PhotoCredit, Pic, SrcChip, vars } from '@/components/icons';
 import { BUDGETS, CAT_KEYS, CATS, dayColor, DIETS, INTERESTS, MEALS, OLD_MEAL, PACE, TRIP_TO_MUHU } from '@/lib/constants';
 import { kindLabel } from '@/lib/kinds';
 import { searchCatalog, suggestions } from '@/lib/picks';
@@ -306,10 +307,7 @@ function DraftIdea({ draft: i, change, save, cancel }: { draft: Idea; change: (f
       <label className="note-field"><span>Our notes</span>
         <textarea rows={2} value={i.note} autoFocus onChange={e => change(x => { x.note = e.target.value; })} placeholder="Add a note: booking info, what to order, who recommended it…" />
       </label>
-      <label className="note-field"><span>Source</span>
-        <input className="input src-in" value={i.source || ''} onChange={e => change(x => { x.source = e.target.value; })} placeholder="Paste a link (Google Maps, blog, video) or who told you" />
-        <SrcOpen v={i.source} />
-      </label>
+      <SourceField value={i.source} set={v => change(x => { x.source = v; })} />
       <div className="inline-field">Category <span className="chips">{CAT_KEYS.map(k => <button key={k} type="button" className="chip dchip" style={vars({ '--dc': CATS[k].color })} aria-pressed={inCat(i, k)} title={i.cat === k ? 'The main one: its color on the map' : undefined} onClick={() => change(x => toggleCat(x, k))}>{CATS[k].label}</button>)}</span></div>
       {inCat(i, 'food') && mealChips(i, m => change(x => flipMeal(x, m)))}
       <div className="acts"><span className="sp" /><button type="button" className="btn quiet" onClick={cancel}>Cancel</button><button type="submit" className="btn primary">Save idea</button></div>
