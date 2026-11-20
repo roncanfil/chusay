@@ -38,7 +38,8 @@ export function loadState(db: Database): AppState {
           id: String(d.id), title: String(d.title),
           stops: stops.filter(s => s.day_id === d.id).map(s => s.idea_id
             ? { id: String(s.id), idea: String(s.idea_id), time: String(s.time), ...(s.suggested ? { suggested: true } : {}) }
-            : { id: String(s.id), time: String(s.time), own: { title: String(s.own_title ?? ''), where: String(s.own_where ?? ''), note: String(s.own_note ?? ''), link: String(s.own_link ?? '') } }),
+            : { id: String(s.id), time: String(s.time), own: { title: String(s.own_title ?? ''), where: String(s.own_where ?? ''), note: String(s.own_note ?? ''), link: String(s.own_link ?? ''),
+              ...(s.own_cat ? { cat: s.own_cat as Cat } : {}), ...(s.own_meals && s.own_meals !== '[]' ? { meals: json<Meal[]>(s.own_meals, []) } : {}) } }),
         })),
         feedback: {
           again: ((fb?.go_back as string) ?? '') as Trip['feedback']['again'], highlights: String(fb?.highlights ?? ''), next: String(fb?.next_time ?? ''),
@@ -89,11 +90,11 @@ export function saveTrip(db: Database, t: Trip) {
         price = excluded.price, image = excluded.image, stay_days = excluded.stay_days, map_hidden = excluded.map_hidden, extra_cats = excluded.extra_cats, muhu_id = excluded.muhu_id, meals = excluded.meals, position = excluded.position`);
     t.ideas.forEach((i, pos) => idea.run({ id: i.id, trip: t.id, place: i.placeId ?? null, name: i.name, cat: i.cat, kind: i.kind ?? null, area: i.hood, lat: i.lat, lng: i.lng, tags: JSON.stringify(i.tags), note: i.note, source: i.source ?? '', price: i.price ?? '', image: i.image ?? '', stayDays: JSON.stringify(i.stayDays ?? []), hidden: i.offMap ? 1 : 0, extra: JSON.stringify(i.extraCats ?? []), muhuId: i.muhuId ?? null, meals: JSON.stringify(i.meals ?? []), pos }));
     const day = db.prepare('INSERT INTO days (id, trip_id, position, title) VALUES (?, ?, ?, ?)');
-    const stop = db.prepare(`INSERT INTO stops (id, day_id, idea_id, position, time, own_title, own_where, own_note, own_link, suggested)
-      VALUES (@id, @day, @idea, @pos, @time, @title, @where, @note, @link, @sugg)`);
+    const stop = db.prepare(`INSERT INTO stops (id, day_id, idea_id, position, time, own_title, own_where, own_note, own_link, own_cat, own_meals, suggested)
+      VALUES (@id, @day, @idea, @pos, @time, @title, @where, @note, @link, @cat, @meals, @sugg)`);
     t.days.forEach((d, dpos) => {
       day.run(d.id, t.id, dpos, d.title);
-      d.stops.forEach((s, pos) => stop.run({ id: s.id, day: d.id, idea: s.own ? null : s.idea, pos, time: s.time, title: s.own?.title ?? null, where: s.own?.where ?? null, note: s.own?.note ?? null, link: s.own?.link ?? null, sugg: !s.own && s.suggested ? 1 : 0 }));
+      d.stops.forEach((s, pos) => stop.run({ id: s.id, day: d.id, idea: s.own ? null : s.idea, pos, time: s.time, title: s.own?.title ?? null, where: s.own?.where ?? null, note: s.own?.note ?? null, link: s.own?.link ?? null, cat: s.own?.cat ?? null, meals: JSON.stringify(s.own?.meals ?? []), sugg: !s.own && s.suggested ? 1 : 0 }));
     });
     db.prepare(`INSERT INTO feedback (trip_id, go_back, highlights, next_time) VALUES (?, ?, ?, ?)
       ON CONFLICT(trip_id) DO UPDATE SET go_back = excluded.go_back, highlights = excluded.highlights, next_time = excluded.next_time`)

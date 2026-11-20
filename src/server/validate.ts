@@ -26,7 +26,10 @@ export function parseTrip(v: unknown, id: string): Trip {
   for (const d of arr(v.days, 'days')) {
     if (!isObj(d)) throw new BadRequest('bad day');
     str(d.id, 'day.id');
-    for (const s of arr(d.stops, 'stops')) { if (!isObj(s) || (!s.idea && !isObj(s.own))) throw new BadRequest('a stop needs an idea or its own title'); str(s.id, 'stop.id'); }
+    for (const s of arr(d.stops, 'stops')) { if (!isObj(s) || (!s.idea && !isObj(s.own))) throw new BadRequest('a stop needs an idea or its own title'); str(s.id, 'stop.id');
+      if (isObj(s.own) && s.own.cat !== undefined) str(s.own.cat, 'own.cat');
+      if (isObj(s.own) && s.own.meals !== undefined && arr(s.own.meals, 'own.meals').some(m => !MEALS.includes(m as string))) throw new BadRequest('meals must be breakfast, brunch, lunch, snacks, dinner, latenight, drinks or other');
+    }
   }
   if (!isObj(v.feedback) || !isObj(v.feedback.votes)) throw new BadRequest('feedback is missing');
   return v as unknown as Trip;

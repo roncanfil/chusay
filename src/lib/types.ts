@@ -91,6 +91,8 @@ export interface OwnPlan {
   where: string;
   note: string;
   link: string;
+  cat?: Cat; // a category gives it that color, like a saved place; none keeps the Custom pink
+  meals?: Meal[]; // food & drink: which meal it's for
 }
 
 export interface Stop {
