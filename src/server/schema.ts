@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS stops (
   own_place_id TEXT,
   own_lat      REAL,
   own_lng      REAL,
+  own_cat      TEXT,                       -- custom plans: an optional category, for its color
+  own_meals    TEXT NOT NULL DEFAULT '[]', -- custom food & drink plans: JSON meals
   suggested    INTEGER NOT NULL DEFAULT 0, -- a maybe for that day, until it's confirmed
   CHECK (idea_id IS NOT NULL OR own_title IS NOT NULL)
 );

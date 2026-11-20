@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react';
 import Sortable from 'sortablejs';
 import { CatIcon, MapSegIcon, PhotoCredit, Pic, vars } from '@/components/icons';
-import { CATS, dayColor, ICON } from '@/lib/constants';
+import { CAT_KEYS, CATS, dayColor, ICON, MEALS } from '@/lib/constants';
 import { kindLabel, kindPath } from '@/lib/kinds';
 import { suggestDay } from '@/lib/picks';
 import { uid } from '@/lib/seed';
 import { findPlaces } from '@/lib/search';
 import { editTrip, setView, toast, useConfig, useView } from '@/lib/store';
 import { dayDate, fmtDay, fmtRange, ideaOf, isOption, offMap, scheduledDay, staysOn, wholeTrip } from '@/lib/trips';
-import type { Idea, OwnPlan, PlaceResult, Stop, Trip } from '@/lib/types';
+import type { Cat, Idea, Meal, OwnPlan, PlaceResult, Stop, Trip } from '@/lib/types';
 import { IdeaCat, IdeaHero, IdeaNote, IdeaPin, IdeaSource, MapsLink } from './fields';
 import { StayDays, StayFields } from './stays';
 import { pan, type SetUI, type TabProps, type TripUI } from './ui';
@@ -74,13 +74,13 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
     set({ day: k }); toast(`Planned ${n} places close to each other. Drag to reorder.`);
   }
   // our own entry lands in time order when a time is given
-  function addOwn(k: number, title: string, time: string) {
-    const s: Stop = { id: uid(), time, own: { title, where: '', note: '', link: '' } };
+  function addOwn(k: number, title: string, time: string, cat?: Cat, meals?: Meal[]) {
+    const s: Stop = { id: uid(), time, own: { title, where: '', note: '', link: '', ...(cat ? { cat } : {}), ...(cat === 'food' && meals?.length ? { meals } : {}) } };
     editTrip(t.id, tt => {
       const d = tt.days[k]; d.stops.push(s);
       if (s.time) { const timed = d.stops.filter(x => x.time).sort((a, b) => a.time.localeCompare(b.time)); let n = 0; d.stops = d.stops.map(x => x.time ? timed[n++] : x); }
     });
-    set({ day: k, sel: s.id, addPanel: null }); toast(`Added to Day ${k + 1}. You can add where and notes now.`);
+    set({ day: k, sel: s.id, addPanel: null }); toast(`Added to Day ${k + 1}. You can add ${cat ? '' : 'a category, '}where and notes now.`);
   }
   // a stay or rental car is kept for the whole trip and shown once above the days; its days can be narrowed when it's opened
   function addToDay(k: number, ideaId: string) {
@@ -157,7 +157,7 @@ export function DaysView({ t, ui, set, mapOk }: TabProps) {
                 <div className="day-add">{pill('ideas', <>+ From ideas <span className="n">{unplanned.length}</span></>)}{pill('own', '+ Custom')}</div>
               </div>
               {staysOn(t, k).map(i => optionLine(i, k))}
-              {ap === 'own' && <OwnForm onAdd={(title, time) => addOwn(k, title, time)} />}
+              {ap === 'own' && <OwnForm onAdd={(title, time, cat, meals) => addOwn(k, title, time, cat, meals)} />}
               {ap === 'ideas' && (
                 <div className="add-panel"><NewPlace t={t} k={k} onAdd={p => addNew(k, p)} onCustom={title => addOwn(k, title, '')} />{unplanned.length
                   ? <><p className="faint small adder-label">Or pick one you saved:</p><div className="adder" data-day={k}>{unplanned.map(i => (
@@ -211,12 +211,14 @@ function NewPlace({ t, k, onAdd, onCustom }: { t: Trip; k: number; onAdd: (p: Pl
 }
 
 // + Custom: a title and an optional time, with quick chips for common ones
-function OwnForm({ onAdd }: { onAdd: (title: string, time: string) => void }) {
+function OwnForm({ onAdd }: { onAdd: (title: string, time: string, cat?: Cat, meals?: Meal[]) => void }) {
   const [title, setTitle] = useState('');
+  const [cat, setCat] = useState<Cat | undefined>();
+  const [meals, setMeals] = useState<Meal[]>([]);
   const ref = useRef<HTMLInputElement>(null);
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const tt = title.trim(); if (tt) onAdd(tt, String(new FormData(e.currentTarget).get('time') || ''));
+    const tt = title.trim(); if (tt) onAdd(tt, String(new FormData(e.currentTarget).get('time') || ''), cat, meals);
   }
   return (
     <div className="add-panel own">
@@ -226,6 +228,7 @@ function OwnForm({ onAdd }: { onAdd: (title: string, time: string) => void }) {
         <button className="btn primary" type="submit">Add</button>
       </form>
       <div className="chips quick">{QUICK.map(q => <button key={q} type="button" className="chip" onClick={() => { setTitle(q); ref.current?.focus(); }}>{q}</button>)}</div>
+      <OwnCat cat={cat} meals={meals} onCat={setCat} onMeals={setMeals} />
     </div>
   );
 }
@@ -249,13 +252,20 @@ function StopItem({ t, k, s, ui, set }: { t: Trip; k: number; s: Stop; ui: TripU
   const confirm = () => { editTrip(t.id, tt => { delete tt.days[k].stops.find(x => x.id === s.id)!.suggested; }); toast(`${i!.name} is on Day ${k + 1}.`); };
   const drop = () => { editTrip(t.id, tt => { tt.days[k].stops = tt.days[k].stops.filter(x => x.id !== s.id); }); set({ sel: null, hl: null }); toast(`Deleted the suggestion. ${i!.name} is still in Ideas.`); };
   if (s.own) {
-    const o = s.own;
+    const o = s.own, c = o.cat && CATS[o.cat] ? o.cat : undefined;
+    // with a category it takes that color and icon (and its meals), like a saved place
+    const color = c ? CATS[c].color : 'var(--c-own)';
+    const what = c ? [CATS[c].label, ...(c === 'food' ? MEALS.filter(([m]) => o.meals?.includes(m)).map(([, l]) => l) : [])].join(' · ') : 'Custom';
+    const edit = (fn: (x: OwnPlan) => void) => editTrip(t.id, tt => { fn(tt.days[k].stops.find(x => x.id === s.id)!.own!); });
     return (
-      <li className={`stn own ${sel ? 'sel' : ''}`} data-day={k} data-stop={s.id} style={vars({ '--cc': 'var(--c-own)' })} onClick={pick}>
-        <span className="agtime num">{s.time}</span><Badge path={ICON.own} />
-        <span className="nm"><span className="tx"><b>{o.title || 'Our plan'}</b><small>Custom{o.where ? ' · ' + o.where : ''}</small>{o.note && !compact && <span className="note">{o.note}</span>}</span></span>
+      <li className={`stn own ${sel ? 'sel' : ''}`} data-day={k} data-stop={s.id} style={vars({ '--cc': color, '--c-own': color })} onClick={pick}>
+        <span className="agtime num">{s.time}</span><Badge path={c ? kindPath({ name: o.title, cat: c }) : ICON.own} />
+        <span className="nm"><span className="tx"><b>{o.title || 'Our plan'}</b><small>{what}{o.where ? ' · ' + o.where : ''}</small>{o.note && !compact && <span className="note">{o.note}</span>}</span></span>
         {sel && <div className="stn-more" data-nodrag>
           <OwnField t={t} k={k} s={s} f="title" label="What" ph="Meet friends, a reservation, free time…" />
+          <OwnCat cat={c} meals={o.meals ?? []}
+            onCat={v => edit(x => { if (v) x.cat = v; else delete x.cat; if (v !== 'food') delete x.meals; })}
+            onMeals={v => edit(x => { if (v.length) x.meals = v; else delete x.meals; })} />
           <OwnField t={t} k={k} s={s} f="where" label="Where" ph="An address, their place, a café… (optional)" />
           <OwnField t={t} k={k} s={s} f="note" label="Notes" ph="Who’s coming, what to bring…" multiline />
           <OwnField t={t} k={k} s={s} f="link" label="Link" ph="Tickets, event page, a message thread… (optional)" />
@@ -285,8 +295,18 @@ function StopItem({ t, k, s, ui, set }: { t: Trip; k: number; s: Stop; ui: TripU
   );
 }
 
+// a custom plan's category, the same choices as for saved places (tap again to clear it); food & drink also asks which meal
+function OwnCat({ cat, meals, onCat, onMeals }: { cat?: Cat; meals: Meal[]; onCat: (c?: Cat) => void; onMeals: (m: Meal[]) => void }) {
+  return <>
+    <div className="inline-field">Category <span className="chips">{CAT_KEYS.filter(c => c !== 'car').map(c => <button key={c} type="button" className="chip dchip" style={vars({ '--dc': CATS[c].color })} aria-pressed={cat === c} onClick={() => onCat(cat === c ? undefined : c)}>{CATS[c].label}</button>)}</span></div>
+    {cat === 'food' && <div className="inline-field">Good for <span className="chips">{MEALS.map(([m, label, color]) => (
+      <button key={m} type="button" className="chip dchip" style={vars({ '--dc': color })} aria-pressed={meals.includes(m)} onClick={() => onMeals(MEALS.map(([x]) => x).filter(x => x === m ? !meals.includes(m) : meals.includes(x)))}>{label}</button>
+    ))}</span></div>}
+  </>;
+}
+
 // custom entries: what, where, notes and a link (tickets, an event page)
-function OwnField({ t, k, s, f, label, ph, multiline }: { t: Trip; k: number; s: Stop; f: keyof OwnPlan; label: string; ph: string; multiline?: boolean }) {
+function OwnField({ t, k, s, f, label, ph, multiline }: { t: Trip; k: number; s: Stop; f: 'title' | 'where' | 'note' | 'link'; label: string; ph: string; multiline?: boolean }) {
   const change = (v: string) => editTrip(t.id, tt => { tt.days[k].stops.find(x => x.id === s.id)!.own![f] = v; });
   return (
     <label className="note-field"><span>{label}</span>

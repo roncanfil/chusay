@@ -124,6 +124,9 @@ const MIGRATIONS: string[] = [
   familyWeeksSql(),
   // 15: an idea can be suggested for a day, then confirmed or deleted from the itinerary
   `ALTER TABLE stops ADD COLUMN suggested INTEGER NOT NULL DEFAULT 0;`,
+  // 16: a custom plan can have a category (and meals, for food & drink) so it's color coded like a place
+  `ALTER TABLE stops ADD COLUMN own_cat TEXT;
+   ALTER TABLE stops ADD COLUMN own_meals TEXT NOT NULL DEFAULT '[]';`,
 ];
 
 // foreign keys are off while migrating, so rebuilding a table (copy, drop, rename) doesn't cascade-delete
